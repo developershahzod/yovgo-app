@@ -1,0 +1,306 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: yuvgo_postgres
+    environment:
+      POSTGRES_USER: yuvgo
+      POSTGRES_PASSWORD: yuvgo_password
+      POSTGRES_DB: yuvgo_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - yuvgo_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yuvgo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and QR tokens
+  redis:
+    image: redis:7-alpine
+    container_name: yuvgo_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - yuvgo_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Gateway API Service
+  gateway:
+    build:
+      context: ./backend
+      dockerfile: gateway/Dockerfile
+    container_name: yuvgo_gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key-change-in-production
+      - ENVIRONMENT=development
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/gateway:/app
+    networks:
+      - yuvgo_network
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+  # User Service
+  user_service:
+    build:
+      context: ./backend
+      dockerfile: services/user/Dockerfile
+    container_name: yuvgo_user_service
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key-change-in-production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/services/user:/app
+    networks:
+      - yuvgo_network
+    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+
+  # Subscription Service
+  subscription_service:
+    build:
+      context: ./backend
+      dockerfile: services/subscription/Dockerfile
+    container_name: yuvgo_subscription_service
+    ports:
+      - "8002:8002"
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key-change-in-production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/services/subscription:/app
+    networks:
+      - yuvgo_network
+    command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+
+  # Partner Service
+  partner_service:
+    build:
+      context: ./backend
+      dockerfile: services/partner/Dockerfile
+    container_name: yuvgo_partner_service
+    ports:
+      - "8003:8003"
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key-change-in-production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/services/partner:/app
+    networks:
+      - yuvgo_network
+    command: uvicorn main:app --host 0.0.0.0 --port 8003 --reload
+
+  # Visit Service
+  visit_service:
+    build:
+      context: ./backend
+      dockerfile: services/visit/Dockerfile
+    container_name: yuvgo_visit_service
+    ports:
+      - "8004:8004"
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key-change-in-production
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./backend/services/visit:/app
+    networks:
+      - yuvgo_network
+    command: uvicorn main:app --host 0.0.0.0 --port 8004 --reload
+
+  # Payment Service
+  payment_service:
+    build:
+      context: ./backend
+      dockerfile: services/payment/Dockerfile
+    container_name: yuvgo_payment_service
+    ports:
+      - "8005:8005"
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key-change-in-production
+      - PAYME_MERCHANT_ID=your-payme-merchant-id
+      - CLICK_MERCHANT_ID=your-click-merchant-id
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/services/payment:/app
+    networks:
+      - yuvgo_network
+    command: uvicorn main:app --host 0.0.0.0 --port 8005 --reload
+
+  # Notification Service
+  notification_service:
+    build:
+      context: ./backend
+      dockerfile: services/notification/Dockerfile
+    container_name: yuvgo_notification_service
+    ports:
+      - "8006:8006"
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - FIREBASE_CREDENTIALS_PATH=/app/firebase-credentials.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/services/notification:/app
+    networks:
+      - yuvgo_network
+    command: uvicorn main:app --host 0.0.0.0 --port 8006 --reload
+
+  # Admin Service
+  admin_service:
+    build:
+      context: ./backend
+      dockerfile: services/admin/Dockerfile
+    container_name: yuvgo_admin_service
+    ports:
+      - "8007:8007"
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=your-secret-key-change-in-production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/services/admin:/app
+    networks:
+      - yuvgo_network
+    command: uvicorn main:app --host 0.0.0.0 --port 8007 --reload
+
+  # Admin Dashboard (React)
+  admin_dashboard:
+    build:
+      context: ./frontend/admin-dashboard
+      dockerfile: Dockerfile
+    container_name: yuvgo_admin_dashboard
+    ports:
+      - "3000:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend/admin-dashboard:/app
+      - /app/node_modules
+    networks:
+      - yuvgo_network
+    command: npm start
+
+  # Merchant Dashboard (React)
+  merchant_dashboard:
+    build:
+      context: ./frontend/merchant-dashboard
+      dockerfile: Dockerfile
+    container_name: yuvgo_merchant_dashboard
+    ports:
+      - "3001:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend/merchant-dashboard:/app
+      - /app/node_modules
+    networks:
+      - yuvgo_network
+    command: npm start
+
+  # User App (React)
+  user_app:
+    build:
+      context: ./frontend/user-app
+      dockerfile: Dockerfile
+    container_name: yuvgo_user_app
+    ports:
+      - "3003:3000"
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    volumes:
+      - ./frontend/user-app:/app
+      - /app/node_modules
+    networks:
+      - yuvgo_network
+    command: npm start
+
+  # Prometheus for monitoring
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: yuvgo_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    networks:
+      - yuvgo_network
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: yuvgo_grafana
+    ports:
+      - "3002:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - yuvgo_network
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  yuvgo_network:
+    driver: bridge

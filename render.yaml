@@ -1,0 +1,263 @@
+services:
+  # PostgreSQL Database
+  - type: pserv
+    name: yuvgo-postgres
+    env: docker
+    plan: starter
+    region: oregon
+    dockerfilePath: ./Dockerfile.postgres
+    envVars:
+      - key: POSTGRES_USER
+        value: yuvgo
+      - key: POSTGRES_PASSWORD
+        generateValue: true
+      - key: POSTGRES_DB
+        value: yuvgo_db
+    disk:
+      name: yuvgo-db-data
+      mountPath: /var/lib/postgresql/data
+      sizeGB: 10
+
+  # Redis Cache
+  - type: redis
+    name: yuvgo-redis
+    plan: starter
+    region: oregon
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+  # Gateway Service
+  - type: web
+    name: yuvgo-gateway
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r backend/gateway/requirements.txt
+    startCommand: cd backend/gateway && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yuvgo-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: yuvgo-redis
+          type: redis
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: 7
+      - key: ENVIRONMENT
+        value: production
+      - key: USER_SERVICE_URL
+        fromService:
+          name: yuvgo-user-service
+          type: web
+          property: host
+      - key: PARTNER_SERVICE_URL
+        fromService:
+          name: yuvgo-partner-service
+          type: web
+          property: host
+      - key: SUBSCRIPTION_SERVICE_URL
+        fromService:
+          name: yuvgo-subscription-service
+          type: web
+          property: host
+      - key: PAYMENT_SERVICE_URL
+        fromService:
+          name: yuvgo-payment-service
+          type: web
+          property: host
+      - key: VISIT_SERVICE_URL
+        fromService:
+          name: yuvgo-visit-service
+          type: web
+          property: host
+      - key: NOTIFICATION_SERVICE_URL
+        fromService:
+          name: yuvgo-notification-service
+          type: web
+          property: host
+      - key: ADMIN_SERVICE_URL
+        fromService:
+          name: yuvgo-admin-service
+          type: web
+          property: host
+
+  # User Service
+  - type: web
+    name: yuvgo-user-service
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r backend/services/user/requirements.txt
+    startCommand: cd backend/services/user && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yuvgo-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: yuvgo-redis
+          type: redis
+          property: connectionString
+      - key: JWT_SECRET
+        sync: false
+      - key: SMS_PROVIDER_API_KEY
+        value: your-sms-provider-api-key
+      - key: SMS_PROVIDER_URL
+        value: https://sms-provider.uz/api
+
+  # Partner Service
+  - type: web
+    name: yuvgo-partner-service
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r backend/services/partner/requirements.txt
+    startCommand: cd backend/services/partner && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yuvgo-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: yuvgo-redis
+          type: redis
+          property: connectionString
+      - key: JWT_SECRET
+        sync: false
+      - key: QR_TOKEN_TTL_SECONDS
+        value: 120
+      - key: VISIT_COOLDOWN_HOURS
+        value: 4
+
+  # Subscription Service
+  - type: web
+    name: yuvgo-subscription-service
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r backend/services/subscription/requirements.txt
+    startCommand: cd backend/services/subscription && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yuvgo-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: yuvgo-redis
+          type: redis
+          property: connectionString
+
+  # Payment Service
+  - type: web
+    name: yuvgo-payment-service
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r backend/services/payment/requirements.txt
+    startCommand: cd backend/services/payment && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yuvgo-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: yuvgo-redis
+          type: redis
+          property: connectionString
+      - key: PAYME_MERCHANT_ID
+        value: your-payme-merchant-id
+      - key: PAYME_SECRET_KEY
+        value: your-payme-secret-key
+      - key: CLICK_MERCHANT_ID
+        value: your-click-merchant-id
+      - key: CLICK_SECRET_KEY
+        value: your-click-secret-key
+
+  # Visit Service
+  - type: web
+    name: yuvgo-visit-service
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r backend/services/visit/requirements.txt
+    startCommand: cd backend/services/visit && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yuvgo-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: yuvgo-redis
+          type: redis
+          property: connectionString
+
+  # Notification Service
+  - type: web
+    name: yuvgo-notification-service
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r backend/services/notification/requirements.txt
+    startCommand: cd backend/services/notification && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yuvgo-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: yuvgo-redis
+          type: redis
+          property: connectionString
+      - key: FIREBASE_CREDENTIALS_PATH
+        value: ./firebase-credentials.json
+
+  # Admin Service
+  - type: web
+    name: yuvgo-admin-service
+    env: python
+    region: oregon
+    plan: starter
+    buildCommand: pip install -r backend/services/admin/requirements.txt
+    startCommand: cd backend/services/admin && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: yuvgo-postgres
+          property: connectionString
+      - key: REDIS_URL
+        fromService:
+          name: yuvgo-redis
+          type: redis
+          property: connectionString
+      - key: JWT_SECRET
+        sync: false
+
+databases:
+  - name: yuvgo-postgres
+    databaseName: yuvgo_db
+    user: yuvgo
+    plan: starter
+    region: oregon
