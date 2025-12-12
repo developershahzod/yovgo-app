@@ -63,7 +63,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    #     #     #     #     #     #     #     # volumes:
+    # volumes:
     #   - ./backend/gateway:/app
     networks:
       - yuvgo_network
@@ -107,8 +107,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    #     volumes:
-    #       - ./backend/services/subscription:/app
+    volumes:
+      - ./backend/services/subscription:/app
     networks:
       - yuvgo_network
     command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
@@ -128,8 +128,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    #     volumes:
-    #       - ./backend/services/partner:/app
+    volumes:
+      - ./backend/services/partner:/app
     networks:
       - yuvgo_network
     command: uvicorn main:app --host 0.0.0.0 --port 8003 --reload
@@ -151,8 +151,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    #     volumes:
-    #       - ./backend/services/visit:/app
+    volumes:
+      - ./backend/services/visit:/app
     networks:
       - yuvgo_network
     command: uvicorn main:app --host 0.0.0.0 --port 8004 --reload
@@ -174,8 +174,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    #     volumes:
-    #       - ./backend/services/payment:/app
+    volumes:
+      - ./backend/services/payment:/app
     networks:
       - yuvgo_network
     command: uvicorn main:app --host 0.0.0.0 --port 8005 --reload
@@ -195,8 +195,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    #     volumes:
-    #       - ./backend/services/notification:/app
+    volumes:
+      - ./backend/services/notification:/app
     networks:
       - yuvgo_network
     command: uvicorn main:app --host 0.0.0.0 --port 8006 --reload
@@ -216,8 +216,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    #     volumes:
-    #       - ./backend/services/admin:/app
+    volumes:
+      - ./backend/services/admin:/app
     networks:
       - yuvgo_network
     command: uvicorn main:app --host 0.0.0.0 --port 8007 --reload
