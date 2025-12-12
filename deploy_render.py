@@ -79,7 +79,7 @@ def create_web_service(name: str, build_command: str, start_command: str, env_va
     payload = {
         "name": name,
         "type": "web_service",
-        "repo": "https://github.com/yourusername/yougo-fastapi",  # Update with your repo
+        "repo": "https://github.com/developershahzod/yougo-app",  # Update with your repo
         "autoDeploy": "yes",
         "branch": "main",
         "buildCommand": build_command,
