@@ -86,11 +86,11 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ./backend/services/user:/app
+    # volumes:
+    #   - ./backend/services/user:/app
     networks:
       - yuvgo_network
-    command: uvicorn main:app --host 0.0.0.0 --port 8001 --reload
+    # command: uvicorn main:app --host 0.0.0.0 --port XXXX --reload
 
   # Subscription Service
   subscription_service:
@@ -111,7 +111,7 @@ services:
     #       - ./backend/services/subscription:/app
     networks:
       - yuvgo_network
-    command: uvicorn main:app --host 0.0.0.0 --port 8002 --reload
+    # command: uvicorn main:app --host 0.0.0.0 --port XXXX --reload
 
   # Partner Service
   partner_service:
@@ -132,7 +132,7 @@ services:
     #       - ./backend/services/partner:/app
     networks:
       - yuvgo_network
-    command: uvicorn main:app --host 0.0.0.0 --port 8003 --reload
+    # command: uvicorn main:app --host 0.0.0.0 --port XXXX --reload
 
   # Visit Service
   visit_service:
@@ -155,7 +155,7 @@ services:
     #       - ./backend/services/visit:/app
     networks:
       - yuvgo_network
-    command: uvicorn main:app --host 0.0.0.0 --port 8004 --reload
+    # command: uvicorn main:app --host 0.0.0.0 --port XXXX --reload
 
   # Payment Service
   payment_service:
@@ -178,7 +178,7 @@ services:
     #       - ./backend/services/payment:/app
     networks:
       - yuvgo_network
-    command: uvicorn main:app --host 0.0.0.0 --port 8005 --reload
+    # command: uvicorn main:app --host 0.0.0.0 --port XXXX --reload
 
   # Notification Service
   notification_service:
@@ -199,7 +199,7 @@ services:
     #       - ./backend/services/notification:/app
     networks:
       - yuvgo_network
-    command: uvicorn main:app --host 0.0.0.0 --port 8006 --reload
+    # command: uvicorn main:app --host 0.0.0.0 --port XXXX --reload
 
   # Admin Service
   admin_service:
@@ -220,7 +220,7 @@ services:
     #       - ./backend/services/admin:/app
     networks:
       - yuvgo_network
-    command: uvicorn main:app --host 0.0.0.0 --port 8007 --reload
+    # command: uvicorn main:app --host 0.0.0.0 --port XXXX --reload
 
   # Admin Dashboard (React)
   admin_dashboard:
