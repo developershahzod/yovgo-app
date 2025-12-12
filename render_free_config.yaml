@@ -1,0 +1,173 @@
+# Render.com Blueprint for YuvGo - FREE PLAN
+# This file can be used with Render's Blueprint feature
+
+services:
+  # Gateway Service
+  - type: web
+    name: yuvgo-gateway
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/gateway/requirements.txt && pip install -r backend/shared/requirements.txt
+    startCommand: cd backend/gateway && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        value: memory://localhost
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_ALGORITHM
+        value: HS256
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+      - key: REFRESH_TOKEN_EXPIRE_DAYS
+        value: 7
+      - key: ENVIRONMENT
+        value: production
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
+
+  # User Service
+  - type: web
+    name: yuvgo-user-service
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/services/user/requirements.txt && pip install -r backend/shared/requirements.txt
+    startCommand: cd backend/services/user && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        value: memory://localhost
+      - key: JWT_SECRET
+        sync: false
+      - key: SMS_PROVIDER_API_KEY
+        value: test-key
+      - key: SMS_PROVIDER_URL
+        value: https://sms-provider.uz/api
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
+
+  # Partner Service
+  - type: web
+    name: yuvgo-partner-service
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/services/partner/requirements.txt && pip install -r backend/shared/requirements.txt
+    startCommand: cd backend/services/partner && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        value: memory://localhost
+      - key: JWT_SECRET
+        sync: false
+      - key: QR_TOKEN_TTL_SECONDS
+        value: 120
+      - key: VISIT_COOLDOWN_HOURS
+        value: 4
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
+
+  # Subscription Service
+  - type: web
+    name: yuvgo-subscription-service
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/services/subscription/requirements.txt && pip install -r backend/shared/requirements.txt
+    startCommand: cd backend/services/subscription && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        value: memory://localhost
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
+
+  # Payment Service
+  - type: web
+    name: yuvgo-payment-service
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/services/payment/requirements.txt && pip install -r backend/shared/requirements.txt
+    startCommand: cd backend/services/payment && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        value: memory://localhost
+      - key: PAYME_MERCHANT_ID
+        value: test-merchant-id
+      - key: PAYME_SECRET_KEY
+        value: test-secret-key
+      - key: CLICK_MERCHANT_ID
+        value: test-merchant-id
+      - key: CLICK_SECRET_KEY
+        value: test-secret-key
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
+
+  # Visit Service
+  - type: web
+    name: yuvgo-visit-service
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/services/visit/requirements.txt && pip install -r backend/shared/requirements.txt
+    startCommand: cd backend/services/visit && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        value: memory://localhost
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
+
+  # Notification Service
+  - type: web
+    name: yuvgo-notification-service
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/services/notification/requirements.txt && pip install -r backend/shared/requirements.txt
+    startCommand: cd backend/services/notification && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        value: memory://localhost
+      - key: FIREBASE_CREDENTIALS_PATH
+        value: ./firebase-credentials.json
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend
+
+  # Admin Service
+  - type: web
+    name: yuvgo-admin-service
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/services/admin/requirements.txt && pip install -r backend/shared/requirements.txt
+    startCommand: cd backend/services/admin && uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        value: memory://localhost
+      - key: JWT_SECRET
+        sync: false
+      - key: PYTHONPATH
+        value: /opt/render/project/src/backend

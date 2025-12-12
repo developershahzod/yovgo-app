@@ -51,16 +51,23 @@ services:
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-secret-key-change-in-production
       - ENVIRONMENT=development
+      - USER_SERVICE_URL=http://user_service:8001
+      - SUBSCRIPTION_SERVICE_URL=http://subscription_service:8002
+      - PARTNER_SERVICE_URL=http://partner_service:8003
+      - VISIT_SERVICE_URL=http://visit_service:8004
+      - PAYMENT_SERVICE_URL=http://payment_service:8005
+      - NOTIFICATION_SERVICE_URL=http://notification_service:8006
+      - ADMIN_SERVICE_URL=http://admin_service:8007
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
-    volumes:
-      - ./backend/gateway:/app
+    # volumes:
+    #   - ./backend/gateway:/app
     networks:
       - yuvgo_network
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    # command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
   # User Service
   user_service:
