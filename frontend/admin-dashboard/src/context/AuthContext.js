@@ -59,9 +59,23 @@ export const AuthProvider = ({ children }) => {
       
       return { success: true };
     } catch (error) {
+      let errorMessage = 'Login failed';
+      
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        // Handle array of validation errors
+        if (Array.isArray(detail)) {
+          errorMessage = detail.map(err => err.msg || JSON.stringify(err)).join(', ');
+        } else if (typeof detail === 'string') {
+          errorMessage = detail;
+        } else {
+          errorMessage = JSON.stringify(detail);
+        }
+      }
+      
       return {
         success: false,
-        error: error.response?.data?.detail || 'Login failed',
+        error: errorMessage,
       };
     }
   };

@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
+from pydantic import BaseModel
 import sys
 import os
 
@@ -38,6 +39,45 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+# User Login Request Model
+class UserLoginRequest(BaseModel):
+    phone_number: str
+
+# User Login (simplified - just phone number)
+@app.post("/auth/login")
+async def user_login(login_data: UserLoginRequest, db: Session = Depends(get_db)):
+    """User login with phone number"""
+    phone = format_phone_number(login_data.phone_number)
+    
+    user = db.query(User).filter(
+        User.phone_number == phone,
+        User.is_active == True
+    ).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Create access token
+    token_data = {
+        "sub": str(user.id),
+        "phone": user.phone_number,
+        "email": user.email,
+    }
+    
+    access_token = auth_handler.create_access_token(token_data)
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": str(user.id),
+            "phone_number": user.phone_number,
+            "email": user.email,
+            "full_name": user.full_name,
+            "is_verified": user.is_verified,
+        }
+    }
 
 # User Management
 @app.post("/users", response_model=UserResponse)

@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
+from pydantic import BaseModel
 import sys
 import os
 
@@ -152,22 +153,26 @@ async def list_staff(
     
     return query.all()
 
+# Staff Login Request Model
+class StaffLoginRequest(BaseModel):
+    phone_number: str
+    pin_code: str
+
 # Staff Login
 @app.post("/staff/login")
 async def staff_login(
-    phone_number: str,
-    pin_code: str,
+    login_data: StaffLoginRequest,
     db: Session = Depends(get_db)
 ):
     """Staff login with phone and PIN"""
     from shared.auth import AuthHandler
     
     staff = db.query(PartnerStaff).filter(
-        PartnerStaff.phone_number == phone_number,
+        PartnerStaff.phone_number == login_data.phone_number,
         PartnerStaff.is_active == True
     ).first()
     
-    if not staff or staff.pin_code != pin_code:
+    if not staff or staff.pin_code != login_data.pin_code:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
     # Get partner and location info

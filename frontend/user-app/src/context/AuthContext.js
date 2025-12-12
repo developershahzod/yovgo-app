@@ -39,46 +39,60 @@ export const AuthProvider = ({ children }) => {
 
       return { success: true, user: response.data };
     } catch (error) {
+      let errorMessage = 'Registration failed';
+      
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        if (Array.isArray(detail)) {
+          errorMessage = detail.map(err => err.msg || JSON.stringify(err)).join(', ');
+        } else if (typeof detail === 'string') {
+          errorMessage = detail;
+        } else {
+          errorMessage = JSON.stringify(detail);
+        }
+      }
+      
       return {
         success: false,
-        error: error.response?.data?.detail || 'Registration failed',
+        error: errorMessage,
       };
     }
   };
 
   const login = async (phoneNumber) => {
     try {
-      // In production, implement proper authentication
-      // For now, we'll use phone number to fetch user
-      const response = await axios.get(`${API_URL}/api/user/users`);
-      const foundUser = response.data.find(u => u.phone_number === phoneNumber);
-      
-      if (!foundUser) {
-        return { success: false, error: 'User not found' };
-      }
+      // Use proper authentication endpoint
+      const response = await axios.post(`${API_URL}/api/user/auth/login`, {
+        phone_number: phoneNumber,
+      });
 
-      // Create a simple token (in production, use proper JWT from backend)
-      const token = btoa(foundUser.id);
-      
-      const userData = {
-        id: foundUser.id,
-        phone_number: foundUser.phone_number,
-        email: foundUser.email,
-        full_name: foundUser.full_name,
-      };
+      const { access_token, user: userData } = response.data;
 
-      localStorage.setItem('user_token', token);
+      localStorage.setItem('user_token', access_token);
       localStorage.setItem('user_data', JSON.stringify(userData));
       
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
       
       setUser(userData);
       
       return { success: true };
     } catch (error) {
+      let errorMessage = 'Login failed';
+      
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        if (Array.isArray(detail)) {
+          errorMessage = detail.map(err => err.msg || JSON.stringify(err)).join(', ');
+        } else if (typeof detail === 'string') {
+          errorMessage = detail;
+        } else {
+          errorMessage = JSON.stringify(detail);
+        }
+      }
+      
       return {
         success: false,
-        error: error.response?.data?.detail || 'Login failed',
+        error: errorMessage,
       };
     }
   };

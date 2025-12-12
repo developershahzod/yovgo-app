@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Users, CreditCard, Activity, DollarSign, TrendingUp, TrendingDown } from 'lucide-react';
+import { Users, CreditCard, Activity, DollarSign, TrendingUp, TrendingDown, Building2, Tag, Shield } from 'lucide-react';
 
 const StatCard = ({ title, value, icon: Icon, trend, trendValue }) => (
   <div className="bg-white rounded-lg shadow p-6">
