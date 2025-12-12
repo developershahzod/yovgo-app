@@ -25,9 +25,9 @@ def create_postgres_database():
     print("📦 Creating PostgreSQL database...")
     
     payload = {
-        "name": "yuvgo-postgres",
-        "databaseName": "yuvgo_db",
-        "databaseUser": "yuvgo",
+        "name": "yov-go",
+        "databaseName": "yov_go_db",
+        "databaseUser": "admin",
         "plan": "starter",
         "region": "oregon",
         "version": "16"
@@ -79,7 +79,7 @@ def create_web_service(name: str, build_command: str, start_command: str, env_va
     payload = {
         "name": name,
         "type": "web_service",
-        "repo": "https://github.com/developershahzod/yougo-app",  # Update with your repo
+        "repo": "https://github.com/developershahzod/yovgo-app",  # Update with your repo
         "autoDeploy": "yes",
         "branch": "main",
         "buildCommand": build_command,
