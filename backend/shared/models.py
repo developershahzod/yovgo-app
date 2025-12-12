@@ -129,7 +129,7 @@ class Payment(Base):
     status = Column(String(20), default="pending")
     payment_method = Column(String(50))
     card_token = Column(String(255))
-    metadata = Column(JSON)
+    payment_metadata = Column(JSON)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
