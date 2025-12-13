@@ -2,8 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { MerchantAuthProvider, useMerchantAuth } from './context/MerchantAuthContext';
 import MerchantLogin from './pages/MerchantLogin';
+import MerchantRegister from './pages/MerchantRegister';
 import Dashboard from './pages/Dashboard';
-import QRScanner from './pages/QRScanner';
 import Clients from './pages/Clients';
 import Earnings from './pages/Earnings';
 import VisitHistory from './pages/VisitHistory';
@@ -26,6 +26,7 @@ function App() {
       <Router>
         <Routes>
           <Route path="/login" element={<MerchantLogin />} />
+          <Route path="/register" element={<MerchantRegister />} />
           
           <Route
             path="/"
@@ -37,7 +38,6 @@ function App() {
           >
             <Route index element={<Navigate to="/dashboard" />} />
             <Route path="dashboard" element={<Dashboard />} />
-            <Route path="scanner" element={<QRScanner />} />
             <Route path="clients" element={<Clients />} />
             <Route path="earnings" element={<Earnings />} />
             <Route path="visits" element={<VisitHistory />} />

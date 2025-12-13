@@ -17,13 +17,37 @@ const Home = () => {
 
   const fetchData = async () => {
     try {
-      // Fetch subscription status
-      const subRes = await axios.get(`${API_URL}/api/subscription/subscriptions/status`);
-      setSubscription(subRes.data);
+      // Check localStorage first for active subscription
+      const localSub = localStorage.getItem('active_subscription');
+      if (localSub) {
+        const parsedSub = JSON.parse(localSub);
+        // Validate it's still active
+        const endDate = new Date(parsedSub.end_date);
+        const now = new Date();
+        if (endDate > now && parsedSub.visits_remaining > 0) {
+          setSubscription(parsedSub);
+        } else {
+          localStorage.removeItem('active_subscription');
+        }
+      }
+
+      // Try to fetch from API as well
+      try {
+        const subRes = await axios.get(`${API_URL}/api/subscription/subscriptions/status`);
+        if (subRes.data) {
+          setSubscription(subRes.data);
+        }
+      } catch (err) {
+        console.log('API subscription fetch failed, using localStorage');
+      }
 
       // Fetch recent visits
-      const visitsRes = await axios.get(`${API_URL}/api/visit/visits?limit=5`);
-      setVisits(visitsRes.data);
+      try {
+        const visitsRes = await axios.get(`${API_URL}/api/visit/visits?limit=5`);
+        setVisits(visitsRes.data);
+      } catch (err) {
+        console.log('Visits fetch failed');
+      }
     } catch (error) {
       console.error('Failed to fetch data:', error);
     } finally {
@@ -59,33 +83,48 @@ const Home = () => {
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center space-x-2">
                 <Sparkles size={20} />
-                <span className="font-semibold">Active Subscription</span>
+                <div>
+                  <span className="font-semibold block">Active Plan</span>
+                  {subscription.plan_name && (
+                    <span className="text-xs text-primary-100">{subscription.plan_name}</span>
+                  )}
+                </div>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                subscription.status === 'active' 
-                  ? 'bg-green-500/30 text-green-100' 
-                  : 'bg-yellow-500/30 text-yellow-100'
-              }`}>
-                {subscription.status}
+              <span className="px-3 py-1 rounded-full text-xs font-medium bg-green-500/30 text-green-100">
+                Active
               </span>
             </div>
-            <div className="flex items-center justify-between">
-              <div>
+            
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div className="bg-white/5 rounded-lg p-3">
+                <p className="text-2xl font-bold">{subscription.visits_remaining || 0}</p>
+                <p className="text-primary-100 text-xs">Visits Left</p>
+              </div>
+              <div className="bg-white/5 rounded-lg p-3">
                 <p className="text-2xl font-bold">{subscription.visits_used || 0}</p>
-                <p className="text-primary-100 text-sm">Visits used</p>
-              </div>
-              <div className="text-right">
-                <p className="text-2xl font-bold">
-                  {subscription.visit_limit ? subscription.visit_limit - (subscription.visits_used || 0) : '∞'}
-                </p>
-                <p className="text-primary-100 text-sm">Remaining</p>
+                <p className="text-primary-100 text-xs">Visits Used</p>
               </div>
             </div>
-            <div className="mt-3 pt-3 border-t border-white/20">
-              <p className="text-primary-100 text-xs">
-                Valid until {new Date(subscription.end_date).toLocaleDateString()}
-              </p>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-primary-100">Valid until</span>
+                <span className="font-medium">{new Date(subscription.end_date).toLocaleDateString()}</span>
+              </div>
+              {subscription.auto_renew && (
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-primary-100">Auto-renew</span>
+                  <span className="font-medium text-green-200">Enabled</span>
+                </div>
+              )}
             </div>
+
+            <button
+              onClick={() => navigate('/qr')}
+              className="w-full mt-4 bg-white text-primary-600 px-4 py-2 rounded-lg font-medium hover:bg-primary-50 transition-colors"
+            >
+              Show My QR Code
+            </button>
           </div>
         ) : (
           <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20 text-center">

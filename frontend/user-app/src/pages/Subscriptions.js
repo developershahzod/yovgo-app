@@ -1,18 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Check, Sparkles, Calendar, Zap } from 'lucide-react';
+import { Check, Sparkles, Calendar, Zap, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Subscriptions = () => {
   const { API_URL } = useAuth();
+  const navigate = useNavigate();
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedPlan, setSelectedPlan] = useState(null);
   const [purchasing, setPurchasing] = useState(false);
+  const [activeSubscription, setActiveSubscription] = useState(null);
 
   useEffect(() => {
+    checkActiveSubscription();
     fetchPlans();
   }, []);
+
+  const checkActiveSubscription = () => {
+    const subData = localStorage.getItem('active_subscription');
+    if (subData) {
+      const sub = JSON.parse(subData);
+      const endDate = new Date(sub.end_date);
+      const now = new Date();
+      
+      // Check if subscription is still valid
+      if (endDate > now && sub.visits_remaining > 0) {
+        setActiveSubscription(sub);
+      } else {
+        // Expired or no visits left
+        localStorage.removeItem('active_subscription');
+        setActiveSubscription(null);
+      }
+    }
+  };
 
   const fetchPlans = async () => {
     try {
@@ -27,22 +49,38 @@ const Subscriptions = () => {
 
   const handlePurchase = async (planId) => {
     setPurchasing(true);
+    setSelectedPlan(planId);
+    
     try {
-      // Create subscription
-      const subResponse = await axios.post(`${API_URL}/api/subscription/subscriptions`, {
-        plan_id: planId,
-        auto_renew: true,
-      });
-
-      // In production, redirect to payment gateway
-      alert('Subscription created! Redirecting to payment...');
+      // Mock payment process (in production, integrate with Payme/Click/Paynet)
+      // Simulate payment delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // For demo, mark as success
-      window.location.href = '/home';
+      // Mock successful payment
+      const mockSubscription = {
+        id: 'sub_' + Date.now(),
+        plan_id: planId,
+        status: 'active',
+        start_date: new Date().toISOString(),
+        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        visits_remaining: 12,
+        auto_renew: true
+      };
+      
+      // Store subscription in localStorage (mock)
+      localStorage.setItem('active_subscription', JSON.stringify(mockSubscription));
+      
+      // Show success message
+      alert('🎉 Payment Successful! Your subscription is now active.');
+      
+      // Redirect to QR Scanner page
+      window.location.href = '/qr';
+      
     } catch (error) {
-      alert(error.response?.data?.detail || 'Failed to create subscription');
+      alert(error.response?.data?.detail || 'Payment failed. Please try again.');
     } finally {
       setPurchasing(false);
+      setSelectedPlan(null);
     }
   };
 
@@ -58,13 +96,72 @@ const Subscriptions = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-gradient-to-br from-primary-500 to-primary-700 text-white p-6 rounded-b-3xl shadow-lg">
-        <h1 className="text-2xl font-bold mb-2">Subscription Plans</h1>
-        <p className="text-primary-100">Choose the perfect plan for you</p>
+        <h1 className="text-2xl font-bold mb-2">
+          {activeSubscription ? 'Active Subscription' : 'Subscription Plans'}
+        </h1>
+        <p className="text-primary-100">
+          {activeSubscription ? 'Manage your subscription' : 'Choose the perfect plan for you'}
+        </p>
       </div>
 
-      {/* Plans */}
-      <div className="px-6 py-6 space-y-4">
-        {plans.map((plan) => {
+      {/* Active Subscription Info */}
+      {activeSubscription && (
+        <div className="px-6 py-6">
+          <div className="bg-white rounded-2xl p-6 shadow-lg border-2 border-primary-500">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Sparkles className="text-primary-600" size={24} />
+                <h2 className="text-xl font-bold text-gray-900">Your Plan</h2>
+              </div>
+              <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                Active
+              </span>
+            </div>
+            
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Visits Remaining</span>
+                <span className="text-2xl font-bold text-primary-600">
+                  {activeSubscription.visits_remaining}
+                </span>
+              </div>
+              
+              <div className="flex justify-between items-center">
+                <span className="text-gray-600">Valid Until</span>
+                <span className="font-semibold text-gray-900">
+                  {new Date(activeSubscription.end_date).toLocaleDateString()}
+                </span>
+              </div>
+              
+              <div className="pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => navigate('/qr')}
+                  className="w-full py-3 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all"
+                >
+                  Scan QR Code
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="text-blue-600 flex-shrink-0 mt-0.5" size={20} />
+              <div>
+                <p className="text-blue-900 font-medium text-sm">Active Plan</p>
+                <p className="text-blue-700 text-sm mt-1">
+                  You already have an active subscription. New plans will be available after your current plan expires or runs out of visits.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Plans - Only show if no active subscription */}
+      {!activeSubscription && (
+        <div className="px-6 py-6 space-y-4">
+          {plans.map((plan) => {
           const isPopular = plan.name.includes('Premium');
           
           return (
@@ -169,9 +266,11 @@ const Subscriptions = () => {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
 
       {/* Info */}
+      {!activeSubscription && (
       <div className="px-6 pb-6">
         <div className="bg-blue-50 rounded-2xl p-4">
           <p className="text-blue-900 font-medium text-sm mb-2">
@@ -182,6 +281,7 @@ const Subscriptions = () => {
           </p>
         </div>
       </div>
+      )}
     </div>
   );
 };

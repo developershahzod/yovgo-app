@@ -15,10 +15,56 @@ const Clients = () => {
 
   const fetchClients = async () => {
     try {
-      const response = await axios.get(
-        `${API_URL}/api/visit/partner/${merchant.partner.id}/clients`
+      // Try API first
+      try {
+        const response = await axios.get(
+          `${API_URL}/api/visit/partner/${merchant.partner.id}/clients`
+        );
+        setClients(response.data);
+        setLoading(false);
+        return;
+      } catch (apiError) {
+        console.log('API fetch failed, using localStorage visits');
+      }
+
+      // Fallback: Generate clients from localStorage visits
+      const visits = JSON.parse(localStorage.getItem('merchant_visits') || '[]');
+      
+      if (visits.length === 0) {
+        setClients([]);
+        setLoading(false);
+        return;
+      }
+
+      // Group visits by customer (using phone or QR token as identifier)
+      const clientMap = new Map();
+      
+      visits.forEach(visit => {
+        const clientId = visit.user_phone || visit.qr_token;
+        
+        if (clientMap.has(clientId)) {
+          const client = clientMap.get(clientId);
+          client.visit_count += 1;
+          client.last_visit = visit.check_in_time;
+        } else {
+          clientMap.set(clientId, {
+            user_id: clientId,
+            user_name: visit.user_name || 'Customer',
+            phone_number: visit.user_phone || 'N/A',
+            visit_count: 1,
+            first_visit: visit.check_in_time,
+            last_visit: visit.check_in_time,
+            subscription_active: true // Assume active if they're visiting
+          });
+        }
+      });
+
+      // Convert map to array and sort by last visit
+      const clientsArray = Array.from(clientMap.values()).sort(
+        (a, b) => new Date(b.last_visit) - new Date(a.last_visit)
       );
-      setClients(response.data);
+
+      setClients(clientsArray);
     } catch (error) {
       console.error('Failed to fetch clients:', error);
     } finally {

@@ -67,6 +67,42 @@ async def get_plan(plan_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Plan not found")
     return plan
 
+@app.put("/plans/{plan_id}", response_model=SubscriptionPlanResponse)
+async def update_plan(
+    plan_id: str,
+    plan_data: SubscriptionPlanCreate,
+    db: Session = Depends(get_db),
+    current_admin = Depends(AuthHandler.get_current_admin)
+):
+    """Update subscription plan (admin only)"""
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    # Update plan fields
+    for key, value in plan_data.dict().items():
+        setattr(plan, key, value)
+    
+    db.commit()
+    db.refresh(plan)
+    return plan
+
+@app.delete("/plans/{plan_id}")
+async def delete_plan(
+    plan_id: str,
+    db: Session = Depends(get_db),
+    current_admin = Depends(AuthHandler.get_current_admin)
+):
+    """Delete subscription plan (admin only)"""
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    
+    # Soft delete by setting is_active to False
+    plan.is_active = False
+    db.commit()
+    return {"message": "Plan deleted successfully"}
+
 # Subscriptions
 @app.post("/subscriptions", response_model=SubscriptionResponse)
 async def create_subscription(

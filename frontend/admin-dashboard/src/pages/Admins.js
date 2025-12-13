@@ -31,15 +31,27 @@ const Admins = () => {
     }
   };
 
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
   const handleCreateAdmin = async (e) => {
     e.preventDefault();
+    setError('');
+    setSuccess('');
+    
     try {
       await axios.post(`${API_URL}/api/admin/admins`, newAdmin);
-      setShowModal(false);
-      fetchAdmins();
-      setNewAdmin({ email: '', password: '', full_name: '', role: 'admin', permissions: [] });
+      setSuccess('Admin created successfully!');
+      setTimeout(() => {
+        setShowModal(false);
+        setSuccess('');
+        fetchAdmins();
+        setNewAdmin({ email: '', password: '', full_name: '', role: 'admin', permissions: [] });
+      }, 1500);
     } catch (error) {
       console.error('Failed to create admin:', error);
+      const errorMessage = error.response?.data?.detail || 'Failed to create admin. Please try again.';
+      setError(errorMessage);
     }
   };
 
@@ -124,6 +136,19 @@ const Admins = () => {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">Create New Admin</h2>
+            
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+            
+            {success && (
+              <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p className="text-sm text-green-600">{success}</p>
+              </div>
+            )}
+            
             <form onSubmit={handleCreateAdmin} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>

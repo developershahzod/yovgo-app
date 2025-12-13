@@ -285,6 +285,48 @@ async def list_promotions(
     promotions = query.offset(skip).limit(limit).all()
     return promotions
 
+@app.put("/promotions/{promotion_id}", response_model=PromotionResponse)
+async def update_promotion(
+    promotion_id: str,
+    promotion_data: PromotionCreate,
+    db: Session = Depends(get_db),
+    current_admin = Depends(require_permission("promotions.write"))
+):
+    """Update promotion"""
+    promotion = db.query(Promotion).filter(Promotion.id == promotion_id).first()
+    if not promotion:
+        raise HTTPException(status_code=404, detail="Promotion not found")
+    
+    # Update promotion fields
+    for key, value in promotion_data.dict().items():
+        setattr(promotion, key, value)
+    
+    db.commit()
+    db.refresh(promotion)
+    
+    log_audit(db, current_admin["sub"], "update", "promotion", promotion.id, promotion_data.dict())
+    
+    return promotion
+
+@app.delete("/promotions/{promotion_id}")
+async def delete_promotion(
+    promotion_id: str,
+    db: Session = Depends(get_db),
+    current_admin = Depends(require_permission("promotions.write"))
+):
+    """Delete promotion"""
+    promotion = db.query(Promotion).filter(Promotion.id == promotion_id).first()
+    if not promotion:
+        raise HTTPException(status_code=404, detail="Promotion not found")
+    
+    # Soft delete by setting is_active to False
+    promotion.is_active = False
+    db.commit()
+    
+    log_audit(db, current_admin["sub"], "delete", "promotion", promotion.id, {"code": promotion.code})
+    
+    return {"message": "Promotion deleted successfully"}
+
 # Analytics
 @app.get("/analytics/overview", response_model=AnalyticsResponse)
 async def get_analytics_overview(

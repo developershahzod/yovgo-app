@@ -8,11 +8,8 @@ const QRTemplates = () => {
   const [copied, setCopied] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState('standard');
 
-  const qrData = JSON.stringify({
-    partner_id: merchant?.partner?.id,
-    location_id: merchant?.location?.id,
-    partner_name: merchant?.partner?.name,
-  });
+  // Generate valid QR code data that matches the scanner format
+  const qrData = `YUVGO_PARTNER_${merchant?.partner?.id || 'DEMO'}_${Date.now()}`;
 
   const templates = [
     {

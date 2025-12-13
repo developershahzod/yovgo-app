@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { MapPin, Phone, Clock, Navigation } from 'lucide-react';
+import { MapPin, Phone, Clock, Navigation, AlertCircle, Sparkles } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -16,15 +17,38 @@ L.Icon.Default.mergeOptions({
 
 const Map = () => {
   const { API_URL } = useAuth();
+  const navigate = useNavigate();
   const [locations, setLocations] = useState([]);
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [userLocation, setUserLocation] = useState([41.2995, 69.2401]); // Tashkent default
   const [loading, setLoading] = useState(true);
+  const [subscription, setSubscription] = useState(null);
+  const [showSubscriptionPrompt, setShowSubscriptionPrompt] = useState(false);
 
   useEffect(() => {
+    checkSubscription();
     fetchLocations();
     getUserLocation();
   }, []);
+
+  const checkSubscription = () => {
+    const subData = localStorage.getItem('active_subscription');
+    if (subData) {
+      const sub = JSON.parse(subData);
+      const endDate = new Date(sub.end_date);
+      const now = new Date();
+      
+      // Check if expired or no visits
+      if (endDate <= now || sub.visits_remaining <= 0) {
+        setShowSubscriptionPrompt(true);
+        localStorage.removeItem('active_subscription');
+      } else {
+        setSubscription(sub);
+      }
+    } else {
+      setShowSubscriptionPrompt(true);
+    }
+  };
 
   const getUserLocation = () => {
     if (navigator.geolocation) {
@@ -41,10 +65,64 @@ const Map = () => {
 
   const fetchLocations = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/partner/locations`);
-      setLocations(response.data);
+      // Fetch partners
+      const partnersResponse = await axios.get(`${API_URL}/api/partner/partners`);
+      const partners = partnersResponse.data;
+      
+      // Create mock locations based on real partners
+      const mockLocations = partners.map((partner, index) => {
+        // Tashkent coordinates with slight variations
+        const baseLatitude = 41.2995;
+        const baseLongitude = 69.2401;
+        const latOffset = (Math.random() - 0.5) * 0.1; // ~5km variation
+        const lngOffset = (Math.random() - 0.5) * 0.1;
+        
+        return {
+          id: partner.id,
+          name: partner.name,
+          address: partner.description || `${partner.name} Location`,
+          city: 'Tashkent',
+          latitude: baseLatitude + latOffset,
+          longitude: baseLongitude + lngOffset,
+          working_hours: {
+            monday: '09:00-20:00',
+            tuesday: '09:00-20:00',
+            wednesday: '09:00-20:00',
+            thursday: '09:00-20:00',
+            friday: '09:00-20:00',
+            saturday: '10:00-18:00',
+            sunday: '10:00-18:00'
+          },
+          phone: '+998 90 123 45 67',
+          is_active: partner.is_active
+        };
+      });
+      
+      setLocations(mockLocations.filter(loc => loc.is_active));
+      
     } catch (error) {
       console.error('Failed to fetch locations:', error);
+      // Fallback to hardcoded locations if API fails
+      setLocations([
+        {
+          id: '1',
+          name: 'YuvGo Car Wash - Chilanzar',
+          address: 'Chilanzar District, Tashkent',
+          city: 'Tashkent',
+          latitude: 41.2856,
+          longitude: 69.2034,
+          working_hours: { monday: '09:00-20:00', saturday: '10:00-18:00' }
+        },
+        {
+          id: '2',
+          name: 'YuvGo Car Wash - Yunusabad',
+          address: 'Yunusabad District, Tashkent',
+          city: 'Tashkent',
+          latitude: 41.3456,
+          longitude: 69.2890,
+          working_hours: { monday: '09:00-20:00', saturday: '10:00-18:00' }
+        }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -70,6 +148,28 @@ const Map = () => {
         <h1 className="text-xl font-bold text-gray-900">Car Wash Locations</h1>
         <p className="text-gray-600 text-sm">{locations.length} locations available</p>
       </div>
+
+      {/* Subscription Prompt */}
+      {showSubscriptionPrompt && (
+        <div className="bg-gradient-to-r from-primary-500 to-primary-600 p-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="text-white flex-shrink-0 mt-0.5" size={20} />
+            <div className="flex-1">
+              <p className="text-white font-semibold text-sm">Subscription Required</p>
+              <p className="text-primary-100 text-xs mt-1">
+                Your subscription has expired or you have no visits remaining. Purchase a plan to start washing!
+              </p>
+            </div>
+            <button
+              onClick={() => navigate('/subscriptions')}
+              className="bg-white text-primary-600 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-primary-50 transition-colors flex items-center gap-1"
+            >
+              <Sparkles size={16} />
+              View Plans
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Map */}
       <div className="flex-1 relative">

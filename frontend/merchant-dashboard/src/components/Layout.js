@@ -21,11 +21,10 @@ const Layout = () => {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'QR Scanner', href: '/scanner', icon: QrCode },
     { name: 'Clients', href: '/clients', icon: Users },
     { name: 'Earnings', href: '/earnings', icon: DollarSign },
     { name: 'Visit History', href: '/visits', icon: Activity },
-    { name: 'QR Templates', href: '/qr-templates', icon: FileText },
+    { name: 'QR Templates', href: '/qr-templates', icon: QrCode },
   ];
 
   return (

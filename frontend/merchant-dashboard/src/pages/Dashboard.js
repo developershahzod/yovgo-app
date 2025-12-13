@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useMerchantAuth } from '../context/MerchantAuthContext';
-import { Users, DollarSign, Activity, TrendingUp, Calendar, Clock } from 'lucide-react';
+import { Users, DollarSign, Activity, TrendingUp, Calendar, Clock, RefreshCw } from 'lucide-react';
 
 const StatCard = ({ title, value, icon: Icon, trend, color = 'primary' }) => (
   <div className="bg-white rounded-lg shadow p-6">
@@ -41,27 +41,50 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Fetch partner statistics
-      const [visitsRes, clientsRes] = await Promise.all([
-        axios.get(`${API_URL}/api/visit/partner/${merchant.partner.id}/visits?limit=10`),
-        axios.get(`${API_URL}/api/visit/partner/${merchant.partner.id}/stats`),
-      ]);
+      // Get visits from localStorage
+      const visits = JSON.parse(localStorage.getItem('merchant_visits') || '[]');
+      
+      if (visits.length === 0) {
+        setLoading(false);
+        return;
+      }
 
-      const visits = visitsRes.data;
       setRecentVisits(visits.slice(0, 5));
 
       // Calculate statistics
-      const today = new Date().toDateString();
-      const todayVisits = visits.filter(v => 
-        new Date(v.check_in_time).toDateString() === today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const todayVisits = visits.filter(v => {
+        const visitDate = new Date(v.check_in_time);
+        visitDate.setHours(0, 0, 0, 0);
+        return visitDate.getTime() === today.getTime();
+      }).length;
+
+      // Calculate unique clients
+      const uniqueClients = new Set(visits.map(v => v.user_phone || v.qr_token)).size;
+
+      // Calculate monthly earnings (estimate: 50,000 UZS per visit)
+      const thisMonth = new Date();
+      thisMonth.setDate(1);
+      thisMonth.setHours(0, 0, 0, 0);
+      
+      const monthlyVisits = visits.filter(v => 
+        new Date(v.check_in_time) >= thisMonth
       ).length;
+      const monthlyEarnings = monthlyVisits * 50000;
+
+      // Calculate average daily visits
+      const oldestVisit = visits.length > 0 ? new Date(visits[visits.length - 1].check_in_time) : new Date();
+      const daysSinceFirst = Math.max(1, Math.ceil((new Date() - oldestVisit) / (1000 * 60 * 60 * 24)));
+      const avgDailyVisits = (visits.length / daysSinceFirst).toFixed(1);
 
       setStats({
         todayVisits,
         totalVisits: visits.length,
-        totalClients: clientsRes.data?.total_clients || 0,
-        monthlyEarnings: clientsRes.data?.monthly_revenue || 0,
-        avgDailyVisits: clientsRes.data?.avg_daily_visits || 0,
+        totalClients: uniqueClients,
+        monthlyEarnings,
+        avgDailyVisits: parseFloat(avgDailyVisits),
       });
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -80,9 +103,18 @@ const Dashboard = () => {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-600 mt-1">Welcome back, {merchant?.name}!</p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1">Welcome back, {merchant?.name}!</p>
+        </div>
+        <button
+          onClick={fetchDashboardData}
+          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+        >
+          <RefreshCw size={20} />
+          Refresh
+        </button>
       </div>
 
       {/* Statistics Cards */}

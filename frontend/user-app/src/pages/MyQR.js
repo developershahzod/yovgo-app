@@ -1,37 +1,98 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
+import { AlertCircle, CheckCircle, Sparkles, Clock, RefreshCw } from 'lucide-react';
 import QRCode from 'qrcode.react';
-import { RefreshCw, AlertCircle, CheckCircle, Clock } from 'lucide-react';
 
 const MyQR = () => {
-  const { API_URL, user } = useAuth();
+  const { user } = useAuth();
   const [qrData, setQrData] = useState(null);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
 
   useEffect(() => {
-    generateQR();
+    // Check for existing QR code
+    const existingQR = localStorage.getItem('current_qr');
+    if (existingQR) {
+      const qr = JSON.parse(existingQR);
+      const generatedAt = new Date(qr.generated_at);
+      const now = new Date();
+      const elapsed = Math.floor((now - generatedAt) / 1000);
+      const remaining = qr.expires_in - elapsed;
+      
+      if (remaining > 0) {
+        setQrData(qr);
+        setTimeLeft(remaining);
+      } else {
+        localStorage.removeItem('current_qr');
+      }
+    }
   }, []);
 
   useEffect(() => {
     if (timeLeft > 0) {
-      const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (timeLeft === 0 && qrData) {
-      setError('QR code expired. Please generate a new one.');
+      const timer = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            localStorage.removeItem('current_qr');
+            setQrData(null);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
     }
-  }, [timeLeft, qrData]);
+  }, [timeLeft]);
 
   const generateQR = async () => {
     setLoading(true);
     setError('');
     
     try {
-      const response = await axios.post(`${API_URL}/api/visit/qr/generate`);
-      setQrData(response.data);
-      setTimeLeft(response.data.expires_in);
+      // Check if user has active subscription
+      const subscription = localStorage.getItem('active_subscription');
+      if (!subscription) {
+        setError('You need an active subscription to generate QR code. Please subscribe first.');
+        setLoading(false);
+        return;
+      }
+      
+      const subData = JSON.parse(subscription);
+      
+      // Check if subscription is still valid
+      const endDate = new Date(subData.end_date);
+      if (endDate < new Date()) {
+        setError('Your subscription has expired. Please renew to continue.');
+        setLoading(false);
+        return;
+      }
+      
+      // Check if user has visits remaining
+      if (subData.visits_remaining <= 0 && !subData.is_unlimited) {
+        setError('You have used all your visits for this period. Please upgrade or wait for renewal.');
+        setLoading(false);
+        return;
+      }
+      
+      // Generate mock QR code data
+      const qrToken = `YUVGO_${user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const qrCodeData = {
+        qr_token: qrToken,
+        user_id: user.id,
+        user_name: user.full_name,
+        subscription_id: subData.id,
+        visits_remaining: subData.visits_remaining,
+        expires_in: 120, // 2 minutes
+        generated_at: new Date().toISOString()
+      };
+      
+      // Store QR data in localStorage
+      localStorage.setItem('current_qr', JSON.stringify(qrCodeData));
+      
+      setQrData(qrCodeData);
+      setTimeLeft(120); // 2 minutes
+      
     } catch (error) {
       setError(error.response?.data?.detail || 'Failed to generate QR code');
     } finally {
@@ -71,6 +132,19 @@ const MyQR = () => {
           </div>
         ) : qrData ? (
           <div className="bg-white rounded-3xl shadow-xl p-8">
+            {/* Subscription Info */}
+            {qrData.visits_remaining && (
+              <div className="bg-gradient-to-r from-primary-50 to-purple-50 rounded-xl p-4 mb-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Visits Remaining</p>
+                    <p className="text-2xl font-bold text-primary-600">{qrData.visits_remaining}</p>
+                  </div>
+                  <Sparkles className="text-primary-600" size={32} />
+                </div>
+              </div>
+            )}
+            
             {/* Timer */}
             <div className="text-center mb-6">
               <div className={`inline-flex items-center space-x-2 px-4 py-2 rounded-full ${
