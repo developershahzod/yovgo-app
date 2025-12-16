@@ -140,9 +140,11 @@ async def create_subscription(
     subscription = Subscription(
         user_id=user_id,
         plan_id=plan.id,
-        status="pending",  # Will be activated after payment
+        status="active",  # Активируем сразу для тестирования
         start_date=start_date,
         end_date=end_date,
+        visits_remaining=plan.visit_limit if plan.visit_limit else 0,
+        is_unlimited=plan.is_unlimited if hasattr(plan, 'is_unlimited') else False,
         auto_renew=subscription_data.auto_renew
     )
     

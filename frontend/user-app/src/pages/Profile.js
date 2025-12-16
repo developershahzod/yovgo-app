@@ -103,7 +103,7 @@ const Profile = () => {
         {/* App Info */}
         <div className="mt-6 text-center">
           <p className="text-gray-500 text-sm">YuvGo v1.0.0</p>
-          <p className="text-gray-400 text-xs mt-1">© 2024 YuvGo. All rights reserved.</p>
+          <p className="text-gray-400 text-xs mt-1">© 2025 YuvGo. All rights reserved.</p>
         </div>
       </div>
     </div>

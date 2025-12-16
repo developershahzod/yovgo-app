@@ -1,14 +1,15 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { MerchantAuthProvider, useMerchantAuth } from './context/MerchantAuthContext';
-import MerchantLogin from './pages/MerchantLogin';
+import MerchantLogin from './pages/MerchantLoginNew';
 import MerchantRegister from './pages/MerchantRegister';
 import Dashboard from './pages/Dashboard';
 import Clients from './pages/Clients';
 import Earnings from './pages/Earnings';
 import VisitHistory from './pages/VisitHistory';
 import QRTemplates from './pages/QRTemplates';
-import Layout from './components/Layout';
+import QRCodeDisplay from './pages/QRCodeDisplay';
+import Layout from './components/LayoutClean';
 
 const ProtectedRoute = ({ children }) => {
   const { merchant } = useMerchantAuth();
@@ -38,6 +39,7 @@ function App() {
           >
             <Route index element={<Navigate to="/dashboard" />} />
             <Route path="dashboard" element={<Dashboard />} />
+            <Route path="qr-scanner" element={<QRCodeDisplay />} />
             <Route path="clients" element={<Clients />} />
             <Route path="earnings" element={<Earnings />} />
             <Route path="visits" element={<VisitHistory />} />

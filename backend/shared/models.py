@@ -55,6 +55,8 @@ class Subscription(Base):
     start_date = Column(TIMESTAMP, nullable=False)
     end_date = Column(TIMESTAMP, nullable=False)
     visits_used = Column(Integer, default=0)
+    visits_remaining = Column(Integer, default=0)
+    is_unlimited = Column(Boolean, default=False)
     auto_renew = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

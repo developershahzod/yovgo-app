@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Camera, AlertCircle, CheckCircle, Sparkles, CreditCard, Calendar, Award, Scan, X } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 
 const QRScanner = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [subscription, setSubscription] = useState(null);
   const [manualCode, setManualCode] = useState('');
   const [error, setError] = useState('');
@@ -106,12 +108,36 @@ const QRScanner = () => {
     if (code.startsWith('CARWASH_') || code.startsWith('YUVGO_PARTNER_')) {
       // Extract partner info if available
       let partnerInfo = '';
+      let partnerId = '';
       if (code.startsWith('YUVGO_PARTNER_')) {
         const parts = code.split('_');
-        partnerInfo = parts[2] ? ` at partner location` : '';
+        partnerId = parts[2] || 'unknown';
+        partnerInfo = ` at partner location`;
       }
 
-      // Deduct a visit
+      // Create visit record for merchant dashboard
+      const visit = {
+        id: `visit-${Date.now()}`,
+        qr_token: code,
+        user_name: user?.full_name || 'Customer',
+        user_phone: user?.phone_number || '+998XXXXXXXXX',
+        staff_name: 'Self Check-in',
+        check_in_time: new Date().toISOString(),
+        status: 'completed',
+        notes: 'User self check-in via QR scan',
+        partner_id: partnerId
+      };
+
+      // Save visit to merchant_visits localStorage
+      const existingVisits = JSON.parse(localStorage.getItem('merchant_visits') || '[]');
+      existingVisits.unshift(visit);
+      // Keep only last 100 visits
+      if (existingVisits.length > 100) {
+        existingVisits.pop();
+      }
+      localStorage.setItem('merchant_visits', JSON.stringify(existingVisits));
+
+      // Deduct a visit from subscription
       const updatedSub = {
         ...subscription,
         visits_remaining: subscription.visits_remaining - 1,
@@ -200,11 +226,17 @@ const QRScanner = () => {
           <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" size={20} />
-              <div>
+              <div className="flex-1">
                 <p className="text-yellow-900 font-medium text-sm">No Active Subscription</p>
-                <p className="text-yellow-700 text-sm mt-1">
+                <p className="text-yellow-700 text-sm mt-1 mb-3">
                   Please subscribe to a plan to use car wash services.
                 </p>
+                <button
+                  onClick={() => navigate('/subscriptions')}
+                  className="bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
+                >
+                  View Plans
+                </button>
               </div>
             </div>
           </div>
@@ -248,22 +280,48 @@ const QRScanner = () => {
             </p>
           </div>
 
-          {/* Camera Scanner */}
+          {/* Manual QR Code Input */}
+          <div className="mb-6">
+            <form onSubmit={handleManualSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Enter QR Code
+                </label>
+                <input
+                  type="text"
+                  value={manualCode}
+                  onChange={(e) => setManualCode(e.target.value)}
+                  placeholder="YUVGO_PARTNER_..."
+                  disabled={!subscription}
+                  className="w-full px-4 py-3 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!subscription || !manualCode.trim()}
+                className="w-full py-4 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Check In
+              </button>
+            </form>
+            {!subscription && (
+              <p className="text-center text-sm text-red-600 mt-2">
+                Please purchase a subscription first
+              </p>
+            )}
+          </div>
+
+          {/* Camera Scanner (if available) */}
           {!scanning ? (
-            <div className="mb-6">
+            <div className="mb-6 pt-6 border-t">
               <button
                 onClick={startScanning}
                 disabled={!subscription}
-                className="w-full py-4 bg-gradient-to-r from-primary-500 to-primary-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full py-3 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 <Camera size={20} />
-                Open Camera Scanner
+                Or Use Camera Scanner
               </button>
-              {!subscription && (
-                <p className="text-center text-sm text-red-600 mt-2">
-                  Please purchase a subscription first
-                </p>
-              )}
             </div>
           ) : (
             <div className="mb-6">

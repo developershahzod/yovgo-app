@@ -7,7 +7,7 @@ const Login = () => {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, API_URL } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -18,6 +18,23 @@ const Login = () => {
     const result = await login(phoneNumber);
 
     if (result.success) {
+      // Check if user has active subscription in API, if not clear localStorage
+      try {
+        const subCheck = await fetch(`${API_URL}/api/subscription/subscriptions/status`, {
+          headers: {
+            'Authorization': `Bearer ${result.token}`
+          }
+        });
+        if (!subCheck.ok) {
+          // No subscription in API, clear localStorage
+          localStorage.removeItem('active_subscription');
+          localStorage.removeItem('current_qr');
+        }
+      } catch (err) {
+        // API not available, keep localStorage as is
+        console.log('Could not check subscription status');
+      }
+      
       navigate('/home');
     } else {
       setError(result.error);
@@ -27,7 +44,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-500 to-primary-700 flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-yuvgo-cyan to-yuvgo-dark flex flex-col">
       <div className="p-6">
         <button
           onClick={() => navigate('/welcome')}
@@ -41,6 +58,13 @@ const Login = () => {
       <div className="flex-1 flex flex-col items-center justify-center px-6 pb-12">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
+            <div className="inline-flex items-center justify-center mb-4">
+              <img 
+                src="/logo.png" 
+                alt="YuvGo Logo" 
+                className="w-20 h-20 rounded-2xl shadow-lg"
+              />
+            </div>
             <div className="inline-flex items-center justify-center w-16 h-16 bg-white rounded-full mb-4">
               <Car className="text-primary-600" size={32} />
             </div>

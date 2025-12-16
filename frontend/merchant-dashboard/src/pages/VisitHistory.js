@@ -1,116 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useMerchantAuth } from '../context/MerchantAuthContext';
-import { Calendar, User, Download, Filter } from 'lucide-react';
+import { Calendar, User, Download, Filter, RefreshCw } from 'lucide-react';
 
 const VisitHistory = () => {
-  const { API_URL, merchant } = useMerchantAuth();
+  const { merchant } = useMerchantAuth();
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState('all');
-  const [page, setPage] = useState(1);
-  const limit = 20;
 
   useEffect(() => {
     fetchVisits();
-  }, [dateFilter, page]);
+  }, [dateFilter]);
 
   const fetchVisits = async () => {
     try {
       setLoading(true);
       
-      // Check localStorage first for scanned visits
-      const localVisits = JSON.parse(localStorage.getItem('merchant_visits') || '[]');
+      const partnerId = merchant?.partner?.id;
       
-      // If we have local visits, use them
-      if (localVisits.length > 0) {
-        // Apply date filter
-        let filteredVisits = localVisits;
-        if (dateFilter !== 'all') {
-          const filterDate = new Date();
-          
-          if (dateFilter === 'today') {
-            filterDate.setHours(0, 0, 0, 0);
-            filteredVisits = localVisits.filter(v => new Date(v.check_in_time) >= filterDate);
-          } else if (dateFilter === 'week') {
-            filterDate.setDate(filterDate.getDate() - 7);
-            filteredVisits = localVisits.filter(v => new Date(v.check_in_time) >= filterDate);
-          } else if (dateFilter === 'month') {
-            filterDate.setMonth(filterDate.getMonth() - 1);
-            filteredVisits = localVisits.filter(v => new Date(v.check_in_time) >= filterDate);
-          }
-        }
-        
-        setVisits(filteredVisits);
+      if (!partnerId) {
+        console.error('No partner ID found');
+        setVisits([]);
         setLoading(false);
         return;
       }
       
-      // Fallback: Fetch real users to generate visit data
-      const usersResponse = await axios.get(`${API_URL}/api/user/users`);
-      const users = usersResponse.data;
+      // Загружаем визиты с backend
+      const VISIT_API = 'http://localhost:8004';
+      const response = await axios.get(`${VISIT_API}/visits?partner_id=${partnerId}`);
       
-      // Fetch partner staff
-      const staffResponse = await axios.get(`${API_URL}/api/partner/staff`);
-      const staff = staffResponse.data;
-      
-      // Generate visit data based on real users
-      const mockVisits = [];
-      const now = new Date();
-      
-      // Create visits for each user (simulate multiple visits)
-      users.forEach((user, userIndex) => {
-        // Each user has 2-5 visits
-        const visitCount = 2 + Math.floor(Math.random() * 4);
-        
-        for (let i = 0; i < visitCount; i++) {
-          // Random date within last 30 days
-          const daysAgo = Math.floor(Math.random() * 30);
-          const visitDate = new Date(now);
-          visitDate.setDate(visitDate.getDate() - daysAgo);
-          visitDate.setHours(9 + Math.floor(Math.random() * 9), Math.floor(Math.random() * 60));
-          
-          mockVisits.push({
-            id: `visit-${userIndex}-${i}`,
-            user_id: user.id,
-            user_name: user.full_name,
-            user_phone: user.phone_number,
-            staff_id: staff.length > 0 ? staff[Math.floor(Math.random() * staff.length)].id : null,
-            staff_name: staff.length > 0 ? staff[Math.floor(Math.random() * staff.length)].full_name : 'N/A',
-            check_in_time: visitDate.toISOString(),
-            status: 'completed',
-            notes: i === 0 ? 'First visit' : null,
-            created_at: visitDate.toISOString()
-          });
-        }
-      });
-      
-      // Sort by date (newest first)
-      mockVisits.sort((a, b) => new Date(b.check_in_time) - new Date(a.check_in_time));
+      let filteredVisits = response.data || [];
       
       // Apply date filter
-      let filteredVisits = mockVisits;
-      if (dateFilter !== 'all') {
+      if (dateFilter !== 'all' && filteredVisits.length > 0) {
         const filterDate = new Date();
         
         if (dateFilter === 'today') {
           filterDate.setHours(0, 0, 0, 0);
-          filteredVisits = mockVisits.filter(v => new Date(v.check_in_time) >= filterDate);
+          filteredVisits = filteredVisits.filter(v => new Date(v.check_in_time) >= filterDate);
         } else if (dateFilter === 'week') {
           filterDate.setDate(filterDate.getDate() - 7);
-          filteredVisits = mockVisits.filter(v => new Date(v.check_in_time) >= filterDate);
+          filteredVisits = filteredVisits.filter(v => new Date(v.check_in_time) >= filterDate);
         } else if (dateFilter === 'month') {
           filterDate.setMonth(filterDate.getMonth() - 1);
-          filteredVisits = mockVisits.filter(v => new Date(v.check_in_time) >= filterDate);
+          filteredVisits = filteredVisits.filter(v => new Date(v.check_in_time) >= filterDate);
         }
       }
       
-      // Apply pagination
-      const startIndex = (page - 1) * limit;
-      const paginatedVisits = filteredVisits.slice(startIndex, startIndex + limit);
-      
-      setVisits(paginatedVisits);
-      
+      setVisits(filteredVisits);
     } catch (error) {
       console.error('Failed to fetch visits:', error);
       setVisits([]);
@@ -119,166 +57,131 @@ const VisitHistory = () => {
     }
   };
 
-  const exportToCSV = () => {
-    const headers = ['Date', 'Time', 'Customer', 'Status'];
-    const rows = visits.map(visit => [
-      new Date(visit.check_in_time).toLocaleDateString(),
-      new Date(visit.check_in_time).toLocaleTimeString(),
-      visit.user_id,
-      visit.status
-    ]);
-    
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `visits-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Visit History</h1>
-          <p className="text-gray-600 mt-1">Complete record of customer check-ins</p>
+    <div className="p-6">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">История визитов</h1>
+        <p className="text-gray-600">Все визиты в вашем филиале</p>
+      </div>
+
+      {/* Filters */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <Filter size={20} className="text-gray-500" />
+          <select
+            value={dateFilter}
+            onChange={(e) => setDateFilter(e.target.value)}
+            className="px-4 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">Все время</option>
+            <option value="today">Сегодня</option>
+            <option value="week">Неделя</option>
+            <option value="month">Месяц</option>
+          </select>
         </div>
+        
         <button
-          onClick={exportToCSV}
-          className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+          onClick={fetchVisits}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors"
         >
-          <Download size={20} className="mr-2" />
-          Export CSV
+          <RefreshCw size={18} />
+          <span>Обновить</span>
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-4 border-b flex items-center justify-between">
-          <div className="flex items-center space-x-4">
-            <Filter size={20} className="text-gray-400" />
-            <select
-              value={dateFilter}
-              onChange={(e) => setDateFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-            >
-              <option value="all">All Time</option>
-              <option value="today">Today</option>
-              <option value="week">Last 7 Days</option>
-              <option value="month">Last 30 Days</option>
-            </select>
+      {/* Visits List */}
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <div className="w-12 h-12 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin"></div>
+        </div>
+      ) : visits.length === 0 ? (
+        <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
+          <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Нет визитов</h3>
+          <p className="text-gray-500">Визиты появятся после сканирования QR кодов</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Клиент</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Дата и время</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Статус</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">
+              {visits.map((visit) => (
+                <tr key={visit.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                        <User size={20} className="text-blue-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{visit.user_name || 'Клиент'}</p>
+                        <p className="text-sm text-gray-500">{visit.user_phone || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Calendar size={16} />
+                      <span>{formatDate(visit.check_in_time)}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                      {visit.status === 'completed' ? 'Завершен' : visit.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Stats */}
+      {!loading && visits.length > 0 && (
+        <div className="mt-6 grid grid-cols-3 gap-4">
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <p className="text-sm text-gray-500 mb-1">Всего визитов</p>
+            <p className="text-2xl font-bold text-gray-900">{visits.length}</p>
           </div>
-          <div className="text-sm text-gray-600">
-            Total: <span className="font-medium">{visits.length}</span> visits
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <p className="text-sm text-gray-500 mb-1">Сегодня</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {visits.filter(v => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                return new Date(v.check_in_time) >= today;
+              }).length}
+            </p>
+          </div>
+          <div className="bg-white p-4 rounded-lg border border-gray-200">
+            <p className="text-sm text-gray-500 mb-1">Эта неделя</p>
+            <p className="text-2xl font-bold text-gray-900">
+              {visits.filter(v => {
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                return new Date(v.check_in_time) >= weekAgo;
+              }).length}
+            </p>
           </div>
         </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Date & Time
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Customer
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Staff
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Notes
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {visits.length === 0 ? (
-                  <tr>
-                    <td colSpan="5" className="px-6 py-8 text-center text-gray-500">
-                      No visits recorded yet
-                    </td>
-                  </tr>
-                ) : (
-                  visits.map((visit) => (
-                    <tr key={visit.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <Calendar className="text-gray-400 mr-2" size={16} />
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {new Date(visit.check_in_time).toLocaleDateString()}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {new Date(visit.check_in_time).toLocaleTimeString()}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <User className="text-gray-400 mr-2" size={16} />
-                          <div>
-                            <div className="text-sm font-medium text-gray-900">
-                              {visit.user_name || 'Unknown User'}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              {visit.user_phone || visit.user_id.substring(0, 8) + '...'}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                        {visit.staff_name || 'N/A'}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                          {visit.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {visit.notes || '-'}
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Pagination */}
-        {visits.length >= limit && (
-          <div className="px-6 py-4 border-t flex items-center justify-between">
-            <button
-              onClick={() => setPage(Math.max(1, page - 1))}
-              disabled={page === 1}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Previous
-            </button>
-            <span className="text-sm text-gray-600">Page {page}</span>
-            <button
-              onClick={() => setPage(page + 1)}
-              disabled={visits.length < limit}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-            </button>
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 };

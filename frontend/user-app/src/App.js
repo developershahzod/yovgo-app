@@ -4,11 +4,13 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Welcome from './pages/Welcome';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import Home from './pages/Home';
-import Map from './pages/Map';
-import Subscriptions from './pages/Subscriptions';
-import MyQR from './pages/MyQR';
-import Profile from './pages/Profile';
+import Home from './pages/HomePremium';
+import Map from './pages/MapNew';
+import Subscriptions from './pages/SubscriptionsPremium';
+import QRScannerUser from './pages/QRScannerCamera';
+import Profile from './pages/ProfilePremium';
+import Notifications from './pages/Notifications';
+import VisitHistory from './pages/VisitHistory';
 import Layout from './components/Layout';
 
 const ProtectedRoute = ({ children }) => {
@@ -50,8 +52,10 @@ function App() {
             <Route path="home" element={<Home />} />
             <Route path="map" element={<Map />} />
             <Route path="subscriptions" element={<Subscriptions />} />
-            <Route path="qr" element={<MyQR />} />
+            <Route path="qr" element={<QRScannerUser />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="notifications" element={<Notifications />} />
+            <Route path="visits" element={<VisitHistory />} />
           </Route>
         </Routes>
       </Router>

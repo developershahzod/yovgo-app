@@ -26,6 +26,10 @@ const Register = () => {
     setError('');
     setLoading(true);
 
+    // Clear any old subscription data for new user
+    localStorage.removeItem('active_subscription');
+    localStorage.removeItem('current_qr');
+
     const result = await register(
       formData.phoneNumber,
       formData.email,

@@ -28,6 +28,12 @@ const Partners = () => {
     logo_url: '',
     is_active: true
   });
+  const [staffForm, setStaffForm] = useState({
+    phone_number: '',
+    pin_code: '',
+    full_name: ''
+  });
+  const [showStaffSection, setShowStaffSection] = useState(false);
 
   useEffect(() => {
     fetchPartners();
@@ -84,7 +90,7 @@ const Partners = () => {
     setShowModal(true);
   };
 
-  const handleEditPartner = (partner) => {
+  const handleEditPartner = async (partner) => {
     setEditingPartner(partner);
     setPartnerForm({
       name: partner.name,
@@ -100,6 +106,22 @@ const Partners = () => {
       is_active: partner.is_active
     });
     setLogoPreview(partner.logo_url || '');
+    
+    // Fetch staff credentials for this partner
+    try {
+      const response = await axios.get(`${API_URL}/api/partner/partners/${partner.id}/staff`);
+      if (response.data && response.data.length > 0) {
+        const staff = response.data[0]; // Get first staff member
+        setStaffForm({
+          phone_number: staff.phone_number || '',
+          pin_code: '', // Don't show existing PIN for security
+          full_name: staff.full_name || ''
+        });
+      }
+    } catch (error) {
+      console.log('No staff found or error fetching staff');
+    }
+    
     setShowModal(true);
   };
 
@@ -122,17 +144,39 @@ const Partners = () => {
     setSuccess('');
 
     try {
+      let partnerId;
+      
       if (editingPartner) {
         await axios.put(`${API_URL}/api/partner/partners/${editingPartner.id}`, partnerForm);
+        partnerId = editingPartner.id;
         setSuccess('Partner updated successfully!');
       } else {
-        await axios.post(`${API_URL}/api/partner/partners`, partnerForm);
+        const response = await axios.post(`${API_URL}/api/partner/partners`, partnerForm);
+        partnerId = response.data.id;
         setSuccess('Partner created successfully!');
+      }
+
+      // Update staff credentials if provided
+      if (editingPartner && showStaffSection && (staffForm.phone_number || staffForm.pin_code)) {
+        try {
+          const staffData = {};
+          if (staffForm.full_name) staffData.full_name = staffForm.full_name;
+          if (staffForm.phone_number) staffData.phone_number = staffForm.phone_number;
+          if (staffForm.pin_code) staffData.pin_code = staffForm.pin_code;
+          
+          await axios.put(`${API_URL}/api/partner/partners/${partnerId}/staff`, staffData);
+          setSuccess('Partner and credentials updated successfully!');
+        } catch (staffError) {
+          console.error('Failed to update staff credentials:', staffError);
+          setError('Partner updated but failed to update credentials');
+          return;
+        }
       }
 
       setTimeout(() => {
         setShowModal(false);
         setSuccess('');
+        setShowStaffSection(false);
         fetchPartners();
       }, 1500);
     } catch (error) {
@@ -518,6 +562,87 @@ const Partners = () => {
                   Active (visible to users)
                 </label>
               </div>
+
+              {/* Staff Credentials Section */}
+              {editingPartner && (
+                <div className="border-t pt-4 mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      Merchant Dashboard Access
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowStaffSection(!showStaffSection)}
+                      className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                    >
+                      {showStaffSection ? 'Hide' : 'Edit Credentials'}
+                    </button>
+                  </div>
+
+                  {showStaffSection && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+                      <p className="text-sm text-blue-800 mb-3">
+                        🔐 Update login credentials for Merchant Dashboard access
+                      </p>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Staff Name
+                        </label>
+                        <input
+                          type="text"
+                          value={staffForm.full_name}
+                          onChange={(e) => setStaffForm({ ...staffForm, full_name: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                          placeholder="Manager Name"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Phone Number (Login)
+                        </label>
+                        <input
+                          type="tel"
+                          value={staffForm.phone_number}
+                          onChange={(e) => setStaffForm({ ...staffForm, phone_number: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                          placeholder="+998901234567"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          This phone number will be used to login to Merchant Dashboard
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          PIN Code (6 digits)
+                        </label>
+                        <input
+                          type="text"
+                          value={staffForm.pin_code}
+                          onChange={(e) => {
+                            const value = e.target.value.replace(/\D/g, '').slice(0, 6);
+                            setStaffForm({ ...staffForm, pin_code: value });
+                          }}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-lg tracking-widest"
+                          placeholder="123456"
+                          maxLength="6"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">
+                          Enter a new 6-digit PIN code. Leave empty to keep current PIN.
+                        </p>
+                      </div>
+
+                      <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                        <p className="text-xs text-yellow-800">
+                          ⚠️ <strong>Important:</strong> Make sure to share these credentials securely with the merchant.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Actions */}
               <div className="flex gap-3 pt-4">

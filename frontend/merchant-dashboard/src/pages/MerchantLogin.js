@@ -32,10 +32,17 @@ const MerchantLogin = () => {
   return (
     <div className="min-h-screen w-full lg:grid lg:grid-cols-2">
       {/* Left Side - Branding */}
-      <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-emerald-600 to-emerald-800 p-12 text-white">
-        <div className="flex items-center gap-2">
-          <Store className="h-8 w-8" />
-          <span className="text-2xl font-bold">YuvGo Merchant</span>
+      <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-yuvgo-cyan to-yuvgo-dark p-12 text-white">
+        <div className="flex items-center gap-3">
+          <img 
+            src="/logo.png" 
+            alt="YuvGo Logo" 
+            className="w-16 h-16 rounded-2xl shadow-lg"
+          />
+          <div>
+            <span className="text-3xl font-bold">YuvGo</span>
+            <p className="text-sm text-white/80">Merchant Portal</p>
+          </div>
         </div>
         
         <div className="space-y-4">
@@ -48,7 +55,7 @@ const MerchantLogin = () => {
         </div>
 
         <div className="space-y-2 text-sm text-emerald-100">
-          <p>© 2024 YuvGo Merchant Portal. All rights reserved.</p>
+          <p>© 2025 YuvGo Merchant Portal. All rights reserved.</p>
         </div>
       </div>
 
@@ -56,9 +63,16 @@ const MerchantLogin = () => {
       <div className="flex items-center justify-center p-8">
         <div className="w-full max-w-md space-y-8">
           {/* Mobile Logo */}
-          <div className="flex lg:hidden items-center justify-center gap-2 mb-8">
-            <Store className="h-8 w-8 text-emerald-600" />
-            <span className="text-2xl font-bold">YuvGo Merchant</span>
+          <div className="flex lg:hidden flex-col items-center justify-center gap-3 mb-8">
+            <img 
+              src="/logo.png" 
+              alt="YuvGo Logo" 
+              className="w-16 h-16 rounded-2xl shadow-lg"
+            />
+            <div className="text-center">
+              <span className="text-2xl font-bold text-yuvgo-navy">YuvGo</span>
+              <p className="text-sm text-gray-600">Merchant Portal</p>
+            </div>
           </div>
 
           <div className="space-y-2 text-center lg:text-left">

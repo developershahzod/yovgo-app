@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useAuth } from '../context/AuthContext';
-import { Car, Calendar, MapPin, Sparkles, ArrowRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { MapPin, Sparkles, Car, QrCode, Calendar, ArrowRight } from 'lucide-react';
+import QRCodeReact from 'qrcode.react';
 
 const Home = () => {
   const { user, API_URL } = useAuth();
@@ -119,11 +120,13 @@ const Home = () => {
               )}
             </div>
 
+            {/* Scan QR Button */}
             <button
               onClick={() => navigate('/qr')}
-              className="w-full mt-4 bg-white text-primary-600 px-4 py-2 rounded-lg font-medium hover:bg-primary-50 transition-colors"
+              className="w-full mt-4 bg-white text-primary-600 px-6 py-4 rounded-xl font-semibold hover:bg-primary-50 transition-colors flex items-center justify-center gap-3 shadow-lg"
             >
-              Show My QR Code
+              <QrCode size={24} />
+              <span>Scan QR at Car Wash</span>
             </button>
           </div>
         ) : (
@@ -152,10 +155,10 @@ const Home = () => {
             className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow"
           >
             <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center mb-3">
-              <Car className="text-primary-600" size={24} />
+              <QrCode className="text-primary-600" size={24} />
             </div>
-            <p className="font-semibold text-gray-900">My QR Code</p>
-            <p className="text-gray-500 text-sm mt-1">Show at car wash</p>
+            <p className="font-semibold text-gray-900">Scan QR Code</p>
+            <p className="text-gray-500 text-sm mt-1">At car wash</p>
           </button>
 
           <button

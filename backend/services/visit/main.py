@@ -174,17 +174,43 @@ async def check_in(
 async def get_visit_history(
     skip: int = 0,
     limit: int = 20,
-    db: Session = Depends(get_db),
-    current_user = Depends(AuthHandler.get_current_user)
+    user_id: str = None,
+    partner_id: str = None,
+    db: Session = Depends(get_db)
 ):
-    """Get user's visit history"""
-    user_id = current_user.get("sub")
+    """Get visit history - can filter by user_id or partner_id"""
+    query = db.query(Visit).join(User, Visit.user_id == User.id)
     
-    visits = db.query(Visit).filter(
-        Visit.user_id == user_id
-    ).order_by(Visit.check_in_time.desc()).offset(skip).limit(limit).all()
+    if user_id:
+        query = query.filter(Visit.user_id == user_id)
     
-    return visits
+    if partner_id:
+        query = query.filter(Visit.partner_id == partner_id)
+    
+    visits_data = query.order_by(Visit.check_in_time.desc()).offset(skip).limit(limit).all()
+    
+    # Add user info to each visit
+    result = []
+    for visit in visits_data:
+        user = db.query(User).filter(User.id == visit.user_id).first()
+        visit_dict = {
+            "id": visit.id,
+            "user_id": visit.user_id,
+            "subscription_id": visit.subscription_id,
+            "vehicle_id": visit.vehicle_id,
+            "partner_id": visit.partner_id,
+            "location_id": visit.location_id,
+            "staff_id": visit.staff_id,
+            "check_in_time": visit.check_in_time,
+            "status": visit.status,
+            "notes": visit.notes,
+            "user_name": user.full_name if user else None,
+            "user_phone": user.phone_number if user else None,
+            "user_email": user.email if user else None,
+        }
+        result.append(visit_dict)
+    
+    return result
 
 @app.get("/visits/{visit_id}", response_model=VisitResponse)
 async def get_visit(
@@ -365,6 +391,89 @@ async def get_partner_earnings(
             {"period": "Week 3", "amount": month_visits * 0.27 * avg_revenue_per_visit},
             {"period": "Week 4", "amount": month_visits * 0.25 * avg_revenue_per_visit}
         ]
+    }
+
+# User Check-in (User scans merchant QR)
+from pydantic import BaseModel
+
+class UserCheckinRequest(BaseModel):
+    qr_token: str
+    user_id: str
+
+@app.post("/user-checkin")
+async def user_checkin(
+    request: UserCheckinRequest,
+    db: Session = Depends(get_db)
+):
+    """User scans merchant QR code to check-in"""
+    
+    # Validate QR token format
+    if not request.qr_token.startswith('MERCHANT_'):
+        raise HTTPException(status_code=400, detail="Invalid merchant QR code")
+    
+    # Extract partner_id from token (format: MERCHANT_partnerId_timestamp)
+    try:
+        parts = request.qr_token.split('_')
+        partner_id = parts[1] if len(parts) > 1 else None
+    except:
+        raise HTTPException(status_code=400, detail="Invalid QR token format")
+    
+    # Check if user exists
+    user = db.query(User).filter(User.id == request.user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Check if user has active subscription
+    subscription = db.query(Subscription).filter(
+        Subscription.user_id == request.user_id,
+        Subscription.status == "active",
+        Subscription.end_date > datetime.utcnow()
+    ).first()
+    
+    if not subscription:
+        raise HTTPException(status_code=400, detail="No active subscription")
+    
+    # Check visit limits
+    if subscription.visits_remaining <= 0 and not subscription.is_unlimited:
+        raise HTTPException(status_code=400, detail="No visits remaining")
+    
+    # Check cooldown
+    last_visit = db.query(Visit).filter(
+        Visit.user_id == request.user_id
+    ).order_by(Visit.check_in_time.desc()).first()
+    
+    if last_visit:
+        cooldown_end = last_visit.check_in_time + timedelta(hours=VISIT_COOLDOWN_HOURS)
+        if datetime.utcnow() < cooldown_end:
+            remaining = (cooldown_end - datetime.utcnow()).total_seconds() / 3600
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Please wait {remaining:.1f} hours before next visit"
+            )
+    
+    # Create visit record
+    visit = Visit(
+        user_id=request.user_id,
+        partner_id=partner_id,
+        subscription_id=subscription.id,
+        check_in_time=datetime.utcnow(),
+        status="completed",
+        notes="User scanned merchant QR"
+    )
+    db.add(visit)
+    
+    # Update subscription visits
+    if not subscription.is_unlimited:
+        subscription.visits_remaining -= 1
+    
+    db.commit()
+    db.refresh(visit)
+    
+    return {
+        "success": True,
+        "message": "Check-in successful",
+        "visit_id": str(visit.id),
+        "visits_remaining": subscription.visits_remaining if not subscription.is_unlimited else "unlimited"
     }
 
 if __name__ == "__main__":

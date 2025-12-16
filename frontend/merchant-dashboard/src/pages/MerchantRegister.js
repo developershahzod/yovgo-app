@@ -128,7 +128,7 @@ const MerchantRegister = () => {
         </div>
         
         <div className="text-emerald-100 text-sm">
-          © 2024 YuvGo. All rights reserved.
+          © 2025 YuvGo. All rights reserved.
         </div>
       </div>
 

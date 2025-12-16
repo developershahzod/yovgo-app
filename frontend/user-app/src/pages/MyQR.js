@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { AlertCircle, CheckCircle, Sparkles, Clock, RefreshCw } from 'lucide-react';
 import QRCode from 'qrcode.react';
+import axios from 'axios';
+import BottomNav from '../components/BottomNav';
 
 const MyQR = () => {
   const { user } = useAuth();
@@ -50,6 +52,8 @@ const MyQR = () => {
     setError('');
     
     try {
+      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
+      
       // Check if user has active subscription
       const subscription = localStorage.getItem('active_subscription');
       if (!subscription) {
@@ -75,20 +79,48 @@ const MyQR = () => {
         return;
       }
       
-      // Generate mock QR code data
+      // Generate QR code data
       const qrToken = `YUVGO_${user.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
       const qrCodeData = {
         qr_token: qrToken,
         user_id: user.id,
         user_name: user.full_name,
+        user_phone: user.phone_number,
+        user_email: user.email,
         subscription_id: subData.id,
         visits_remaining: subData.visits_remaining,
         expires_in: 120, // 2 minutes
         generated_at: new Date().toISOString()
       };
       
-      // Store QR data in localStorage
+      // Store QR data in localStorage for both User App and Merchant Dashboard
       localStorage.setItem('current_qr', JSON.stringify(qrCodeData));
+      
+      // Also store in a shared location that Merchant Dashboard can access
+      // This simulates a shared database
+      const sharedQRData = {
+        ...qrCodeData,
+        available_for_scan: true
+      };
+      localStorage.setItem(`qr_${qrToken}`, JSON.stringify(sharedQRData));
+      
+      // Try to register QR with API (optional, fallback to localStorage)
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          await axios.post(
+            `${API_URL}/api/visit/qr/generate`,
+            {},
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`
+              }
+            }
+          );
+        }
+      } catch (apiError) {
+        console.log('API QR generation failed, using localStorage fallback');
+      }
       
       setQrData(qrCodeData);
       setTimeLeft(120); // 2 minutes
@@ -228,6 +260,7 @@ const MyQR = () => {
           </p>
         </div>
       </div>
+      <BottomNav />
     </div>
   );
 };

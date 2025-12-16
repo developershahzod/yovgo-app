@@ -53,11 +53,16 @@ const Layout = () => {
       >
         {/* Logo */}
         <div className="flex items-center justify-between h-16 px-6 border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-primary/80 rounded-lg flex items-center justify-center">
-              <span className="text-white font-bold text-sm">Y</span>
+          <div className="flex items-center gap-3">
+            <img 
+              src="/logo.png" 
+              alt="YuvGo Logo" 
+              className="w-10 h-10 rounded-lg"
+            />
+            <div>
+              <h1 className="text-lg font-bold text-yuvgo-navy">YuvGo</h1>
+              <p className="text-xs text-gray-500">Admin Panel</p>
             </div>
-            <h1 className="text-lg font-bold text-gray-900">YuvGo</h1>
           </div>
           <button
             onClick={() => setSidebarOpen(false)}

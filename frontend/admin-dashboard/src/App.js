@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Login from './pages/Login';
+import Login from './pages/LoginNew';
 import Dashboard from './pages/Dashboard';
 import Users from './pages/Users';
 import Partners from './pages/Partners';
@@ -11,7 +11,8 @@ import Analytics from './pages/Analytics';
 import Admins from './pages/Admins';
 import Promotions from './pages/Promotions';
 import AuditLogs from './pages/AuditLogs';
-import Layout from './components/Layout';
+import LocationsMap from './pages/LocationsMap';
+import Layout from './components/LayoutNew';
 
 const ProtectedRoute = ({ children, requiredPermission }) => {
   const { user, hasPermission } = useAuth();
@@ -113,6 +114,15 @@ function App() {
               element={
                 <ProtectedRoute requiredPermission="audit.read">
                   <AuditLogs />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="locations-map"
+              element={
+                <ProtectedRoute requiredPermission="partners.read">
+                  <LocationsMap />
                 </ProtectedRoute>
               }
             />

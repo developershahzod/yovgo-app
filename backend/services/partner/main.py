@@ -153,6 +153,74 @@ async def list_staff(
     
     return query.all()
 
+@app.get("/partners/{partner_id}/staff", response_model=List[PartnerStaffResponse])
+async def get_partner_staff(partner_id: str, db: Session = Depends(get_db)):
+    """Get staff for a specific partner"""
+    staff = db.query(PartnerStaff).filter(
+        PartnerStaff.partner_id == partner_id,
+        PartnerStaff.is_active == True
+    ).all()
+    return staff
+
+# Staff Update Model
+class StaffUpdateRequest(BaseModel):
+    full_name: str = None
+    phone_number: str = None
+    pin_code: str = None
+
+@app.put("/partners/{partner_id}/staff")
+async def update_partner_staff(
+    partner_id: str,
+    staff_data: StaffUpdateRequest,
+    db: Session = Depends(get_db)
+):
+    """Update staff credentials for a partner"""
+    # Get first active staff for this partner
+    staff = db.query(PartnerStaff).filter(
+        PartnerStaff.partner_id == partner_id,
+        PartnerStaff.is_active == True
+    ).first()
+    
+    if not staff:
+        # Create new staff if none exists
+        staff = PartnerStaff(
+            partner_id=partner_id,
+            full_name=staff_data.full_name or "Manager",
+            phone_number=staff_data.phone_number,
+            pin_code=staff_data.pin_code or generate_pin_code(),
+            role="manager",
+            is_active=True
+        )
+        db.add(staff)
+    else:
+        # Update existing staff
+        if staff_data.full_name:
+            staff.full_name = staff_data.full_name
+        if staff_data.phone_number:
+            # Check if phone is already used by another staff
+            existing = db.query(PartnerStaff).filter(
+                PartnerStaff.phone_number == staff_data.phone_number,
+                PartnerStaff.id != staff.id
+            ).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Phone number already in use")
+            staff.phone_number = staff_data.phone_number
+        if staff_data.pin_code:
+            staff.pin_code = staff_data.pin_code
+    
+    db.commit()
+    db.refresh(staff)
+    
+    return {
+        "message": "Staff credentials updated successfully",
+        "staff": {
+            "id": str(staff.id),
+            "full_name": staff.full_name,
+            "phone_number": staff.phone_number,
+            "role": staff.role
+        }
+    }
+
 # Staff Login Request Model
 class StaffLoginRequest(BaseModel):
     phone_number: str
@@ -212,6 +280,26 @@ async def staff_login(
             "name": location.name,
             "address": location.address
         } if location else None
+    }
+
+# Generate Merchant QR Code
+@app.get("/partners/{partner_id}/qr")
+async def generate_merchant_qr(partner_id: str, db: Session = Depends(get_db)):
+    """Generate QR code for merchant location"""
+    import time
+    
+    partner = db.query(Partner).filter(Partner.id == partner_id).first()
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    # Generate merchant QR token
+    qr_token = f"MERCHANT_{partner_id}_{int(time.time())}"
+    
+    return {
+        "qr_token": qr_token,
+        "partner_id": partner_id,
+        "partner_name": partner.name,
+        "generated_at": time.time()
     }
 
 if __name__ == "__main__":

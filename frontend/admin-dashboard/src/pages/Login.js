@@ -33,13 +33,18 @@ const Login = () => {
   return (
     <div className="min-h-screen w-full lg:grid lg:grid-cols-2">
       {/* Left Side - Branding */}
-      <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-primary to-primary/90 p-12 text-white">
+      <div className="hidden lg:flex flex-col justify-between bg-gradient-to-br from-yuvgo-cyan to-yuvgo-dark p-12 text-white">
         <div>
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
-              <Shield className="h-7 w-7 text-primary" />
+            <img 
+              src="/logo.png" 
+              alt="YuvGo Logo" 
+              className="w-16 h-16 rounded-2xl shadow-lg"
+            />
+            <div>
+              <span className="text-3xl font-bold">YuvGo</span>
+              <p className="text-sm text-white/80">Admin Dashboard</p>
             </div>
-            <span className="text-2xl font-bold">YuvGo Admin</span>
           </div>
         </div>
         
@@ -77,7 +82,7 @@ const Login = () => {
         </div>
 
         <div className="space-y-2 text-sm text-primary-foreground/60">
-          <p>© 2024 YuvGo. All rights reserved.</p>
+          <p>© 2025 YuvGo. All rights reserved.</p>
         </div>
       </div>
 

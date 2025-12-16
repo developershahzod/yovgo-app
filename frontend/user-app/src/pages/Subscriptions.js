@@ -52,32 +52,43 @@ const Subscriptions = () => {
     setSelectedPlan(planId);
     
     try {
+      // Find the selected plan from database data
+      const selectedPlanData = plans.find(p => p.id === planId);
+      if (!selectedPlanData) {
+        throw new Error('Plan not found');
+      }
+
       // Mock payment process (in production, integrate with Payme/Click/Paynet)
       // Simulate payment delay
       await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Mock successful payment
-      const mockSubscription = {
+      // Create subscription with real plan data
+      const subscription = {
         id: 'sub_' + Date.now(),
         plan_id: planId,
+        plan_name: selectedPlanData.name,
         status: 'active',
         start_date: new Date().toISOString(),
-        end_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        visits_remaining: 12,
-        auto_renew: true
+        end_date: new Date(Date.now() + (selectedPlanData.duration_days * 24 * 60 * 60 * 1000)).toISOString(),
+        visits_remaining: selectedPlanData.visit_limit || 999,
+        visits_used: 0,
+        is_unlimited: selectedPlanData.is_unlimited,
+        auto_renew: true,
+        price: selectedPlanData.price,
+        currency: selectedPlanData.currency
       };
       
-      // Store subscription in localStorage (mock)
-      localStorage.setItem('active_subscription', JSON.stringify(mockSubscription));
+      // Store subscription in localStorage
+      localStorage.setItem('active_subscription', JSON.stringify(subscription));
       
       // Show success message
-      alert('🎉 Payment Successful! Your subscription is now active.');
+      alert(`🎉 Payment Successful! Your ${selectedPlanData.name} subscription is now active.`);
       
-      // Redirect to QR Scanner page
-      window.location.href = '/qr';
+      // Redirect to home page
+      navigate('/home');
       
     } catch (error) {
-      alert(error.response?.data?.detail || 'Payment failed. Please try again.');
+      alert(error.message || 'Payment failed. Please try again.');
     } finally {
       setPurchasing(false);
       setSelectedPlan(null);

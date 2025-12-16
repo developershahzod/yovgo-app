@@ -79,6 +79,8 @@ class SubscriptionResponse(BaseModel):
     start_date: datetime
     end_date: datetime
     visits_used: int
+    visits_remaining: int
+    is_unlimited: bool
     auto_renew: bool
     created_at: datetime
     
@@ -164,13 +166,17 @@ class VisitResponse(BaseModel):
     id: UUID
     user_id: UUID
     subscription_id: UUID
-    vehicle_id: Optional[UUID]
+    vehicle_id: Optional[UUID] = None
     partner_id: UUID
-    location_id: UUID
-    staff_id: UUID
+    location_id: Optional[UUID] = None
+    staff_id: Optional[UUID] = None
     check_in_time: datetime
     status: str
-    notes: Optional[str]
+    notes: Optional[str] = None
+    user_name: Optional[str] = None
+    user_phone: Optional[str] = None
+    user_email: Optional[str] = None
+    partner_name: Optional[str] = None
     
     class Config:
         from_attributes = True

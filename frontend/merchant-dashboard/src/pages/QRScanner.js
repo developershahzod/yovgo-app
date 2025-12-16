@@ -46,17 +46,63 @@ const QRScanner = () => {
         throw new Error('Invalid QR code format');
       }
 
+      // Parse QR token to extract user info
+      // Format: YUVGO_userId_timestamp_random
+      const tokenParts = qrToken.split('_');
+      let userId = 'unknown';
+      let userName = 'Customer';
+      let userPhone = '+998XXXXXXXXX';
+      
+      if (tokenParts.length >= 2) {
+        userId = tokenParts[1];
+      }
+
+      // Try to get user data from shared QR storage
+      const sharedQRKey = `qr_${qrToken}`;
+      const sharedQRData = localStorage.getItem(sharedQRKey);
+      
+      if (sharedQRData) {
+        try {
+          const qrData = JSON.parse(sharedQRData);
+          if (qrData.available_for_scan) {
+            userId = qrData.user_id;
+            userName = qrData.user_name || 'Customer';
+            userPhone = qrData.user_phone || '+998XXXXXXXXX';
+            
+            // Mark QR as used
+            localStorage.removeItem(sharedQRKey);
+            localStorage.removeItem('current_qr');
+          }
+        } catch (e) {
+          console.log('Could not parse shared QR data');
+        }
+      } else {
+        // Fallback: try to fetch user details from API
+        try {
+          const userResponse = await axios.get(`${API_URL}/api/user/users/${userId}`);
+          if (userResponse.data) {
+            userName = userResponse.data.full_name || userName;
+            userPhone = userResponse.data.phone_number || userPhone;
+          }
+        } catch (e) {
+          console.log('Could not fetch user details from API');
+        }
+      }
+
       // Create visit record
       const visit = {
         id: `visit-${Date.now()}`,
         qr_token: qrToken,
-        user_name: 'Customer',
-        user_phone: '+998XXXXXXXXX',
-        staff_name: merchant.partner?.name || 'Staff',
+        user_id: userId,
+        user_name: userName,
+        user_phone: userPhone,
+        staff_id: merchant.id,
+        staff_name: merchant.full_name || merchant.partner?.name || 'Staff',
         check_in_time: new Date().toISOString(),
         status: 'completed',
         notes: 'Check-in via QR scan',
-        partner_id: merchant.partner?.id
+        partner_id: merchant.partner?.id,
+        created_at: new Date().toISOString()
       };
 
       // Save to localStorage
@@ -67,6 +113,13 @@ const QRScanner = () => {
         existingVisits.pop();
       }
       localStorage.setItem('merchant_visits', JSON.stringify(existingVisits));
+      
+      // Also update visit count in Dashboard stats
+      const dashboardStats = JSON.parse(localStorage.getItem('merchant_stats') || '{}');
+      dashboardStats.total_visits = (dashboardStats.total_visits || 0) + 1;
+      dashboardStats.today_visits = (dashboardStats.today_visits || 0) + 1;
+      dashboardStats.last_updated = new Date().toISOString();
+      localStorage.setItem('merchant_stats', JSON.stringify(dashboardStats));
 
       setResult({
         success: true,
