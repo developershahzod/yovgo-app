@@ -130,16 +130,42 @@ export default function LandingWrapper() {
             />
           </div>
 
-          {/* FAQ Section - Click overlays for accordion */}
+          {/* FAQ Section - Interactive accordion overlay */}
           <div className="absolute top-[5041px] left-[532px] w-[856px]" style={{ zIndex: 1000 }}>
-            {[0, 1, 2, 3, 4].map((index) => (
-              <button
+            {[
+              { q: "Qanday qilib YUVGOdan foydalanish mumkin?", a: "YUVGO ilovasidan foydalanish uchun avval ilovani yuklab oling, ro'yxatdan o'ting va obuna sotib oling. Keyin QR kodni skanerlang va avtomobilingizni yuvishni boshlang." },
+              { q: "Obuna muddati necha oy", a: "Obuna muddati 30, 60 yoki 90 kun bo'lishi mumkin. Siz o'zingizga qulay bo'lgan muddatni tanlashingiz mumkin." },
+              { q: "Qanday qilib karta qo'shish mumkin?", a: "Ilovada 'Profil' bo'limiga o'ting, 'To'lov kartalari' ni tanlang va yangi karta qo'shing." },
+              { q: "Obuna to'lovini bo'lib to'lash imkoniyati bormi?", a: "Ha, siz obuna to'lovini bo'lib to'lash imkoniyatidan foydalanishingiz mumkin." },
+              { q: "Qanday qilib yangi avtomobil qo'shish mumkin", a: "Ilovada 'Profil' bo'limiga o'ting, 'Mening mashinalarim' ni tanlang va yangi avtomobil qo'shing." },
+            ].map((faq, index) => (
+              <div 
                 key={index}
+                className="mb-[16px] cursor-pointer"
                 onClick={() => setOpenFaqIndex(openFaqIndex === index ? -1 : index)}
-                className="w-full h-[80px] mb-[16px] cursor-pointer"
-                style={{ background: 'transparent' }}
-                aria-label={`FAQ ${index + 1}`}
-              />
+              >
+                <div className="bg-[#f2f2f2] rounded-[20px] overflow-hidden transition-all duration-300">
+                  <div className="flex items-center justify-between p-[24px]">
+                    <span className="text-[20px] font-black text-[#0a0c13]" style={{ fontFamily: "'Mulish', sans-serif" }}>
+                      {faq.q}
+                    </span>
+                    <svg 
+                      className={`w-6 h-6 transition-transform duration-300 flex-shrink-0 ${openFaqIndex === index ? '' : 'rotate-180'}`} 
+                      viewBox="0 0 24 24" 
+                      fill="none" 
+                      stroke="#0A0C13" 
+                      strokeWidth="1.5"
+                    >
+                      <path d="M16 14L12 10L8 14" strokeLinecap="round" strokeLinejoin="round"/>
+                    </svg>
+                  </div>
+                  {openFaqIndex === index && (
+                    <div className="px-[24px] pb-[24px] text-[15px] text-[#646d79]" style={{ fontFamily: "'Mulish', sans-serif" }}>
+                      {faq.a}
+                    </div>
+                  )}
+                </div>
+              </div>
             ))}
           </div>
 
