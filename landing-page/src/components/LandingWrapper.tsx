@@ -143,29 +143,14 @@ const SECTION_POSITIONS = {
 };
 
 export default function LandingWrapper() {
-  const [scale, setScale] = useState(1);
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
   const [lang, setLang] = useState<Language>('uz');
   const [showLangDropdown, setShowLangDropdown] = useState(false);
   
   const t = translations[lang];
 
-  useEffect(() => {
-    const updateScale = () => {
-      const windowWidth = window.innerWidth;
-      const designWidth = 1920;
-      const newScale = Math.min(windowWidth / designWidth, 1);
-      setScale(newScale);
-    };
-
-    updateScale();
-    window.addEventListener('resize', updateScale);
-    return () => window.removeEventListener('resize', updateScale);
-  }, []);
-
   const scrollToPosition = (position: number) => {
-    const scaledPosition = position * scale;
-    window.scrollTo({ top: scaledPosition, behavior: 'smooth' });
+    window.scrollTo({ top: position, behavior: 'smooth' });
   };
 
   const handleDownload = () => {
@@ -179,16 +164,14 @@ export default function LandingWrapper() {
 
   return (
     <div className="w-full bg-white overflow-x-hidden">
-      {/* Responsive Landing Page - Original Design with Click Overlays */}
+      {/* Responsive Landing Page - Centered Container */}
       <div 
+        className="max-w-[1920px] mx-auto relative"
         style={{
-          transform: `scale(${scale})`,
-          transformOrigin: 'top center',
-          width: '1920px',
-          margin: '0 auto',
+          width: '100%',
         }}
       >
-        <div className="w-[1920px] relative" style={{ minHeight: '6003px' }}>
+        <div className="w-full relative">
           {/* Original Figma Design */}
           <LandingOriginal />
           
@@ -469,9 +452,6 @@ export default function LandingWrapper() {
           </div>
         </div>
       </div>
-      
-      {/* Spacer to account for scaled height */}
-      <div style={{ height: `${6003 * scale}px` }} />
     </div>
   );
 }
