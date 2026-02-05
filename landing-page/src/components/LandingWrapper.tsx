@@ -276,71 +276,72 @@ export default function LandingWrapper() {
             ))}
           </div>
 
-          {/* Footer Links */}
-          <div className="absolute bottom-0 left-[240px] w-[1440px] h-[424px]" style={{ zIndex: 1000 }}>
-            {/* Hamkorlik section */}
-            <div className="absolute left-[170px] top-[80px]">
+          {/* Footer Links - positioned at bottom of page (6003px - 424px = 5579px) */}
+          <div className="absolute" style={{ top: '5579px', left: '80px', width: '1760px', height: '424px', zIndex: 1000 }}>
+            
+            {/* Hamkorlik section - Column 1 */}
+            <div className="absolute" style={{ left: '0px', top: '100px' }}>
               <a 
                 href="mailto:partners@yuvgo.uz" 
-                className="block w-[250px] h-[35px] cursor-pointer"
-                style={{ background: 'transparent' }}
+                className="block cursor-pointer"
+                style={{ width: '280px', height: '40px', background: 'transparent' }}
               />
               <button 
                 onClick={() => scrollToPosition(SECTION_POSITIONS.faq)}
-                className="block w-[200px] h-[35px] cursor-pointer mt-[8px]"
-                style={{ background: 'transparent' }}
+                className="block cursor-pointer"
+                style={{ width: '220px', height: '40px', marginTop: '12px', background: 'transparent' }}
               />
             </div>
 
-            {/* Hujjatlar section */}
-            <div className="absolute left-[460px] top-[80px]">
-              <a href="/terms" className="block w-[200px] h-[30px] cursor-pointer" style={{ background: 'transparent' }} />
-              <a href="/offer" className="block w-[150px] h-[30px] cursor-pointer mt-[8px]" style={{ background: 'transparent' }} />
-              <a href="/privacy" className="block w-[150px] h-[30px] cursor-pointer mt-[8px]" style={{ background: 'transparent' }} />
-              <a href="/agreement" className="block w-[180px] h-[30px] cursor-pointer mt-[8px]" style={{ background: 'transparent' }} />
+            {/* Hujjatlar section - Column 2 */}
+            <div className="absolute" style={{ left: '350px', top: '100px' }}>
+              <a href="/terms" className="block cursor-pointer" style={{ width: '220px', height: '35px', background: 'transparent' }} />
+              <a href="/offer" className="block cursor-pointer" style={{ width: '180px', height: '35px', marginTop: '10px', background: 'transparent' }} />
+              <a href="/privacy" className="block cursor-pointer" style={{ width: '200px', height: '35px', marginTop: '10px', background: 'transparent' }} />
+              <a href="/agreement" className="block cursor-pointer" style={{ width: '220px', height: '35px', marginTop: '10px', background: 'transparent' }} />
             </div>
 
-            {/* Kontaktlar section */}
-            <div className="absolute left-[750px] top-[80px]">
-              <a href="tel:+998789566961" className="block w-[180px] h-[30px] cursor-pointer" style={{ background: 'transparent' }} />
+            {/* Kontaktlar section - Column 3 */}
+            <div className="absolute" style={{ left: '700px', top: '100px' }}>
+              <a href="tel:+998789566961" className="block cursor-pointer" style={{ width: '200px', height: '35px', background: 'transparent' }} />
             </div>
 
-            {/* Social links */}
-            <div className="absolute left-[750px] top-[200px] flex gap-[12px]">
+            {/* Social links - Column 3 bottom */}
+            <div className="absolute flex" style={{ left: '700px', top: '180px', gap: '16px' }}>
               <a 
                 href="https://instagram.com/yuvgo.uz" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="w-[40px] h-[40px] cursor-pointer"
-                style={{ background: 'transparent' }}
+                className="cursor-pointer"
+                style={{ width: '48px', height: '48px', background: 'transparent' }}
               />
               <a 
                 href="https://t.me/yuvgo_support" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="w-[40px] h-[40px] cursor-pointer"
-                style={{ background: 'transparent' }}
+                className="cursor-pointer"
+                style={{ width: '48px', height: '48px', background: 'transparent' }}
               />
               <a 
                 href="https://youtube.com/@yuvgo" 
                 target="_blank" 
                 rel="noopener noreferrer" 
-                className="w-[40px] h-[40px] cursor-pointer"
-                style={{ background: 'transparent' }}
+                className="cursor-pointer"
+                style={{ width: '48px', height: '48px', background: 'transparent' }}
               />
             </div>
 
-            {/* Footer App Store buttons */}
-            <div className="absolute left-[1060px] top-[80px] flex gap-[16px]">
+            {/* Footer App Store buttons - Column 4 */}
+            <div className="absolute flex" style={{ left: '1100px', top: '100px', gap: '20px' }}>
               <button 
                 onClick={() => window.open('https://apps.apple.com/app/yuvgo', '_blank')}
-                className="w-[180px] h-[56px] cursor-pointer"
-                style={{ background: 'transparent' }}
+                className="cursor-pointer"
+                style={{ width: '200px', height: '60px', background: 'transparent' }}
               />
               <button 
                 onClick={() => window.open('https://play.google.com/store/apps/details?id=uz.yuvgo.app', '_blank')}
-                className="w-[180px] h-[56px] cursor-pointer"
-                style={{ background: 'transparent' }}
+                className="cursor-pointer"
+                style={{ width: '200px', height: '60px', background: 'transparent' }}
               />
             </div>
           </div>
