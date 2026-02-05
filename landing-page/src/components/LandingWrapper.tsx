@@ -9,6 +9,132 @@ const langLabels: Record<Language, { name: string; flag: string }> = {
   en: { name: 'Eng', flag: '🇬🇧' },
 };
 
+// Translations for all text content
+const translations: Record<Language, {
+  nav: { partners: string; pricing: string; faq: string; download: string };
+  hero: { title: string; subtitle: string; downloadBtn: string };
+  features: { title: string; items: { title: string; desc: string }[] };
+  pricing: { title: string; plans: { period: string; price: string; washes: string }[]; buyBtn: string; popular: string };
+  faq: { title: string; items: { q: string; a: string }[] };
+  cta: { title: string; subtitle: string };
+  footer: { partnership: string; partnerEmail: string; faqLink: string; documents: string; terms: string; offer: string; privacy: string; agreement: string; contacts: string; download: string };
+}> = {
+  uz: {
+    nav: { partners: 'Hamkorlarga', pricing: 'Narxlar', faq: 'Savollar va javoblar', download: 'Yuklab olish' },
+    hero: { 
+      title: "Avtomobilingizni yuvish uchun eng qulay ilova", 
+      subtitle: "YUVGO - bu avtomobilingizni tez va sifatli yuvish uchun mo'ljallangan mobil ilova. Obuna sotib oling va istalgan vaqtda yuvishingiz mumkin.",
+      downloadBtn: "Ilovani yuklab olish"
+    },
+    features: {
+      title: "Nima uchun YUVGO?",
+      items: [
+        { title: "Premium avtomoykalar", desc: "Yuqori sifatli avtomobil yuvish xizmatlari va avtomobilingizga ehtiyotkor munosabat" },
+        { title: "Bo'lib to'lash", desc: "Xohish o'zingizda, istasangiz bo'lib to'lang istasangiz hammasini to'lang" },
+        { title: "Tez va qulay", desc: "Bir necha daqiqada obuna sotib oling va darhol foydalanishni boshlang" },
+      ]
+    },
+    pricing: {
+      title: "Narxlar",
+      plans: [
+        { period: "30 kun", price: "299,000", washes: "30 marta yuvish" },
+        { period: "60 kun", price: "549,000", washes: "60 marta yuvish" },
+        { period: "90 kun", price: "799,000", washes: "90 marta yuvish" },
+      ],
+      buyBtn: "Sotib olish",
+      popular: "Mashhur"
+    },
+    faq: {
+      title: "Savollar va javoblar",
+      items: [
+        { q: "Qanday qilib YUVGOdan foydalanish mumkin?", a: "YUVGO ilovasidan foydalanish uchun avval ilovani yuklab oling, ro'yxatdan o'ting va obuna sotib oling. Keyin QR kodni skanerlang va avtomobilingizni yuvishni boshlang." },
+        { q: "Obuna muddati necha oy", a: "Obuna muddati 30, 60 yoki 90 kun bo'lishi mumkin. Siz o'zingizga qulay bo'lgan muddatni tanlashingiz mumkin." },
+        { q: "Qanday qilib karta qo'shish mumkin?", a: "Ilovada 'Profil' bo'limiga o'ting, 'To'lov kartalari' ni tanlang va yangi karta qo'shing." },
+        { q: "Obuna to'lovini bo'lib to'lash imkoniyati bormi?", a: "Ha, siz obuna to'lovini bo'lib to'lash imkoniyatidan foydalanishingiz mumkin." },
+        { q: "Qanday qilib yangi avtomobil qo'shish mumkin", a: "Ilovada 'Profil' bo'limiga o'ting, 'Mening mashinalarim' ni tanlang va yangi avtomobil qo'shing." },
+      ]
+    },
+    cta: { title: "Hoziroq boshlang!", subtitle: "YUVGO ilovasini yuklab oling va avtomobilingizni professional darajada yuvishdan bahramand bo'ling" },
+    footer: { partnership: "Hamkorlik", partnerEmail: "partners@yuvgo.uz", faqLink: "Savollar va javoblar", documents: "Hujjatlar", terms: "Foydalanish shartlari", offer: "Oferta", privacy: "Maxfiylik siyosati", agreement: "Foydalanuvchi shartnomasi", contacts: "Kontaktlar", download: "Yuklab olish" }
+  },
+  ru: {
+    nav: { partners: 'Партнёрам', pricing: 'Цены', faq: 'Вопросы и ответы', download: 'Скачать' },
+    hero: { 
+      title: "Самое удобное приложение для мойки автомобиля", 
+      subtitle: "YUVGO - это мобильное приложение для быстрой и качественной мойки вашего автомобиля. Купите подписку и мойте в любое время.",
+      downloadBtn: "Скачать приложение"
+    },
+    features: {
+      title: "Почему YUVGO?",
+      items: [
+        { title: "Премиум автомойки", desc: "Высококачественные услуги мойки и бережное отношение к вашему автомобилю" },
+        { title: "Рассрочка", desc: "Выбор за вами - платите в рассрочку или сразу" },
+        { title: "Быстро и удобно", desc: "Купите подписку за несколько минут и начните пользоваться сразу" },
+      ]
+    },
+    pricing: {
+      title: "Цены",
+      plans: [
+        { period: "30 дней", price: "299,000", washes: "30 моек" },
+        { period: "60 дней", price: "549,000", washes: "60 моек" },
+        { period: "90 дней", price: "799,000", washes: "90 моек" },
+      ],
+      buyBtn: "Купить",
+      popular: "Популярный"
+    },
+    faq: {
+      title: "Вопросы и ответы",
+      items: [
+        { q: "Как пользоваться YUVGO?", a: "Чтобы использовать приложение YUVGO, сначала скачайте его, зарегистрируйтесь и купите подписку. Затем отсканируйте QR-код и начните мыть свой автомобиль." },
+        { q: "Какой срок подписки?", a: "Срок подписки может составлять 30, 60 или 90 дней. Вы можете выбрать удобный для вас срок." },
+        { q: "Как добавить карту?", a: "В приложении перейдите в раздел 'Профиль', выберите 'Платёжные карты' и добавьте новую карту." },
+        { q: "Можно ли оплатить подписку в рассрочку?", a: "Да, вы можете воспользоваться возможностью оплаты подписки в рассрочку." },
+        { q: "Как добавить новый автомобиль?", a: "В приложении перейдите в раздел 'Профиль', выберите 'Мои автомобили' и добавьте новый автомобиль." },
+      ]
+    },
+    cta: { title: "Начните прямо сейчас!", subtitle: "Скачайте приложение YUVGO и наслаждайтесь профессиональной мойкой вашего автомобиля" },
+    footer: { partnership: "Партнёрство", partnerEmail: "partners@yuvgo.uz", faqLink: "Вопросы и ответы", documents: "Документы", terms: "Условия использования", offer: "Оферта", privacy: "Политика конфиденциальности", agreement: "Пользовательское соглашение", contacts: "Контакты", download: "Скачать" }
+  },
+  en: {
+    nav: { partners: 'Partners', pricing: 'Pricing', faq: 'FAQ', download: 'Download' },
+    hero: { 
+      title: "The most convenient app for car washing", 
+      subtitle: "YUVGO is a mobile app for fast and quality car washing. Buy a subscription and wash anytime.",
+      downloadBtn: "Download the app"
+    },
+    features: {
+      title: "Why YUVGO?",
+      items: [
+        { title: "Premium car washes", desc: "High-quality car washing services and careful treatment of your car" },
+        { title: "Installment payment", desc: "Your choice - pay in installments or all at once" },
+        { title: "Fast and convenient", desc: "Buy a subscription in minutes and start using it right away" },
+      ]
+    },
+    pricing: {
+      title: "Pricing",
+      plans: [
+        { period: "30 days", price: "299,000", washes: "30 washes" },
+        { period: "60 days", price: "549,000", washes: "60 washes" },
+        { period: "90 days", price: "799,000", washes: "90 washes" },
+      ],
+      buyBtn: "Buy now",
+      popular: "Popular"
+    },
+    faq: {
+      title: "Frequently Asked Questions",
+      items: [
+        { q: "How to use YUVGO?", a: "To use the YUVGO app, first download it, register and buy a subscription. Then scan the QR code and start washing your car." },
+        { q: "What is the subscription period?", a: "The subscription period can be 30, 60 or 90 days. You can choose the period that suits you." },
+        { q: "How to add a card?", a: "In the app, go to 'Profile', select 'Payment cards' and add a new card." },
+        { q: "Can I pay for the subscription in installments?", a: "Yes, you can use the installment payment option for the subscription." },
+        { q: "How to add a new car?", a: "In the app, go to 'Profile', select 'My cars' and add a new car." },
+      ]
+    },
+    cta: { title: "Start now!", subtitle: "Download the YUVGO app and enjoy professional car washing" },
+    footer: { partnership: "Partnership", partnerEmail: "partners@yuvgo.uz", faqLink: "FAQ", documents: "Documents", terms: "Terms of use", offer: "Offer", privacy: "Privacy policy", agreement: "User agreement", contacts: "Contacts", download: "Download" }
+  }
+};
+
 // Section positions in the original 1920px design (in pixels)
 const SECTION_POSITIONS = {
   partners: 737,
@@ -21,6 +147,8 @@ export default function LandingWrapper() {
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
   const [lang, setLang] = useState<Language>('uz');
   const [showLangDropdown, setShowLangDropdown] = useState(false);
+  
+  const t = translations[lang];
 
   useEffect(() => {
     const updateScale = () => {
@@ -202,13 +330,7 @@ export default function LandingWrapper() {
 
           {/* FAQ Section - Interactive accordion overlay */}
           <div className="absolute top-[5041px] left-[532px] w-[856px]" style={{ zIndex: 1000 }}>
-            {[
-              { q: "Qanday qilib YUVGOdan foydalanish mumkin?", a: "YUVGO ilovasidan foydalanish uchun avval ilovani yuklab oling, ro'yxatdan o'ting va obuna sotib oling. Keyin QR kodni skanerlang va avtomobilingizni yuvishni boshlang." },
-              { q: "Obuna muddati necha oy", a: "Obuna muddati 30, 60 yoki 90 kun bo'lishi mumkin. Siz o'zingizga qulay bo'lgan muddatni tanlashingiz mumkin." },
-              { q: "Qanday qilib karta qo'shish mumkin?", a: "Ilovada 'Profil' bo'limiga o'ting, 'To'lov kartalari' ni tanlang va yangi karta qo'shing." },
-              { q: "Obuna to'lovini bo'lib to'lash imkoniyati bormi?", a: "Ha, siz obuna to'lovini bo'lib to'lash imkoniyatidan foydalanishingiz mumkin." },
-              { q: "Qanday qilib yangi avtomobil qo'shish mumkin", a: "Ilovada 'Profil' bo'limiga o'ting, 'Mening mashinalarim' ni tanlang va yangi avtomobil qo'shing." },
-            ].map((faq, index) => (
+            {t.faq.items.map((faq, index) => (
               <div 
                 key={index}
                 className="cursor-pointer"
