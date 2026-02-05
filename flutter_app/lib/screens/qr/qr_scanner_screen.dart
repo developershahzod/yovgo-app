@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../config/constants.dart';
-import '../../services/visit_service.dart';
+import '../../config/app_theme.dart';
+import '../../services/qr_service.dart';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({Key? key}) : super(key: key);
@@ -10,129 +10,227 @@ class QrScannerScreen extends StatefulWidget {
 }
 
 class _QrScannerScreenState extends State<QrScannerScreen> {
-  final _qrTokenController = TextEditingController();
+  String? selectedCar;
   bool _isScanning = false;
+  final TextEditingController _qrTokenController = TextEditingController();
+  
+  final List<Map<String, String>> cars = [
+    {'name': 'BMW i7', 'plate': '85 O 777 OO'},
+    {'name': 'Tracker 2 Colibri', 'plate': '01 777 AAA'},
+    {'name': 'Malibu 2', 'plate': '01 A 777 AA'},
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    selectedCar = cars.first['name'];
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('QR Сканер'),
-        backgroundColor: AppColors.background,
-        elevation: 0,
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+      backgroundColor: AppTheme.darkNavy,
+      body: Stack(
+        children: [
+          // QR Scanner Area
+          Column(
             children: [
-              Container(
-                width: 250,
-                height: 250,
-                decoration: BoxDecoration(
-                  color: AppColors.cardBackground,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: AppColors.border, width: 2),
-                ),
-                child: Icon(
-                  Icons.qr_code_scanner_rounded,
-                  size: 120,
-                  color: AppColors.textMuted,
-                ),
-              ),
-              const SizedBox(height: 32),
-              const Text(
-                'Наведите камеру на QR код',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.text,
-                ),
-              ),
-              const SizedBox(height: 12),
-              const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 40),
-                child: Text(
-                  'QR код находится на автомойке',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: AppColors.textLight,
+              // Top Bar
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.info_outline,
+                          color: AppTheme.white,
+                          size: 24,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
+              
+              const Spacer(),
+              
+              // QR Frame
+              Center(
+                child: Container(
+                  width: 280,
+                  height: 280,
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: AppTheme.primaryCyan,
+                      width: 3,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Corner decorations
+                      Positioned(
+                        top: -3,
+                        left: -3,
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            border: Border(
+                              top: BorderSide(color: AppTheme.primaryCyan, width: 8),
+                              left: BorderSide(color: AppTheme.primaryCyan, width: 8),
+                            ),
+                            borderRadius: BorderRadius.only(
+                              topLeft: Radius.circular(20),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        top: -3,
+                        right: -3,
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            border: Border(
+                              top: BorderSide(color: AppTheme.primaryCyan, width: 8),
+                              right: BorderSide(color: AppTheme.primaryCyan, width: 8),
+                            ),
+                            borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(20),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: -3,
+                        left: -3,
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: AppTheme.primaryCyan, width: 8),
+                              left: BorderSide(color: AppTheme.primaryCyan, width: 8),
+                            ),
+                            borderRadius: BorderRadius.only(
+                              bottomLeft: Radius.circular(20),
+                            ),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        bottom: -3,
+                        right: -3,
+                        child: Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            border: Border(
+                              bottom: BorderSide(color: AppTheme.primaryCyan, width: 8),
+                              right: BorderSide(color: AppTheme.primaryCyan, width: 8),
+                            ),
+                            borderRadius: BorderRadius.only(
+                              bottomRight: Radius.circular(20),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // QR Code placeholder
+                      Center(
+                        child: Container(
+                          width: 200,
+                          height: 200,
+                          color: AppTheme.white,
+                          child: Center(
+                            child: Text(
+                              'QR',
+                              style: TextStyle(
+                                fontSize: 48,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.darkNavy,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
               const SizedBox(height: 40),
               
-              // Manual QR token input for testing
-              Container(
-                padding: const EdgeInsets.all(20),
+              // Title
+              Text(
+                'Scan For Our',
+                style: TextStyle(
+                  color: AppTheme.white.withOpacity(0.7),
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Car Washing Area',
+                style: TextStyle(
+                  color: AppTheme.white,
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Mashinani almashtirish',
+                style: TextStyle(
+                  color: AppTheme.white.withOpacity(0.6),
+                  fontSize: 14,
+                ),
+              ),
+              
+              const Spacer(),
+            ],
+          ),
+          
+          // Bottom Car Selection
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              child: Container(
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppColors.cardBackground,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppColors.border, width: 1),
+                  color: AppTheme.white,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
                 ),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
-                      'Или введите код вручную',
+                    Text(
+                      'Avtomobilni tanlang',
                       style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.textLight,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: _qrTokenController,
-                      decoration: const InputDecoration(
-                        hintText: 'Введите QR токен',
-                        prefixIcon: Icon(Icons.qr_code),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _isScanning ? null : _handleManualCheckIn,
-                        child: _isScanning
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                            : const Text('Отметиться'),
-                      ),
-                    ),
+                    ...cars.map((car) => _buildCarOption(car)).toList(),
                   ],
                 ),
               ),
-              
-              const SizedBox(height: 24),
-              
-              // Camera button (placeholder)
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: OutlinedButton.icon(
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Функция камеры будет добавлена позже'),
-                      ),
-                    );
-                  },
-                  icon: const Icon(Icons.camera_alt_rounded),
-                  label: const Text('Открыть камеру'),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -142,9 +240,9 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     
     if (qrToken.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Введите QR токен'),
-          backgroundColor: AppColors.error,
+        SnackBar(
+          content: Text('QR tokeni kiriting'),
+          backgroundColor: AppTheme.red,
         ),
       );
       return;
@@ -153,94 +251,107 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     setState(() => _isScanning = true);
 
     try {
-      final result = await VisitService.checkIn(qrToken);
+      final result = await QRService.checkIn(qrToken);
       
       if (mounted) {
         setState(() => _isScanning = false);
         
-        // Show success dialog
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            title: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.check_circle_outline,
-                    color: AppColors.success,
-                    size: 28,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                const Text('Успешно!'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Вы успешно отметились на автомойке'),
-                if (result?['partner_name'] != null) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    result!['partner_name'],
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-                if (result?['visits_remaining'] != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    'Осталось визитов: ${result!['visits_remaining']}',
-                    style: const TextStyle(
-                      color: AppColors.textLight,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pushReplacementNamed(context, '/visits');
-                },
-                child: const Text('Посмотреть историю'),
+        if (result != null && result['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                result['message'] ?? 'Tashrif muvaffaqiyatli ro\'yxatdan o\'tkazildi!',
               ),
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _qrTokenController.clear();
-                },
-                child: const Text('OK'),
+              backgroundColor: AppTheme.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-            ],
-          ),
-        );
+            ),
+          );
+          
+          _qrTokenController.clear();
+          
+          Future.delayed(const Duration(seconds: 1), () {
+            if (mounted) {
+              Navigator.pushReplacementNamed(context, '/home');
+            }
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('QR kod noto\'g\'ri yoki muddati o\'tgan'),
+              backgroundColor: AppTheme.red,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isScanning = false);
-        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: AppColors.error,
+            content: Text('Xatolik yuz berdi: ${e.toString()}'),
+            backgroundColor: AppTheme.red,
           ),
         );
       }
     }
+  }
+
+  Widget _buildCarOption(Map<String, String> car) {
+    final isSelected = selectedCar == car['name'];
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedCar = car['name'];
+        });
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? AppTheme.primaryCyan.withOpacity(0.1) : AppTheme.lightBackground,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? AppTheme.primaryCyan : Colors.transparent,
+            width: 2,
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.directions_car,
+              color: isSelected ? AppTheme.primaryCyan : AppTheme.textSecondary,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    car['name'] ?? '',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    car['plate'] ?? '',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppTheme.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isSelected)
+              Icon(Icons.check_circle, color: AppTheme.primaryCyan),
+          ],
+        ),
+      ),
+    );
   }
 
   @override

@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../i18n';
 import { 
   Shield, Mail, Lock, Eye, EyeOff, AlertCircle, 
-  Sparkles, TrendingUp, Users, BarChart3, Zap 
+  Sparkles, TrendingUp, Users, BarChart3, Zap, Globe 
 } from 'lucide-react';
 
 const LoginNew = () => {
@@ -12,8 +13,10 @@ const LoginNew = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showLangMenu, setShowLangMenu] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const { t, language, setLanguage, languages } = useLanguage();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,6 +37,40 @@ const LoginNew = () => {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA] relative overflow-hidden">
+      {/* Language Switcher - Top Right */}
+      <div className="absolute top-4 right-4 z-50">
+        <div className="relative">
+          <button
+            onClick={() => setShowLangMenu(!showLangMenu)}
+            className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Globe size={18} className="text-gray-600" />
+            <span className="text-sm font-medium text-gray-700">
+              {languages[language]?.flag} {languages[language]?.nativeName}
+            </span>
+          </button>
+          {showLangMenu && (
+            <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden">
+              {Object.values(languages).map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => {
+                    setLanguage(lang.code);
+                    setShowLangMenu(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-sm text-left hover:bg-gray-50 transition-colors ${
+                    language === lang.code ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                  }`}
+                >
+                  <span className="text-lg">{lang.flag}</span>
+                  <span className="font-medium">{lang.nativeName}</span>
+                  {language === lang.code && <span className="ml-auto text-blue-600">✓</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
 
       <div className="relative z-10 min-h-screen flex">
         {/* Left Side - Branding & Features */}
@@ -49,7 +86,7 @@ const LoginNew = () => {
               />
               <div>
                 <h1 className="text-3xl font-black text-gray-900">YuvGo</h1>
-                <p className="text-gray-600 text-sm">Панель администратора</p>
+                <p className="text-gray-600 text-sm">{t('auth.adminPanel')}</p>
               </div>
             </div>
 
@@ -60,7 +97,7 @@ const LoginNew = () => {
                   YuvGo
                 </h2>
                 <p className="text-2xl text-gray-600">
-                  Панель администратора
+                  {t('auth.adminPanel')}
                 </p>
               </div>
             </div>
@@ -68,7 +105,7 @@ const LoginNew = () => {
 
           {/* Footer */}
           <div className="relative z-10">
-            <p className="text-gray-400 text-xs text-center">© 2025 YuvGo. Все права защищены.</p>
+            <p className="text-gray-400 text-xs text-center">© 2026 YuvGo. {t('auth.allRightsReserved')}</p>
           </div>
         </div>
 
@@ -83,17 +120,17 @@ const LoginNew = () => {
                 className="w-20 h-20 rounded-2xl mb-4"
               />
               <h1 className="text-3xl font-black text-yuvgo-navy">YuvGo</h1>
-              <p className="text-gray-600">Панель администратора</p>
+              <p className="text-gray-600">{t('auth.adminPanel')}</p>
             </div>
 
             {/* Form Card */}
             <div className="bg-white rounded-lg p-8 border border-gray-200">
               <div className="mb-8">
                 <h2 className="text-3xl font-black text-gray-900 mb-2">
-                  С возвращением! 👋
+                  {t('auth.welcomeBack')} 👋
                 </h2>
                 <p className="text-gray-600">
-                  Войдите, чтобы продолжить управление
+                  {t('auth.loginToContinue')}
                 </p>
               </div>
 
@@ -101,7 +138,7 @@ const LoginNew = () => {
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3 animate-shake">
                   <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" size={20} />
                   <div>
-                    <p className="text-sm font-medium text-red-900">Ошибка входа</p>
+                    <p className="text-sm font-medium text-red-900">{t('auth.loginError')}</p>
                     <p className="text-sm text-red-700 mt-1">{error}</p>
                   </div>
                 </div>
@@ -111,7 +148,7 @@ const LoginNew = () => {
                 {/* Email Field */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Email адрес
+                    {t('auth.email')}
                   </label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -131,7 +168,7 @@ const LoginNew = () => {
                 {/* Password Field */}
                 <div>
                   <label className="block text-sm font-bold text-gray-700 mb-2">
-                    Пароль
+                    {t('auth.password')}
                   </label>
                   <div className="relative">
                     <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400">
@@ -162,13 +199,13 @@ const LoginNew = () => {
                       type="checkbox"
                       className="w-4 h-4 rounded border-gray-300 text-yuvgo-cyan focus:ring-yuvgo-cyan"
                     />
-                    <span className="text-sm text-gray-600">Запомнить меня</span>
+                    <span className="text-sm text-gray-600">{t('auth.rememberMe')}</span>
                   </label>
                   <button
                     type="button"
                     className="text-sm font-medium text-yuvgo-cyan hover:text-yuvgo-dark transition-colors"
                   >
-                    Забыли пароль?
+                    {t('auth.forgotPassword')}
                   </button>
                 </div>
 
@@ -181,25 +218,19 @@ const LoginNew = () => {
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
                       <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Вход...
+                      {t('auth.loggingIn')}
                     </span>
                   ) : (
-                    'Войти в систему'
+                    t('auth.loginButton')
                   )}
                 </button>
               </form>
 
-              {/* Quick Login Hint */}
-              <div className="mt-6 p-4 bg-blue-50 rounded-2xl border border-blue-100">
-                <p className="text-xs text-blue-800 text-center">
-                  <strong>Тестовый доступ:</strong> admin@yuvgo.uz / Admin@123
-                </p>
-              </div>
             </div>
 
             {/* Additional Info */}
             <div className="mt-6 text-center text-sm text-gray-500">
-              <p>Защищено с помощью шифрования и двухфакторной аутентификации</p>
+              <p>{t('auth.securedWith')}</p>
             </div>
           </div>
         </div>

@@ -44,10 +44,10 @@ class BottomNav extends StatelessWidget {
               _buildCenterButton(context),
               _buildNavItem(
                 context,
-                icon: Icons.history_rounded,
-                label: 'История',
+                icon: Icons.credit_card,
+                label: 'Планы',
                 index: 3,
-                route: '/visits',
+                route: '/subscriptions',
               ),
               _buildNavItem(
                 context,
@@ -113,32 +113,25 @@ class BottomNav extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (!isActive) {
-          Navigator.pushReplacementNamed(context, '/subscriptions');
+          Navigator.pushReplacementNamed(context, '/qr');
         }
       },
       child: Container(
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.primary,
-              AppColors.accent,
-            ],
-          ),
+          color: isActive ? AppColors.primary : AppColors.primary,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
               color: AppColors.primary.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: const Icon(
-          Icons.card_membership_rounded,
+          Icons.qr_code_scanner,
           color: Colors.white,
           size: 28,
         ),

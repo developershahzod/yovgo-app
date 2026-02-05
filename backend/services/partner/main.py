@@ -1,15 +1,18 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy import func
+from typing import List, Optional
 from pydantic import BaseModel
+from datetime import datetime, timedelta
 import sys
 import os
+import uuid
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from shared.database import get_db, engine
-from shared.models import Partner, PartnerLocation, PartnerStaff, Base
+from shared.models import Partner, PartnerLocation, PartnerStaff, MerchantUser, Visit, Base
 from shared.schemas import (
     PartnerCreate, PartnerUpdate, PartnerResponse,
     PartnerLocationCreate, PartnerLocationResponse,
@@ -300,6 +303,443 @@ async def generate_merchant_qr(partner_id: str, db: Session = Depends(get_db)):
         "partner_id": partner_id,
         "partner_name": partner.name,
         "generated_at": time.time()
+    }
+
+# Merchant User Login Request Model
+class MerchantLoginRequest(BaseModel):
+    email: str
+    password: str
+
+# Merchant User Login (Email/Password)
+@app.post("/merchant/login")
+async def merchant_login(
+    login_data: MerchantLoginRequest,
+    db: Session = Depends(get_db)
+):
+    """Merchant user login with email and password"""
+    from shared.auth import AuthHandler
+    
+    auth_handler = AuthHandler()
+    
+    # Find merchant user by email
+    user = db.query(MerchantUser).filter(
+        MerchantUser.email == login_data.email,
+        MerchantUser.is_active == True
+    ).first()
+    
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Verify password
+    if not auth_handler.verify_password(login_data.password, user.password_hash):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    
+    # Get partner info
+    partner = db.query(Partner).filter(Partner.id == user.partner_id).first()
+    
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    # Create access token
+    token_data = {
+        "sub": str(user.id),
+        "email": user.email,
+        "role": user.role,
+        "partner_id": str(user.partner_id)
+    }
+    
+    access_token = auth_handler.create_access_token(token_data)
+    
+    # Update last login
+    from datetime import datetime
+    user.last_login = datetime.utcnow()
+    db.commit()
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": str(user.id),
+            "email": user.email,
+            "full_name": user.full_name,
+            "phone_number": user.phone_number,
+            "role": user.role
+        },
+        "partner": {
+            "id": str(partner.id),
+            "name": partner.name
+        }
+    }
+
+# ============ BRANCH MANAGEMENT API ============
+
+class BranchCreate(BaseModel):
+    name: str
+    address: str
+    city: str = "Tashkent"
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    working_hours: Optional[dict] = None
+    phone_number: Optional[str] = None
+
+class BranchUpdate(BaseModel):
+    name: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    working_hours: Optional[dict] = None
+    phone_number: Optional[str] = None
+    is_active: Optional[bool] = None
+
+@app.get("/merchant/branches")
+async def get_merchant_branches(partner_id: str, db: Session = Depends(get_db)):
+    """Get all branches for a merchant"""
+    branches = db.query(PartnerLocation).filter(
+        PartnerLocation.partner_id == partner_id
+    ).all()
+    
+    result = []
+    for branch in branches:
+        # Get visit count for this branch
+        visit_count = db.query(func.count(Visit.id)).filter(
+            Visit.location_id == branch.id
+        ).scalar() or 0
+        
+        # Get staff count for this branch
+        staff_count = db.query(func.count(PartnerStaff.id)).filter(
+            PartnerStaff.location_id == branch.id,
+            PartnerStaff.is_active == True
+        ).scalar() or 0
+        
+        result.append({
+            "id": str(branch.id),
+            "name": branch.name,
+            "address": branch.address,
+            "city": branch.city,
+            "latitude": float(branch.latitude) if branch.latitude else None,
+            "longitude": float(branch.longitude) if branch.longitude else None,
+            "working_hours": branch.working_hours,
+            "is_active": branch.is_active,
+            "visit_count": visit_count,
+            "staff_count": staff_count,
+            "qr_code": f"BRANCH_{branch.id}",
+            "created_at": branch.created_at.isoformat() if branch.created_at else None
+        })
+    
+    return result
+
+@app.post("/merchant/branches")
+async def create_branch(partner_id: str, branch_data: BranchCreate, db: Session = Depends(get_db)):
+    """Create a new branch for a merchant"""
+    # Verify partner exists
+    partner = db.query(Partner).filter(Partner.id == partner_id).first()
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    
+    branch = PartnerLocation(
+        partner_id=partner_id,
+        name=branch_data.name,
+        address=branch_data.address,
+        city=branch_data.city,
+        latitude=branch_data.latitude,
+        longitude=branch_data.longitude,
+        working_hours=branch_data.working_hours or {"open": "08:00", "close": "22:00"},
+        is_active=True
+    )
+    
+    db.add(branch)
+    db.commit()
+    db.refresh(branch)
+    
+    return {
+        "id": str(branch.id),
+        "name": branch.name,
+        "address": branch.address,
+        "city": branch.city,
+        "qr_code": f"BRANCH_{branch.id}",
+        "message": "Branch created successfully"
+    }
+
+@app.put("/merchant/branches/{branch_id}")
+async def update_branch(branch_id: str, branch_data: BranchUpdate, db: Session = Depends(get_db)):
+    """Update a branch"""
+    branch = db.query(PartnerLocation).filter(PartnerLocation.id == branch_id).first()
+    if not branch:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    
+    for field, value in branch_data.dict(exclude_unset=True).items():
+        if value is not None:
+            setattr(branch, field, value)
+    
+    db.commit()
+    db.refresh(branch)
+    
+    return {
+        "id": str(branch.id),
+        "name": branch.name,
+        "address": branch.address,
+        "message": "Branch updated successfully"
+    }
+
+@app.delete("/merchant/branches/{branch_id}")
+async def delete_branch(branch_id: str, db: Session = Depends(get_db)):
+    """Delete (deactivate) a branch"""
+    branch = db.query(PartnerLocation).filter(PartnerLocation.id == branch_id).first()
+    if not branch:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    
+    branch.is_active = False
+    db.commit()
+    
+    return {"message": "Branch deleted successfully"}
+
+@app.get("/merchant/branches/{branch_id}/qr")
+async def get_branch_qr(branch_id: str, db: Session = Depends(get_db)):
+    """Get QR code for a specific branch"""
+    branch = db.query(PartnerLocation).filter(PartnerLocation.id == branch_id).first()
+    if not branch:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    
+    partner = db.query(Partner).filter(Partner.id == branch.partner_id).first()
+    
+    return {
+        "qr_token": f"BRANCH_{branch_id}",
+        "branch_id": str(branch.id),
+        "branch_name": branch.name,
+        "partner_name": partner.name if partner else "Unknown",
+        "address": branch.address
+    }
+
+# ============ BRANCH STAFF MANAGEMENT ============
+
+class BranchStaffCreate(BaseModel):
+    full_name: str
+    phone_number: str
+    pin_code: Optional[str] = None
+    role: str = "staff"
+
+@app.get("/merchant/branches/{branch_id}/staff")
+async def get_branch_staff(branch_id: str, db: Session = Depends(get_db)):
+    """Get all staff for a branch"""
+    staff = db.query(PartnerStaff).filter(
+        PartnerStaff.location_id == branch_id,
+        PartnerStaff.is_active == True
+    ).all()
+    
+    return [{
+        "id": str(s.id),
+        "full_name": s.full_name,
+        "phone_number": s.phone_number,
+        "role": s.role,
+        "created_at": s.created_at.isoformat() if s.created_at else None
+    } for s in staff]
+
+@app.post("/merchant/branches/{branch_id}/staff")
+async def add_branch_staff(
+    branch_id: str, 
+    staff_data: BranchStaffCreate, 
+    db: Session = Depends(get_db)
+):
+    """Add staff to a branch"""
+    branch = db.query(PartnerLocation).filter(PartnerLocation.id == branch_id).first()
+    if not branch:
+        raise HTTPException(status_code=404, detail="Branch not found")
+    
+    # Check if phone exists
+    existing = db.query(PartnerStaff).filter(
+        PartnerStaff.phone_number == staff_data.phone_number
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Phone number already registered")
+    
+    staff = PartnerStaff(
+        partner_id=branch.partner_id,
+        location_id=branch_id,
+        full_name=staff_data.full_name,
+        phone_number=staff_data.phone_number,
+        pin_code=staff_data.pin_code or generate_pin_code(),
+        role=staff_data.role,
+        is_active=True
+    )
+    
+    db.add(staff)
+    db.commit()
+    db.refresh(staff)
+    
+    return {
+        "id": str(staff.id),
+        "full_name": staff.full_name,
+        "phone_number": staff.phone_number,
+        "pin_code": staff.pin_code,
+        "message": "Staff added successfully"
+    }
+
+@app.delete("/merchant/branches/{branch_id}/staff/{staff_id}")
+async def remove_branch_staff(branch_id: str, staff_id: str, db: Session = Depends(get_db)):
+    """Remove staff from a branch"""
+    staff = db.query(PartnerStaff).filter(
+        PartnerStaff.id == staff_id,
+        PartnerStaff.location_id == branch_id
+    ).first()
+    
+    if not staff:
+        raise HTTPException(status_code=404, detail="Staff not found")
+    
+    staff.is_active = False
+    db.commit()
+    
+    return {"message": "Staff removed successfully"}
+
+# ============ MERCHANT ANALYTICS API ============
+
+@app.get("/merchant/analytics")
+async def get_merchant_analytics(partner_id: str, period: str = "week", db: Session = Depends(get_db)):
+    """Get analytics for a merchant"""
+    now = datetime.utcnow()
+    
+    if period == "today":
+        start_date = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    elif period == "week":
+        start_date = now - timedelta(days=7)
+    elif period == "month":
+        start_date = now - timedelta(days=30)
+    else:  # year
+        start_date = now - timedelta(days=365)
+    
+    # Get visits for the period
+    visits = db.query(Visit).filter(
+        Visit.partner_id == partner_id,
+        Visit.check_in_time >= start_date
+    ).all()
+    
+    total_visits = len(visits)
+    unique_users = len(set(v.user_id for v in visits if v.user_id))
+    
+    # Calculate daily average
+    days = max(1, (now - start_date).days)
+    avg_daily = round(total_visits / days, 1)
+    
+    # Get hourly distribution
+    hourly_dist = {}
+    for v in visits:
+        if v.check_in_time:
+            hour = v.check_in_time.hour
+            hourly_dist[hour] = hourly_dist.get(hour, 0) + 1
+    
+    peak_hours = []
+    max_visits = max(hourly_dist.values()) if hourly_dist else 1
+    for hour in range(8, 22, 2):
+        count = hourly_dist.get(hour, 0) + hourly_dist.get(hour + 1, 0)
+        peak_hours.append({
+            "hour": f"{hour:02d}:00",
+            "percentage": round((count / max(1, max_visits * 2)) * 100)
+        })
+    
+    # Get daily breakdown for the week
+    daily_data = []
+    day_names = ['Dush', 'Sesh', 'Chor', 'Pay', 'Jum', 'Shan', 'Yak']
+    for i in range(7):
+        day = now - timedelta(days=6-i)
+        day_visits = len([v for v in visits if v.check_in_time and v.check_in_time.date() == day.date()])
+        daily_data.append({
+            "day": day_names[day.weekday()],
+            "visits": day_visits
+        })
+    
+    return {
+        "total_visits": total_visits,
+        "unique_clients": unique_users,
+        "avg_daily": avg_daily,
+        "avg_time": "25 min",
+        "weekly_data": daily_data,
+        "peak_hours": peak_hours,
+        "period": period
+    }
+
+# ============ MERCHANT EARNINGS API ============
+
+@app.get("/merchant/earnings")
+async def get_merchant_earnings(partner_id: str, db: Session = Depends(get_db)):
+    """Get earnings for a merchant"""
+    now = datetime.utcnow()
+    
+    # Get all visits for this partner
+    all_visits = db.query(Visit).filter(Visit.partner_id == partner_id).all()
+    
+    # Calculate earnings (50,000 UZS per visit)
+    rate_per_visit = 50000
+    
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    week_start = now - timedelta(days=7)
+    month_start = now - timedelta(days=30)
+    
+    today_visits = len([v for v in all_visits if v.check_in_time and v.check_in_time >= today_start])
+    week_visits = len([v for v in all_visits if v.check_in_time and v.check_in_time >= week_start])
+    month_visits = len([v for v in all_visits if v.check_in_time and v.check_in_time >= month_start])
+    total_visits = len(all_visits)
+    
+    # Weekly breakdown
+    weekly_breakdown = []
+    for i in range(4):
+        week_end = now - timedelta(days=i*7)
+        week_begin = week_end - timedelta(days=7)
+        week_count = len([v for v in all_visits if v.check_in_time and week_begin <= v.check_in_time < week_end])
+        weekly_breakdown.append({
+            "period": f"Week {4-i}",
+            "amount": week_count * rate_per_visit
+        })
+    
+    return {
+        "today": today_visits * rate_per_visit,
+        "week": week_visits * rate_per_visit,
+        "month": month_visits * rate_per_visit,
+        "total": total_visits * rate_per_visit,
+        "weekly_breakdown": weekly_breakdown,
+        "rate_per_visit": rate_per_visit
+    }
+
+# ============ MERCHANT DASHBOARD STATS ============
+
+@app.get("/merchant/dashboard")
+async def get_merchant_dashboard(partner_id: str, db: Session = Depends(get_db)):
+    """Get dashboard stats for a merchant"""
+    now = datetime.utcnow()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = now - timedelta(days=30)
+    
+    # Get visits
+    all_visits = db.query(Visit).filter(Visit.partner_id == partner_id).all()
+    today_visits = len([v for v in all_visits if v.check_in_time and v.check_in_time >= today_start])
+    month_visits = len([v for v in all_visits if v.check_in_time and v.check_in_time >= month_start])
+    
+    # Get unique clients
+    unique_clients = len(set(v.user_id for v in all_visits if v.user_id))
+    
+    # Get branches count
+    branches = db.query(func.count(PartnerLocation.id)).filter(
+        PartnerLocation.partner_id == partner_id,
+        PartnerLocation.is_active == True
+    ).scalar() or 0
+    
+    # Recent visits
+    recent = db.query(Visit).filter(
+        Visit.partner_id == partner_id
+    ).order_by(Visit.check_in_time.desc()).limit(5).all()
+    
+    recent_visits = [{
+        "id": str(v.id),
+        "check_in_time": v.check_in_time.isoformat() if v.check_in_time else None,
+        "status": v.status
+    } for v in recent]
+    
+    return {
+        "today_visits": today_visits,
+        "total_visits": len(all_visits),
+        "total_clients": unique_clients,
+        "monthly_earnings": month_visits * 50000,
+        "branches_count": branches,
+        "recent_visits": recent_visits
     }
 
 if __name__ == "__main__":

@@ -1,8 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from typing import List
+from sqlalchemy import func
+from typing import List, Optional
 from datetime import datetime, timedelta
+from pydantic import BaseModel
 import sys
 import os
 
@@ -474,6 +476,270 @@ async def user_checkin(
         "message": "Check-in successful",
         "visit_id": str(visit.id),
         "visits_remaining": subscription.visits_remaining if not subscription.is_unlimited else "unlimited"
+    }
+
+# Today's visits for partner
+@app.get("/visits/today")
+async def get_today_visits(
+    partner_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get today's visits, optionally filtered by partner"""
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    query = db.query(Visit).filter(Visit.check_in_time >= today_start)
+    
+    if partner_id:
+        query = query.filter(Visit.partner_id == partner_id)
+    
+    visits = query.order_by(Visit.check_in_time.desc()).all()
+    
+    result = []
+    for visit in visits:
+        user = db.query(User).filter(User.id == visit.user_id).first()
+        result.append({
+            "id": str(visit.id),
+            "user_id": str(visit.user_id),
+            "user_name": user.full_name if user else None,
+            "user_phone": user.phone_number if user else None,
+            "check_in_time": visit.check_in_time.isoformat(),
+            "status": visit.status,
+        })
+    
+    return result
+
+# Visit statistics
+@app.get("/stats")
+async def get_visit_stats(
+    partner_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get visit statistics"""
+    query = db.query(Visit)
+    if partner_id:
+        query = query.filter(Visit.partner_id == partner_id)
+    
+    total_visits = query.count()
+    
+    # Today's visits
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_visits = query.filter(Visit.check_in_time >= today_start).count()
+    
+    # This week's visits
+    week_start = datetime.utcnow() - timedelta(days=7)
+    week_visits = query.filter(Visit.check_in_time >= week_start).count()
+    
+    # This month's visits
+    month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_visits = query.filter(Visit.check_in_time >= month_start).count()
+    
+    # Unique users
+    unique_users = db.query(func.count(func.distinct(Visit.user_id))).scalar() or 0
+    
+    return {
+        "total_visits": total_visits,
+        "today_visits": today_visits,
+        "week_visits": week_visits,
+        "month_visits": month_visits,
+        "unique_users": unique_users,
+    }
+
+# Daily stats for charts
+@app.get("/stats/daily")
+async def get_daily_stats(
+    partner_id: Optional[str] = None,
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get daily visit statistics for charts"""
+    # Default to last 30 days
+    if not end_date:
+        end = datetime.utcnow().date()
+    else:
+        end = datetime.fromisoformat(end_date).date()
+    
+    if not start_date:
+        start = end - timedelta(days=30)
+    else:
+        start = datetime.fromisoformat(start_date).date()
+    
+    daily_data = []
+    current_date = start
+    
+    while current_date <= end:
+        day_start = datetime.combine(current_date, datetime.min.time())
+        day_end = datetime.combine(current_date, datetime.max.time())
+        
+        query = db.query(func.count(Visit.id)).filter(
+            Visit.check_in_time >= day_start,
+            Visit.check_in_time <= day_end
+        )
+        
+        if partner_id:
+            query = query.filter(Visit.partner_id == partner_id)
+        
+        count = query.scalar() or 0
+        
+        daily_data.append({
+            "date": current_date.isoformat(),
+            "count": count
+        })
+        
+        current_date += timedelta(days=1)
+    
+    return daily_data
+
+# Clients endpoint
+@app.get("/clients")
+async def get_clients(
+    partner_id: Optional[str] = None,
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    """Get clients list with visit counts"""
+    query = db.query(
+        Visit.user_id,
+        func.count(Visit.id).label('visit_count'),
+        func.max(Visit.check_in_time).label('last_visit')
+    )
+    
+    if partner_id:
+        query = query.filter(Visit.partner_id == partner_id)
+    
+    clients_data = query.group_by(Visit.user_id).offset(skip).limit(limit).all()
+    
+    result = []
+    for user_id, visit_count, last_visit in clients_data:
+        user = db.query(User).filter(User.id == user_id).first()
+        if user:
+            result.append({
+                "id": str(user_id),
+                "name": user.full_name,
+                "phone": user.phone_number,
+                "email": user.email,
+                "visit_count": visit_count,
+                "last_visit": last_visit.isoformat() if last_visit else None,
+            })
+    
+    return result
+
+# Client stats
+@app.get("/clients/stats")
+async def get_client_stats(
+    partner_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get client statistics"""
+    query = db.query(Visit)
+    if partner_id:
+        query = query.filter(Visit.partner_id == partner_id)
+    
+    total_clients = db.query(func.count(func.distinct(Visit.user_id)))
+    if partner_id:
+        total_clients = total_clients.filter(Visit.partner_id == partner_id)
+    total_clients = total_clients.scalar() or 0
+    
+    # New clients this month
+    month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    new_clients_query = db.query(func.count(func.distinct(Visit.user_id))).filter(
+        Visit.check_in_time >= month_start
+    )
+    if partner_id:
+        new_clients_query = new_clients_query.filter(Visit.partner_id == partner_id)
+    new_clients = new_clients_query.scalar() or 0
+    
+    return {
+        "total_clients": total_clients,
+        "new_clients_this_month": new_clients,
+    }
+
+# QR validation endpoint
+class QRValidateRequest(BaseModel):
+    qr_token: str
+
+@app.post("/qr/validate")
+async def validate_qr(
+    request: QRValidateRequest,
+    db: Session = Depends(get_db)
+):
+    """Validate a QR token"""
+    # Check if it's a merchant QR
+    if request.qr_token.startswith('MERCHANT_'):
+        parts = request.qr_token.split('_')
+        if len(parts) >= 2:
+            partner_id = parts[1]
+            from shared.models import Partner
+            partner = db.query(Partner).filter(Partner.id == partner_id).first()
+            if partner:
+                return {
+                    "valid": True,
+                    "type": "merchant",
+                    "partner_id": partner_id,
+                    "partner_name": partner.name
+                }
+    
+    # Check Redis for user QR token
+    token_data = RedisCache.get(f"qr_token:{request.qr_token}")
+    if token_data:
+        return {
+            "valid": True,
+            "type": "user",
+            "user_id": token_data.get("user_id"),
+            "subscription_id": token_data.get("subscription_id")
+        }
+    
+    return {"valid": False, "message": "Invalid or expired QR token"}
+
+# QR scan endpoint
+class QRScanRequest(BaseModel):
+    qr_token: str
+    vehicle_id: Optional[str] = None
+
+@app.post("/qr/scan")
+async def scan_qr(
+    request: QRScanRequest,
+    db: Session = Depends(get_db)
+):
+    """Process a QR scan"""
+    # Validate first
+    if request.qr_token.startswith('MERCHANT_'):
+        return {
+            "success": False,
+            "message": "This is a merchant QR code. Users should scan this to check in."
+        }
+    
+    # Check Redis for user QR token
+    token_data = RedisCache.get(f"qr_token:{request.qr_token}")
+    if not token_data:
+        return {"success": False, "message": "Invalid or expired QR token"}
+    
+    user_id = token_data.get("user_id")
+    subscription_id = token_data.get("subscription_id")
+    
+    # Get user and subscription
+    user = db.query(User).filter(User.id == user_id).first()
+    subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
+    
+    if not user or not subscription:
+        return {"success": False, "message": "User or subscription not found"}
+    
+    if subscription.status != "active":
+        return {"success": False, "message": "Subscription is not active"}
+    
+    return {
+        "success": True,
+        "user": {
+            "id": str(user.id),
+            "name": user.full_name,
+            "phone": user.phone_number
+        },
+        "subscription": {
+            "id": str(subscription.id),
+            "status": subscription.status,
+            "visits_remaining": subscription.visits_remaining if hasattr(subscription, 'visits_remaining') else None
+        }
     }
 
 if __name__ == "__main__":

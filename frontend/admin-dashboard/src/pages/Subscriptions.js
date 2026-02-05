@@ -57,55 +57,40 @@ const Subscriptions = () => {
       
       // Fetch subscription plans
       const plansResponse = await axios.get(`${API_URL}/api/subscription/plans`);
-      setPlans(plansResponse.data);
+      const plansData = plansResponse.data || [];
+      setPlans(plansData);
 
-      // Fetch subscriptions (mock data for now - replace with actual API)
-      const mockSubscriptions = [
-        {
-          id: '1',
-          user: { name: 'Test User 1', phone: '+998901111111' },
-          plan: plansResponse.data[0],
-          status: 'active',
-          startDate: '2024-12-01',
-          endDate: '2024-12-31',
-          visitsUsed: 5,
-          autoRenew: true
-        },
-        {
-          id: '2',
-          user: { name: 'Test User 2', phone: '+998902222222' },
-          plan: plansResponse.data[1],
-          status: 'active',
-          startDate: '2024-12-05',
-          endDate: '2025-01-05',
-          visitsUsed: 8,
-          autoRenew: false
-        },
-        {
-          id: '3',
-          user: { name: 'Test User 3', phone: '+998903333333' },
-          plan: plansResponse.data[2],
-          status: 'expired',
-          startDate: '2024-09-01',
-          endDate: '2024-11-30',
-          visitsUsed: 36,
-          autoRenew: false
-        }
-      ];
+      // Try to fetch real subscriptions from API
+      let subscriptionsData = [];
+      try {
+        const subsResponse = await axios.get(`${API_URL}/api/subscription/subscriptions`);
+        subscriptionsData = subsResponse.data || [];
+      } catch (err) {
+        console.log('Subscriptions API not available, showing plans only');
+      }
 
-      setSubscriptions(mockSubscriptions);
+      // If no real subscriptions, show info about plans
+      if (subscriptionsData.length === 0 && plansData.length > 0) {
+        // Show plans as the main data
+        subscriptionsData = plansData.map((plan, idx) => ({
+          id: plan.id,
+          plan: plan,
+          status: plan.is_active ? 'active' : 'inactive',
+          type: 'plan',
+          subscribers: 0
+        }));
+      }
 
-      // Calculate stats
-      const activeCount = mockSubscriptions.filter(s => s.status === 'active').length;
-      const expiredCount = mockSubscriptions.filter(s => s.status === 'expired').length;
-      const totalRevenue = mockSubscriptions
-        .filter(s => s.status === 'active')
-        .reduce((sum, s) => sum + s.plan.price, 0);
+      setSubscriptions(subscriptionsData);
+
+      // Calculate stats from plans
+      const activePlans = plansData.filter(p => p.is_active).length;
+      const totalRevenue = plansData.reduce((sum, p) => sum + (p.price || 0), 0);
 
       setStats({
-        total: mockSubscriptions.length,
-        active: activeCount,
-        expired: expiredCount,
+        total: plansData.length,
+        active: activePlans,
+        expired: plansData.length - activePlans,
         revenue: totalRevenue
       });
 

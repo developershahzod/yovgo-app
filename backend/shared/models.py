@@ -201,3 +201,21 @@ class AuditLog(Base):
     ip_address = Column(String(45))
     user_agent = Column(Text)
     created_at = Column(TIMESTAMP, server_default=func.now())
+
+class MerchantUser(Base):
+    __tablename__ = "merchant_users"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    partner_id = Column(UUID(as_uuid=True), ForeignKey("partners.id", ondelete="CASCADE"))
+    email = Column(String(255), unique=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    full_name = Column(String(255), nullable=False)
+    phone_number = Column(String(20))
+    role = Column(String(50), default="owner")
+    is_active = Column(Boolean, default=True)
+    last_login = Column(TIMESTAMP)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+# Alias for backward compatibility
+Plan = SubscriptionPlan

@@ -30,30 +30,26 @@ export const MerchantAuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const login = async (phoneNumber, pinCode) => {
+  const login = async (email, password) => {
     try {
-      // Login via staff credentials
-      const response = await axios.post(`${API_URL}/api/partner/staff/login`, {
-        phone_number: phoneNumber,
-        pin_code: pinCode,
+      // Login via merchant user credentials (email/password)
+      const response = await axios.post(`${API_URL}/api/partner/merchant/login`, {
+        email: email,
+        password: password,
       });
 
-      const { access_token, staff, partner, location } = response.data;
+      const { access_token, user, partner } = response.data;
       
       const merchantData = {
-        id: staff.id,
-        name: staff.full_name,
-        phone: staff.phone_number,
-        role: staff.role,
+        id: user.id,
+        name: user.full_name,
+        email: user.email,
+        phone: user.phone_number,
+        role: user.role,
         partner: {
           id: partner.id,
           name: partner.name,
         },
-        location: location ? {
-          id: location.id,
-          name: location.name,
-          address: location.address,
-        } : null,
       };
 
       localStorage.setItem('merchant_token', access_token);

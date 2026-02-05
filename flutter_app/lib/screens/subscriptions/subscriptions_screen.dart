@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../config/constants.dart';
-import '../../widgets/bottom_nav.dart';
-import '../../services/subscription_service.dart';
-import '../../models/plan.dart';
-import '../../models/subscription.dart';
+import '../../config/app_theme.dart';
 
 class SubscriptionsScreen extends StatefulWidget {
   const SubscriptionsScreen({Key? key}) : super(key: key);
@@ -13,327 +9,165 @@ class SubscriptionsScreen extends StatefulWidget {
 }
 
 class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
-  List<Plan> _plans = [];
-  List<Subscription> _subscriptions = [];
-  bool _isLoading = true;
-  String? _errorMessage;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadData();
-  }
-
-  Future<void> _loadData() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final plans = await SubscriptionService.getPlans();
-      final subscriptions = await SubscriptionService.getUserSubscriptions();
-      
-      setState(() {
-        _plans = plans;
-        _subscriptions = subscriptions;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = 'Ошибка загрузки данных';
-        _isLoading = false;
-      });
-    }
-  }
+  final List<Map<String, dynamic>> _plans = [
+    {
+      'name': '30 kunlik',
+      'price': '365 000',
+      'duration': '30 kun',
+      'visits': '10',
+      'popular': false,
+    },
+    {
+      'name': '90 kunlik',
+      'price': '950 000',
+      'duration': '90 kun',
+      'visits': '30',
+      'popular': true,
+    },
+    {
+      'name': '365 kunlik',
+      'price': '3 200 000',
+      'duration': '365 kun',
+      'visits': '120',
+      'popular': false,
+    },
+  ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('Подписки'),
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadData,
-          ),
-        ],
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: AppColors.textMuted,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _errorMessage!,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          color: AppColors.textLight,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      ElevatedButton(
-                        onPressed: _loadData,
-                        child: const Text('Повторить'),
-                      ),
-                    ],
-                  ),
-                )
-              : RefreshIndicator(
-                  onRefresh: _loadData,
-                  child: ListView(
-                    padding: const EdgeInsets.all(20),
-                    children: [
-                      // Active subscriptions
-                      if (_subscriptions.isNotEmpty) ...[
-                        const Text(
-                          'Активные подписки',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.text,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ..._subscriptions.map((sub) => _buildActiveSubscriptionCard(sub)),
-                        const SizedBox(height: 32),
-                      ],
-                      
-                      // Available plans
-                      const Text(
-                        'Доступные планы',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.text,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      if (_plans.isEmpty)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(40),
-                            child: Text(
-                              'Нет доступных планов',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: AppColors.textLight,
-                              ),
-                            ),
-                          ),
-                        )
-                      else
-                        ..._plans.map((plan) => _buildPlanCard(plan)),
-                    ],
-                  ),
-                ),
-      bottomNavigationBar: const BottomNav(currentIndex: 2),
-    );
-  }
-
-  Widget _buildActiveSubscriptionCard(Subscription subscription) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.primary, width: 2),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      backgroundColor: AppTheme.lightBackground,
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(20),
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  subscription.planName ?? 'Подписка',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.text,
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppColors.success.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Text(
-                    'Активна',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.success,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                const Icon(Icons.calendar_today, size: 16, color: AppColors.textLight),
-                const SizedBox(width: 8),
-                Text(
-                  'Осталось ${subscription.daysRemaining} дней',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: AppColors.textLight,
-                  ),
-                ),
-              ],
+            Text(
+              'Obuna rejalarini tanlang',
+              style: Theme.of(context).textTheme.displaySmall,
             ),
             const SizedBox(height: 8),
-            Row(
-              children: [
-                const Icon(Icons.local_car_wash, size: 16, color: AppColors.textLight),
-                const SizedBox(width: 8),
-                Text(
-                  subscription.isUnlimited
-                      ? 'Безлимит'
-                      : '${subscription.visitsRemaining} посещений',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: AppColors.textLight,
-                  ),
-                ),
-              ],
+            Text(
+              'O\'zingizga mos rejani tanlang',
+              style: TextStyle(
+                fontSize: 14,
+                color: AppTheme.textSecondary,
+              ),
             ),
+            const SizedBox(height: 24),
+            ..._plans.map((plan) => _buildPlanCard(plan)),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPlanCard(Plan plan) {
-    final isPopular = plan.name.toLowerCase().contains('премиум');
+
+  Widget _buildPlanCard(Map<String, dynamic> plan) {
+    final isPopular = plan['popular'] as bool;
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(20),
+        color: AppTheme.white,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isPopular ? AppColors.primary : AppColors.border,
+          color: isPopular ? AppTheme.primaryCyan : AppTheme.borderGray,
           width: isPopular ? 2 : 1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  plan.name,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.text,
+            if (isPopular)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryCyan,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'MASHHUR',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.white,
+                    letterSpacing: 0.5,
                   ),
                 ),
-                if (isPopular)
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'Популярный',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.text,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 12),
+              ),
+            if (isPopular) const SizedBox(height: 10),
             Text(
-              plan.description,
-              style: const TextStyle(
-                fontSize: 15,
-                color: AppColors.textLight,
+              plan['name'],
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w700,
+                color: AppTheme.textPrimary,
+                height: 1.2,
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              plan.visitsText,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: AppColors.text,
-              ),
-            ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 6),
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  plan.price.toStringAsFixed(0),
-                  style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.text,
+                  plan['price'],
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.primaryCyan,
+                    height: 1.0,
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 6),
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 6),
+                  padding: const EdgeInsets.only(bottom: 4),
                   child: Text(
-                    plan.currency,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      color: AppColors.textLight,
+                    'so\'m',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.textSecondary,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 14),
+            _buildFeature(Icons.check_circle, '${plan['visits']} ta tashrif'),
             const SizedBox(height: 8),
-            Text(
-              'на ${plan.durationText}',
-              style: const TextStyle(
-                fontSize: 14,
-                color: AppColors.textLight,
-              ),
-            ),
+            _buildFeature(Icons.check_circle, 'Barcha hamkor avtomoykalar'),
+            const SizedBox(height: 8),
+            _buildFeature(Icons.check_circle, '24/7 qo\'llab-quvvatlash'),
+            const SizedBox(height: 8),
+            _buildFeature(Icons.check_circle, 'Chegirmalar va bonuslar'),
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 56,
               child: ElevatedButton(
-                onPressed: () => _subscribeToPlan(plan),
+                onPressed: () {
+                  Navigator.pushNamed(context, '/checkout');
+                },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isPopular ? AppColors.primary : AppColors.text,
-                  foregroundColor: AppColors.text,
+                  backgroundColor: isPopular ? AppTheme.yellow : AppTheme.darkNavy,
+                  foregroundColor: isPopular ? AppTheme.darkNavy : AppTheme.white,
                 ),
-                child: const Text('Оформить'),
+                child: Text(
+                  'Rejani tanlash',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ],
@@ -342,41 +176,21 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     );
   }
 
-  void _subscribeToPlan(Plan plan) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+  Widget _buildFeature(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: AppTheme.green),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 14,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+        ),
+      ],
     );
-
-    try {
-      await SubscriptionService.createSubscription(plan.id);
-      
-      if (mounted) {
-        Navigator.pop(context); // Close loading dialog
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Подписка "${plan.name}" успешно оформлена!'),
-            backgroundColor: AppColors.success,
-          ),
-        );
-        
-        _loadData(); // Reload data
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context); // Close loading dialog
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: AppColors.error,
-          ),
-        );
-      }
-    }
   }
 }

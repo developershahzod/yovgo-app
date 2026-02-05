@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useMerchantAuth } from '../context/MerchantAuthContext';
 import {
   LayoutDashboard, QrCode, Users, DollarSign, Activity,
-  LogOut, Menu, X, Building2, ChevronDown, Settings
+  LogOut, Menu, X, Building2, ChevronDown, Settings, BarChart3
 } from 'lucide-react';
 
 const LayoutClean = () => {
@@ -18,6 +18,9 @@ const LayoutClean = () => {
     { name: 'История визитов', href: '/visits', icon: Activity },
     { name: 'Доходы', href: '/earnings', icon: DollarSign },
     { name: 'Клиенты', href: '/clients', icon: Users },
+    { name: 'Аналитика', href: '/analytics', icon: BarChart3 },
+    { name: 'Филиалы', href: '/branches', icon: Building2 },
+    { name: 'Настройки', href: '/settings', icon: Settings },
   ];
 
   return (
@@ -59,9 +62,9 @@ const LayoutClean = () => {
               <Link
                 key={item.name}
                 to={item.href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm font-medium ${
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-sm font-medium ${
                   isActive
-                    ? 'bg-gray-100 text-gray-900'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                     : 'text-gray-600 hover:bg-gray-50'
                 }`}
               >
@@ -70,7 +73,7 @@ const LayoutClean = () => {
                   {item.name}
                 </span>
                 {isActive && (
-                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-gray-900"></div>
+                  <div className="ml-auto w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
                 )}
               </Link>
             );

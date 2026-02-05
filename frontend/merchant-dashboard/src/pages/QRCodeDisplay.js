@@ -87,9 +87,9 @@ const QRCodeDisplay = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* QR Code Display */}
-        <div className="bg-white rounded-lg border border-gray-200 p-8">
+        <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
           <div className="text-center">
-            <div className="inline-block p-8 bg-white rounded-2xl border-2 border-gray-200">
+            <div className="inline-block p-8 bg-gradient-to-br from-white to-emerald-50 rounded-2xl border-2 border-emerald-200 qr-container">
               <QRCodeCanvas
                 id="qr-code-canvas"
                 value={qrToken || 'MERCHANT_DEMO_TOKEN'}
@@ -134,7 +134,7 @@ const QRCodeDisplay = () => {
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <button
                 onClick={handleDownloadQR}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-200"
               >
                 <Download size={20} />
                 <span>Скачать QR</span>

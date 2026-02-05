@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Request, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from prometheus_client import Counter, Histogram, generate_latest
 from starlette.responses import Response
@@ -13,6 +14,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared.redis_client import RedisCache
 from shared.auth import AuthHandler
+from routes import mobile_api
 
 app = FastAPI(
     title="YuvGo Gateway API",
@@ -20,14 +22,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS Configuration
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # Configure properly in production
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# GZip Compression for responses > 500 bytes
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
+# CORS is handled by nginx - no middleware needed here
 
 # Prometheus Metrics
 REQUEST_COUNT = Counter('gateway_requests_total', 'Total requests', ['method', 'endpoint', 'status'])
@@ -168,6 +166,57 @@ async def notification_service(path: str, request: Request):
 @app.api_route("/api/admin/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def admin_service(path: str, request: Request):
     return await proxy_request("admin", f"/{path}", request)
+
+# Include mobile API routes
+app.include_router(mobile_api.router, prefix="/api/mobile", tags=["Mobile API"])
+
+# Health check for all services
+@app.get("/api/services/health")
+async def check_all_services():
+    """Check health of all microservices"""
+    import httpx
+    
+    results = {}
+    async with httpx.AsyncClient(timeout=5.0) as client:
+        for service_name, service_url in SERVICES.items():
+            try:
+                response = await client.get(f"{service_url}/health")
+                results[service_name] = {
+                    "status": "healthy" if response.status_code == 200 else "unhealthy",
+                    "code": response.status_code
+                }
+            except Exception as e:
+                results[service_name] = {
+                    "status": "unreachable",
+                    "error": str(e)
+                }
+    
+    return {
+        "gateway": "healthy",
+        "services": results
+    }
+
+# API Documentation
+@app.get("/api/docs")
+async def api_documentation():
+    """Get API documentation summary"""
+    return {
+        "version": "1.0.0",
+        "services": {
+            "user": "/api/user - User management and authentication",
+            "subscription": "/api/subscription - Subscription plans and management",
+            "partner": "/api/partner - Partner (car wash) management",
+            "visit": "/api/visit - Visit tracking and QR code handling",
+            "payment": "/api/payment - Payment processing",
+            "notification": "/api/notification - Push notifications",
+            "admin": "/api/admin - Admin dashboard APIs",
+        },
+        "endpoints": {
+            "health": "/health",
+            "metrics": "/metrics",
+            "services_health": "/api/services/health",
+        }
+    }
 
 if __name__ == "__main__":
     import uvicorn

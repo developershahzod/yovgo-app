@@ -7,5 +7,6 @@ COPY services/payment/requirements.txt /tmp/requirements.txt
 RUN pip install --no-cache-dir -r /tmp/requirements.txt
 COPY shared /app/shared
 COPY services/payment/main.py /app/
+COPY services/payment/ipakyuli_client.py /app/
 EXPOSE 8005
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8005"]

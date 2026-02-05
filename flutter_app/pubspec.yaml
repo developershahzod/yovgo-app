@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_localizations:
+    sdk: flutter
   
   # UI
   cupertino_icons: ^1.0.6
@@ -34,7 +36,7 @@ dependencies:
   geolocator: ^10.1.0
   
   # Utils
-  intl: ^0.18.1
+  intl: ^0.20.2
   url_launcher: ^6.2.2
 
 dev_dependencies:
@@ -47,4 +49,5 @@ flutter:
   
   assets:
     - assets/images/
+    - assets/images/yuvgo_logo.png
     - assets/icons/

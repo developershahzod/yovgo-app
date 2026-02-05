@@ -1,39 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import { useMerchantAuth } from '../context/MerchantAuthContext';
-import { Users, DollarSign, Activity, TrendingUp, Calendar, Clock, RefreshCw } from 'lucide-react';
+import { visitsAPI, clientsAPI, earningsAPI, analyticsAPI } from '../services/api';
+import { Users, DollarSign, Activity, TrendingUp, Calendar, Clock, RefreshCw, QrCode, ChevronRight, Car } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const StatCard = ({ title, value, icon: Icon, trend, color = 'primary' }) => (
-  <div className="bg-white rounded-lg shadow p-6">
-    <div className="flex items-center justify-between">
-      <div>
-        <p className="text-sm font-medium text-gray-600">{title}</p>
-        <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
-        {trend && (
-          <div className="flex items-center mt-2">
-            <TrendingUp size={16} className="text-green-500 mr-1" />
-            <span className="text-sm text-green-600">{trend}</span>
-          </div>
-        )}
-      </div>
-      <div className={`p-3 bg-${color}-100 rounded-full`}>
-        <Icon className={`text-${color}-600`} size={24} />
+const StatCard = ({ title, value, icon: Icon, trend, color = 'blue', onClick }) => {
+  const colorClasses = {
+    blue: 'bg-blue-100 text-blue-600',
+    green: 'bg-green-100 text-green-600',
+    purple: 'bg-purple-100 text-purple-600',
+    orange: 'bg-orange-100 text-orange-600',
+  };
+
+  return (
+    <div 
+      className={`bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-md transition-all ${onClick ? 'cursor-pointer' : ''}`}
+      onClick={onClick}
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-500">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+          {trend && (
+            <div className="flex items-center mt-2">
+              <TrendingUp size={16} className="text-green-500 mr-1" />
+              <span className="text-sm font-medium text-green-600">{trend}</span>
+            </div>
+          )}
+        </div>
+        <div className={`p-4 rounded-xl ${colorClasses[color]}`}>
+          <Icon size={28} />
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const Dashboard = () => {
-  const { API_URL, merchant } = useMerchantAuth();
+  const { merchant } = useMerchantAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     todayVisits: 0,
     totalVisits: 0,
     totalClients: 0,
     monthlyEarnings: 0,
     avgDailyVisits: 0,
+    weeklyGrowth: 0,
   });
   const [recentVisits, setRecentVisits] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -41,12 +57,17 @@ const Dashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      // Get visits from localStorage
-      const visits = JSON.parse(localStorage.getItem('merchant_visits') || '[]');
-      
-      if (visits.length === 0) {
-        setLoading(false);
-        return;
+      setLoading(true);
+      setError(null);
+
+      // Try to fetch from API first, fallback to localStorage
+      let visits = [];
+      try {
+        const response = await visitsAPI.getTodayVisits(merchant?.partner_id);
+        visits = response.data || [];
+      } catch (apiError) {
+        // Fallback to localStorage
+        visits = JSON.parse(localStorage.getItem('merchant_visits') || '[]');
       }
 
       setRecentVisits(visits.slice(0, 5));
@@ -55,39 +76,49 @@ const Dashboard = () => {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       
-      const todayVisits = visits.filter(v => {
+      const allVisits = JSON.parse(localStorage.getItem('merchant_visits') || '[]');
+      
+      const todayVisits = allVisits.filter(v => {
         const visitDate = new Date(v.check_in_time);
         visitDate.setHours(0, 0, 0, 0);
         return visitDate.getTime() === today.getTime();
       }).length;
 
       // Calculate unique clients
-      const uniqueClients = new Set(visits.map(v => v.user_phone || v.qr_token)).size;
+      const uniqueClients = new Set(allVisits.map(v => v.user_phone || v.qr_token)).size;
 
       // Calculate monthly earnings (estimate: 50,000 UZS per visit)
       const thisMonth = new Date();
       thisMonth.setDate(1);
       thisMonth.setHours(0, 0, 0, 0);
       
-      const monthlyVisits = visits.filter(v => 
+      const monthlyVisits = allVisits.filter(v => 
         new Date(v.check_in_time) >= thisMonth
       ).length;
       const monthlyEarnings = monthlyVisits * 50000;
 
       // Calculate average daily visits
-      const oldestVisit = visits.length > 0 ? new Date(visits[visits.length - 1].check_in_time) : new Date();
+      const oldestVisit = allVisits.length > 0 ? new Date(allVisits[allVisits.length - 1].check_in_time) : new Date();
       const daysSinceFirst = Math.max(1, Math.ceil((new Date() - oldestVisit) / (1000 * 60 * 60 * 24)));
-      const avgDailyVisits = (visits.length / daysSinceFirst).toFixed(1);
+      const avgDailyVisits = (allVisits.length / daysSinceFirst).toFixed(1);
+
+      // Calculate weekly growth
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      const lastWeekVisits = allVisits.filter(v => new Date(v.check_in_time) >= weekAgo).length;
+      const weeklyGrowth = allVisits.length > 0 ? Math.round((lastWeekVisits / allVisits.length) * 100) : 0;
 
       setStats({
         todayVisits,
-        totalVisits: visits.length,
+        totalVisits: allVisits.length,
         totalClients: uniqueClients,
         monthlyEarnings,
         avgDailyVisits: parseFloat(avgDailyVisits),
+        weeklyGrowth,
       });
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
+      setError('Ma\'lumotlarni yuklashda xatolik');
     } finally {
       setLoading(false);
     }
@@ -96,56 +127,94 @@ const Dashboard = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
+  const formatCurrency = (amount) => {
+    if (amount >= 1000000) {
+      return `${(amount / 1000000).toFixed(1)}M`;
+    } else if (amount >= 1000) {
+      return `${(amount / 1000).toFixed(0)}K`;
+    }
+    return amount.toLocaleString();
+  };
+
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Welcome back, {merchant?.name}!</p>
+          <p className="text-gray-500 mt-1">Xush kelibsiz, {merchant?.name || 'Hamkor'}!</p>
         </div>
         <button
           onClick={fetchDashboardData}
-          className="flex items-center gap-2 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <RefreshCw size={20} />
-          Refresh
+          Yangilash
         </button>
       </div>
 
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
+          {error}
+        </div>
+      )}
+
+      {/* Quick Actions */}
+      <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-xl p-6 text-white">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold">QR kod skanerlash</h2>
+            <p className="text-blue-100 mt-1">Mijozlarni qabul qilish uchun QR kodni skanerlang</p>
+          </div>
+          <button
+            onClick={() => navigate('/qr-scanner')}
+            className="flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+          >
+            <QrCode size={24} />
+            Skanerlash
+            <ChevronRight size={20} />
+          </button>
+        </div>
+      </div>
+
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
-          title="Today's Visits"
+          title="Bugungi tashriflar"
           value={stats.todayVisits}
           icon={Calendar}
-          trend="+5 from yesterday"
+          trend={`+${stats.weeklyGrowth}% bu hafta`}
           color="blue"
+          onClick={() => navigate('/visits')}
         />
         <StatCard
-          title="Total Visits"
+          title="Jami tashriflar"
           value={stats.totalVisits.toLocaleString()}
           icon={Activity}
-          trend="+12% this month"
+          trend="+12% bu oy"
           color="green"
+          onClick={() => navigate('/visits')}
         />
         <StatCard
-          title="Total Clients"
+          title="Jami mijozlar"
           value={stats.totalClients.toLocaleString()}
           icon={Users}
-          trend="+8% this month"
+          trend="+8% bu oy"
           color="purple"
+          onClick={() => navigate('/clients')}
         />
         <StatCard
-          title="Monthly Revenue"
-          value={`${(stats.monthlyEarnings / 1000000).toFixed(1)}M`}
+          title="Oylik daromad"
+          value={`${formatCurrency(stats.monthlyEarnings)} UZS`}
           icon={DollarSign}
-          trend="+15% from last month"
-          color="yellow"
+          trend="+15% o'tgan oyga nisbatan"
+          color="orange"
+          onClick={() => navigate('/earnings')}
         />
       </div>
 

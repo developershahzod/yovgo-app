@@ -20,6 +20,7 @@ COPY shared /app/shared
 
 # Copy gateway application
 COPY gateway/main.py /app/
+COPY gateway/routes /app/routes
 
 # Expose port
 EXPOSE 8000

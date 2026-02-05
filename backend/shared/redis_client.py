@@ -2,10 +2,14 @@ import redis
 import os
 import json
 from typing import Optional, Any
+from functools import wraps
+import hashlib
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
 
-redis_client = redis.from_url(REDIS_URL, decode_responses=True)
+# Connection pool for better performance
+pool = redis.ConnectionPool.from_url(REDIS_URL, max_connections=20, decode_responses=True)
+redis_client = redis.Redis(connection_pool=pool)
 
 class RedisCache:
     """Redis cache utility class"""
@@ -64,3 +68,48 @@ class RedisCache:
         except Exception as e:
             print(f"Redis increment error: {e}")
             return None
+    
+    @staticmethod
+    def get_or_set(key: str, func, ttl: int = 3600) -> Any:
+        """Get from cache or compute and set"""
+        cached = RedisCache.get(key)
+        if cached is not None:
+            return cached
+        result = func()
+        RedisCache.set(key, result, ttl)
+        return result
+    
+    @staticmethod
+    def invalidate_pattern(pattern: str) -> int:
+        """Delete all keys matching pattern"""
+        try:
+            keys = redis_client.keys(pattern)
+            if keys:
+                return redis_client.delete(*keys)
+            return 0
+        except Exception as e:
+            print(f"Redis invalidate error: {e}")
+            return 0
+
+
+def cache_response(ttl: int = 300, key_prefix: str = "api"):
+    """Decorator to cache API responses"""
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            # Create cache key from function name and arguments
+            key_parts = [key_prefix, func.__name__]
+            key_parts.extend([str(v) for v in kwargs.values() if v is not None])
+            cache_key = ":".join(key_parts)
+            
+            # Try to get from cache
+            cached = RedisCache.get(cache_key)
+            if cached is not None:
+                return cached
+            
+            # Execute function and cache result
+            result = await func(*args, **kwargs)
+            RedisCache.set(cache_key, result, ttl)
+            return result
+        return wrapper
+    return decorator

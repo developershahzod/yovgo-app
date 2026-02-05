@@ -169,8 +169,13 @@ services:
       - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-secret-key-change-in-production
-      - PAYME_MERCHANT_ID=your-payme-merchant-id
-      - CLICK_MERCHANT_ID=your-click-merchant-id
+      # IpakYuliBank E-Comm credentials (Staging)
+      - IPAKYULI_BASE_URL=https://partner.ecomm.staging.ipakyulibank.uz
+      - IPAKYULI_ACCESS_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiI1ODM1YWVkNS05ZjkwLTQ3ZWEtYmVhMS1kNzE5MzI1NGY5N2QiLCJtZXJjaGFudElkIjoiMjE2YjQzNjItOGM4Yi00MjlkLWJlOGItNTJkYmVlZTAzYTNhIiwiaWF0IjoxNzcwMzA5ODQwLCJleHAiOjE4MDE4Njc0NDB9.cH2wXrfc7rmknwO1NqrQIGO4N18vz-CebLsvHRu0Z_Y
+      - IPAKYULI_CASHBOX_ID=5835aed5-9f90-47ea-bea1-d7193254f97d
+      - IPAKYULI_MERCHANT_ID=216b4362-8c8b-429d-be8b-52dbeee03a3a
+      - PAYMENT_SUCCESS_URL=https://yuvgo.uz/payment/success
+      - PAYMENT_FAIL_URL=https://yuvgo.uz/payment/fail
     depends_on:
       postgres:
         condition: service_healthy
@@ -229,15 +234,11 @@ services:
       dockerfile: Dockerfile
     container_name: yuvgo_admin_dashboard
     ports:
-      - "3000:3000"
+      - "3000:80"
     environment:
       - REACT_APP_API_URL=http://localhost:8000
-    volumes:
-      - ./frontend/admin-dashboard:/app
-      - /app/node_modules
     networks:
       - yuvgo_network
-    command: npm start
 
   # Merchant Dashboard (React)
   merchant_dashboard:
@@ -246,15 +247,11 @@ services:
       dockerfile: Dockerfile
     container_name: yuvgo_merchant_dashboard
     ports:
-      - "3001:3000"
+      - "3001:80"
     environment:
       - REACT_APP_API_URL=http://localhost:8000
-    volumes:
-      - ./frontend/merchant-dashboard:/app
-      - /app/node_modules
     networks:
       - yuvgo_network
-    command: npm start
 
   # User App (React)
   user_app:
@@ -272,6 +269,18 @@ services:
     networks:
       - yuvgo_network
     command: npm start
+
+  # Landing Page (Main Website)
+  landing_page:
+    build:
+      context: ./landing-page
+      dockerfile: Dockerfile
+    container_name: yuvgo_landing
+    ports:
+      - "80:80"
+    networks:
+      - yuvgo_network
+    restart: unless-stopped
 
   # Prometheus for monitoring
   prometheus:

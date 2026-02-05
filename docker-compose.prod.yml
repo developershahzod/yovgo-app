@@ -1,0 +1,271 @@
+version: '3.8'
+
+services:
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    container_name: yuvgo_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+    depends_on:
+      - gateway
+      - admin_dashboard
+      - merchant_dashboard
+      - landing_page
+      - flutter_web
+    networks:
+      - yuvgo_network
+    restart: always
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: yuvgo_postgres
+    environment:
+      POSTGRES_USER: yuvgo
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-yuvgo_secure_password_2024}
+      POSTGRES_DB: yuvgo_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - yuvgo_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yuvgo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  # Redis for caching and QR tokens
+  redis:
+    image: redis:7-alpine
+    container_name: yuvgo_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - yuvgo_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  # Gateway API Service
+  gateway:
+    build:
+      context: ./backend
+      dockerfile: gateway/Dockerfile
+    container_name: yuvgo_gateway
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:${DB_PASSWORD:-yuvgo_secure_password_2024}@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-your-production-secret-key-change-this}
+      - ENVIRONMENT=production
+      - USER_SERVICE_URL=http://user_service:8001
+      - SUBSCRIPTION_SERVICE_URL=http://subscription_service:8002
+      - PARTNER_SERVICE_URL=http://partner_service:8003
+      - VISIT_SERVICE_URL=http://visit_service:8004
+      - PAYMENT_SERVICE_URL=http://payment_service:8005
+      - NOTIFICATION_SERVICE_URL=http://notification_service:8006
+      - ADMIN_SERVICE_URL=http://admin_service:8007
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - yuvgo_network
+    restart: always
+
+  # User Service
+  user_service:
+    build:
+      context: ./backend
+      dockerfile: services/user/Dockerfile
+    container_name: yuvgo_user_service
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:${DB_PASSWORD:-yuvgo_secure_password_2024}@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-your-production-secret-key-change-this}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - yuvgo_network
+    restart: always
+
+  # Subscription Service
+  subscription_service:
+    build:
+      context: ./backend
+      dockerfile: services/subscription/Dockerfile
+    container_name: yuvgo_subscription_service
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:${DB_PASSWORD:-yuvgo_secure_password_2024}@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-your-production-secret-key-change-this}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - yuvgo_network
+    restart: always
+
+  # Partner Service
+  partner_service:
+    build:
+      context: ./backend
+      dockerfile: services/partner/Dockerfile
+    container_name: yuvgo_partner_service
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:${DB_PASSWORD:-yuvgo_secure_password_2024}@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-your-production-secret-key-change-this}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - yuvgo_network
+    restart: always
+
+  # Visit Service
+  visit_service:
+    build:
+      context: ./backend
+      dockerfile: services/visit/Dockerfile
+    container_name: yuvgo_visit_service
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:${DB_PASSWORD:-yuvgo_secure_password_2024}@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-your-production-secret-key-change-this}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - yuvgo_network
+    restart: always
+
+  # Payment Service
+  payment_service:
+    build:
+      context: ./backend
+      dockerfile: services/payment/Dockerfile
+    container_name: yuvgo_payment_service
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:${DB_PASSWORD:-yuvgo_secure_password_2024}@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-your-production-secret-key-change-this}
+      # IpakYuliBank E-Comm credentials
+      - IPAKYULI_BASE_URL=https://partner.ecomm.staging.ipakyulibank.uz
+      - IPAKYULI_ACCESS_TOKEN=${IPAKYULI_ACCESS_TOKEN}
+      - IPAKYULI_CASHBOX_ID=${IPAKYULI_CASHBOX_ID}
+      - IPAKYULI_MERCHANT_ID=${IPAKYULI_MERCHANT_ID}
+      - PAYMENT_SUCCESS_URL=https://yuvgo.uz/payment/success
+      - PAYMENT_FAIL_URL=https://yuvgo.uz/payment/fail
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - yuvgo_network
+    restart: always
+
+  # Notification Service
+  notification_service:
+    build:
+      context: ./backend
+      dockerfile: services/notification/Dockerfile
+    container_name: yuvgo_notification_service
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:${DB_PASSWORD:-yuvgo_secure_password_2024}@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - FIREBASE_CREDENTIALS_PATH=/app/firebase-credentials.json
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - yuvgo_network
+    restart: always
+
+  # Admin Service
+  admin_service:
+    build:
+      context: ./backend
+      dockerfile: services/admin/Dockerfile
+    container_name: yuvgo_admin_service
+    environment:
+      - DATABASE_URL=postgresql://yuvgo:${DB_PASSWORD:-yuvgo_secure_password_2024}@postgres:5432/yuvgo_db
+      - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-your-production-secret-key-change-this}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - yuvgo_network
+    restart: always
+
+  # Admin Dashboard (React)
+  admin_dashboard:
+    build:
+      context: ./frontend/admin-dashboard
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=https://app.yuvgo.uz
+    container_name: yuvgo_admin_dashboard
+    environment:
+      - REACT_APP_API_URL=https://app.yuvgo.uz
+    networks:
+      - yuvgo_network
+    restart: always
+
+  # Merchant Dashboard (React)
+  merchant_dashboard:
+    build:
+      context: ./frontend/merchant-dashboard
+      dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=https://app.yuvgo.uz
+    container_name: yuvgo_merchant_dashboard
+    environment:
+      - REACT_APP_API_URL=https://app.yuvgo.uz
+    networks:
+      - yuvgo_network
+    restart: always
+
+  # Landing Page (React/Vite)
+  landing_page:
+    build:
+      context: ./landing-page
+      dockerfile: Dockerfile
+    container_name: yuvgo_landing_page
+    networks:
+      - yuvgo_network
+    restart: always
+
+  # Flutter Web App
+  flutter_web:
+    build:
+      context: ./flutter_app
+      dockerfile: Dockerfile
+    container_name: yuvgo_flutter_web
+    networks:
+      - yuvgo_network
+    restart: always
+
+networks:
+  yuvgo_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:

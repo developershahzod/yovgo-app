@@ -1,8 +1,9 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LanguageProvider } from './i18n';
 import Login from './pages/LoginNew';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './pages/DashboardNew';
 import Users from './pages/Users';
 import Partners from './pages/Partners';
 import Subscriptions from './pages/Subscriptions';
@@ -12,6 +13,9 @@ import Admins from './pages/Admins';
 import Promotions from './pages/Promotions';
 import AuditLogs from './pages/AuditLogs';
 import LocationsMap from './pages/LocationsMap';
+import Settings from './pages/Settings';
+import Reports from './pages/Reports';
+import Visits from './pages/Visits';
 import Layout from './components/LayoutNew';
 
 const ProtectedRoute = ({ children, requiredPermission }) => {
@@ -30,9 +34,10 @@ const ProtectedRoute = ({ children, requiredPermission }) => {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
+    <LanguageProvider>
+      <AuthProvider>
+        <Router>
+          <Routes>
           <Route path="/login" element={<Login />} />
           
           <Route
@@ -126,10 +131,38 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            
+            <Route
+              path="settings"
+              element={
+                <ProtectedRoute requiredPermission="settings.read">
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="reports"
+              element={
+                <ProtectedRoute requiredPermission="analytics.read">
+                  <Reports />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="visits"
+              element={
+                <ProtectedRoute requiredPermission="analytics.read">
+                  <Visits />
+                </ProtectedRoute>
+              }
+            />
           </Route>
-        </Routes>
-      </Router>
-    </AuthProvider>
+          </Routes>
+        </Router>
+      </AuthProvider>
+    </LanguageProvider>
   );
 }
 

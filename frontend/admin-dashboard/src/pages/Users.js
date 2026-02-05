@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Search, UserPlus, X, Eye, Edit, Mail, Phone, Calendar, CheckCircle, XCircle } from 'lucide-react';
+import { Search, UserPlus, X, Eye, Edit, Mail, Phone, Calendar, CheckCircle, XCircle, Smartphone, Car, CreditCard, Activity } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 
@@ -13,6 +13,7 @@ const Users = () => {
   const [showModal, setShowModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [userStats, setUserStats] = useState({ total: 0, active: 0, verified: 0, withSubscription: 0 });
   const [editForm, setEditForm] = useState({
     full_name: '',
     email: '',
@@ -26,7 +27,16 @@ const Users = () => {
   const fetchUsers = async () => {
     try {
       const response = await axios.get(`${API_URL}/api/user/users`);
-      setUsers(response.data);
+      const userData = response.data || [];
+      setUsers(userData);
+      
+      // Calculate stats
+      setUserStats({
+        total: userData.length,
+        active: userData.filter(u => u.is_active).length,
+        verified: userData.filter(u => u.is_verified).length,
+        withSubscription: userData.filter(u => u.has_subscription).length
+      });
     } catch (error) {
       console.error('Failed to fetch users:', error);
     } finally {
@@ -73,13 +83,57 @@ const Users = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Users</h1>
-          <p className="text-gray-600 mt-1">Manage platform users</p>
+          <h1 className="text-3xl font-bold text-gray-900">Foydalanuvchilar (Ilova)</h1>
+          <p className="text-gray-600 mt-1">YuvGO mobil ilovasidan ro'yxatdan o'tgan foydalanuvchilar</p>
         </div>
-        <button className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700">
-          <UserPlus size={20} className="mr-2" />
-          Add User
-        </button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-xl p-4 border border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Smartphone className="text-blue-600" size={20} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{userStats.total}</p>
+              <p className="text-sm text-gray-500">Jami foydalanuvchilar</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-green-100 rounded-lg">
+              <CheckCircle className="text-green-600" size={20} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{userStats.active}</p>
+              <p className="text-sm text-gray-500">Faol foydalanuvchilar</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <Phone className="text-purple-600" size={20} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{userStats.verified}</p>
+              <p className="text-sm text-gray-500">Tasdiqlangan</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 border border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-orange-100 rounded-lg">
+              <CreditCard className="text-orange-600" size={20} />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">{userStats.withSubscription}</p>
+              <p className="text-sm text-gray-500">Obunali</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow">

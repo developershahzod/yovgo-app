@@ -43,6 +43,59 @@ async def health_check():
 # User Login Request Model
 class UserLoginRequest(BaseModel):
     phone_number: str
+    password: str = None
+
+# User Register Request Model
+class UserRegisterRequest(BaseModel):
+    phone_number: str
+    email: str = None
+    full_name: str = None
+    password: str = None
+
+# User Registration
+@app.post("/auth/register")
+async def user_register(register_data: UserRegisterRequest, db: Session = Depends(get_db)):
+    """Register new user"""
+    phone = format_phone_number(register_data.phone_number)
+    
+    # Check if user exists
+    existing = db.query(User).filter(User.phone_number == phone).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Phone number already registered")
+    
+    # Create user
+    user = User(
+        phone_number=phone,
+        email=register_data.email,
+        full_name=register_data.full_name,
+        is_verified=True,
+        is_active=True
+    )
+    
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    # Create access token
+    token_data = {
+        "sub": str(user.id),
+        "phone": user.phone_number,
+        "email": user.email,
+    }
+    
+    access_token = auth_handler.create_access_token(token_data)
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": str(user.id),
+            "phone_number": user.phone_number,
+            "email": user.email,
+            "full_name": user.full_name,
+            "is_verified": user.is_verified,
+        }
+    }
 
 # User Login (simplified - just phone number)
 @app.post("/auth/login")

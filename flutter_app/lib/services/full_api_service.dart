@@ -1,0 +1,592 @@
+import 'package:dio/dio.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+/// Comprehensive API Service for YuvGO Flutter App
+/// Handles all API calls to backend microservices through the gateway
+class FullApiService {
+  // Use 10.0.2.2 for Android emulator, localhost for iOS simulator
+  // For real device, use your computer's IP address
+  static const String _baseUrl = 'http://10.0.2.2:8000';
+  
+  static final Dio _dio = Dio(
+    BaseOptions(
+      baseUrl: _baseUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 30),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    ),
+  );
+
+  static const _storage = FlutterSecureStorage();
+  static const _tokenKey = 'auth_token';
+  static const _userKey = 'user_data';
+
+  // Initialize interceptors
+  static void initialize() {
+    _dio.interceptors.clear();
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await getToken();
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+          print('📤 ${options.method} ${options.uri}');
+          return handler.next(options);
+        },
+        onResponse: (response, handler) {
+          print('📥 ${response.statusCode} ${response.requestOptions.uri}');
+          return handler.next(response);
+        },
+        onError: (error, handler) {
+          print('❌ ${error.response?.statusCode} ${error.requestOptions.uri}');
+          print('Error: ${error.message}');
+          return handler.next(error);
+        },
+      ),
+    );
+  }
+
+  // ==================== TOKEN MANAGEMENT ====================
+  static Future<void> saveToken(String token) async {
+    await _storage.write(key: _tokenKey, value: token);
+  }
+
+  static Future<String?> getToken() async {
+    return await _storage.read(key: _tokenKey);
+  }
+
+  static Future<void> deleteToken() async {
+    await _storage.delete(key: _tokenKey);
+  }
+
+  static Future<bool> isLoggedIn() async {
+    final token = await getToken();
+    return token != null && token.isNotEmpty;
+  }
+
+  // ==================== USER SERVICE ====================
+  
+  /// Login with phone number
+  static Future<Map<String, dynamic>> login(String phoneNumber) async {
+    try {
+      final response = await _dio.post('/api/user/auth/login', data: {
+        'phone_number': phoneNumber,
+      });
+      
+      if (response.data['access_token'] != null) {
+        await saveToken(response.data['access_token']);
+      }
+      
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Register new user
+  static Future<Map<String, dynamic>> register({
+    required String phoneNumber,
+    required String fullName,
+    String? email,
+  }) async {
+    try {
+      final response = await _dio.post('/api/user/users', data: {
+        'phone_number': phoneNumber,
+        'full_name': fullName,
+        'email': email,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get current user profile
+  static Future<Map<String, dynamic>> getUserProfile(String userId) async {
+    try {
+      final response = await _dio.get('/api/user/users/$userId');
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Update user profile
+  static Future<Map<String, dynamic>> updateUserProfile(
+    String userId, {
+    String? fullName,
+    String? email,
+  }) async {
+    try {
+      final response = await _dio.put('/api/user/users/$userId', data: {
+        if (fullName != null) 'full_name': fullName,
+        if (email != null) 'email': email,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Logout
+  static Future<void> logout() async {
+    await deleteToken();
+    await _storage.delete(key: _userKey);
+  }
+
+  // ==================== VEHICLE SERVICE ====================
+
+  /// Get user's vehicles
+  static Future<List<dynamic>> getVehicles() async {
+    try {
+      final response = await _dio.get('/api/user/vehicles');
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Add new vehicle
+  static Future<Map<String, dynamic>> addVehicle({
+    required String plateNumber,
+    required String brand,
+    required String model,
+    String? color,
+    int? year,
+  }) async {
+    try {
+      final response = await _dio.post('/api/user/vehicles', data: {
+        'plate_number': plateNumber,
+        'brand': brand,
+        'model': model,
+        'color': color,
+        'year': year,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Delete vehicle
+  static Future<void> deleteVehicle(String vehicleId) async {
+    try {
+      await _dio.delete('/api/user/vehicles/$vehicleId');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // ==================== SUBSCRIPTION SERVICE ====================
+
+  /// Get all subscription plans
+  static Future<List<dynamic>> getSubscriptionPlans() async {
+    try {
+      final response = await _dio.get('/api/subscription/plans');
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get subscription plan by ID
+  static Future<Map<String, dynamic>> getSubscriptionPlan(String planId) async {
+    try {
+      final response = await _dio.get('/api/subscription/plans/$planId');
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get current subscription status
+  static Future<Map<String, dynamic>> getSubscriptionStatus() async {
+    try {
+      final response = await _dio.get('/api/subscription/subscriptions/status');
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Create new subscription
+  static Future<Map<String, dynamic>> createSubscription({
+    required String planId,
+    bool autoRenew = false,
+  }) async {
+    try {
+      final response = await _dio.post('/api/subscription/subscriptions', data: {
+        'plan_id': planId,
+        'auto_renew': autoRenew,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Cancel subscription
+  static Future<void> cancelSubscription(String subscriptionId) async {
+    try {
+      await _dio.post('/api/subscription/subscriptions/$subscriptionId/cancel');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // ==================== PARTNER SERVICE ====================
+
+  /// Get all partners (car washes)
+  static Future<List<dynamic>> getPartners({String? status}) async {
+    try {
+      final response = await _dio.get('/api/partner/partners', queryParameters: {
+        if (status != null) 'status': status,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get partner by ID
+  static Future<Map<String, dynamic>> getPartner(String partnerId) async {
+    try {
+      final response = await _dio.get('/api/partner/partners/$partnerId');
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get partner locations
+  static Future<List<dynamic>> getPartnerLocations({
+    String? partnerId,
+    String? city,
+  }) async {
+    try {
+      final response = await _dio.get('/api/partner/locations', queryParameters: {
+        if (partnerId != null) 'partner_id': partnerId,
+        if (city != null) 'city': city,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // ==================== VISIT SERVICE ====================
+
+  /// Record a visit (QR scan)
+  static Future<Map<String, dynamic>> recordVisit({
+    required String qrToken,
+    required String vehicleId,
+  }) async {
+    try {
+      final response = await _dio.post('/api/visit/visits', data: {
+        'qr_token': qrToken,
+        'vehicle_id': vehicleId,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get user's visit history
+  static Future<List<dynamic>> getVisitHistory({
+    int skip = 0,
+    int limit = 20,
+  }) async {
+    try {
+      final response = await _dio.get('/api/visit/visits', queryParameters: {
+        'skip': skip,
+        'limit': limit,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get visit statistics
+  static Future<Map<String, dynamic>> getVisitStats() async {
+    try {
+      final response = await _dio.get('/api/visit/visits/stats');
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // ==================== NOTIFICATION SERVICE ====================
+
+  /// Get user notifications
+  static Future<List<dynamic>> getNotifications({
+    int skip = 0,
+    int limit = 20,
+  }) async {
+    try {
+      final response = await _dio.get('/api/notification/notifications', queryParameters: {
+        'skip': skip,
+        'limit': limit,
+      });
+      return response.data;
+    } catch (e) {
+      // Return empty list if service unavailable
+      return [];
+    }
+  }
+
+  /// Mark notification as read
+  static Future<void> markNotificationRead(String notificationId) async {
+    try {
+      await _dio.put('/api/notification/notifications/$notificationId/read');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Mark all notifications as read
+  static Future<void> markAllNotificationsRead() async {
+    try {
+      await _dio.put('/api/notification/notifications/read-all');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // ==================== PAYMENT SERVICE (IPAKYULIBANK) ====================
+
+  /// Create payment link via IpakYuliBank E-Comm
+  /// Returns payment_url to redirect user to secure payment page
+  static Future<Map<String, dynamic>> createPaymentLink({
+    required String subscriptionId,
+    required double amount,
+    String? description,
+    String? successUrl,
+    String? failUrl,
+  }) async {
+    try {
+      final response = await _dio.post('/api/payment/ipakyuli/create-payment', data: {
+        'subscription_id': subscriptionId,
+        'amount': amount,
+        if (description != null) 'description': description,
+        if (successUrl != null) 'success_url': successUrl,
+        if (failUrl != null) 'fail_url': failUrl,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get payment status from IpakYuliBank
+  static Future<Map<String, dynamic>> getPaymentStatus(String transferId) async {
+    try {
+      final response = await _dio.get('/api/payment/ipakyuli/status/$transferId');
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Cancel a pending payment
+  static Future<Map<String, dynamic>> cancelPayment(String transferId, {String? reason}) async {
+    try {
+      final response = await _dio.post(
+        '/api/payment/ipakyuli/cancel/$transferId',
+        queryParameters: reason != null ? {'reason': reason} : null,
+      );
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Create tokenization contract for recurring payments
+  /// User will be redirected to enter card details for auto-renewal
+  static Future<Map<String, dynamic>> createTokenizationContract({
+    String? successUrl,
+    String? failUrl,
+  }) async {
+    try {
+      final response = await _dio.post('/api/payment/ipakyuli/tokenize', data: {
+        if (successUrl != null) 'success_url': successUrl,
+        if (failUrl != null) 'fail_url': failUrl,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Pay using tokenized card (for auto-renewal)
+  static Future<Map<String, dynamic>> payWithToken({
+    required String contractId,
+    required String subscriptionId,
+    required double amount,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/api/payment/ipakyuli/pay-with-token',
+        queryParameters: {
+          'contract_id': contractId,
+          'subscription_id': subscriptionId,
+          'amount': amount,
+        },
+      );
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get user's saved cards (tokenization contracts)
+  static Future<Map<String, dynamic>> getSavedCards() async {
+    try {
+      final response = await _dio.get('/api/payment/ipakyuli/contracts');
+      return response.data;
+    } catch (e) {
+      return {'contracts': []};
+    }
+  }
+
+  /// Delete a saved card
+  static Future<void> deleteSavedCard(String contractId) async {
+    try {
+      await _dio.delete('/api/payment/ipakyuli/contracts/$contractId');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Get payment history
+  static Future<List<dynamic>> getPaymentHistory({
+    int skip = 0,
+    int limit = 20,
+  }) async {
+    try {
+      final response = await _dio.get('/api/payment/history', queryParameters: {
+        'skip': skip,
+        'limit': limit,
+      });
+      return response.data;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  // ==================== QR CODE SERVICE ====================
+
+  /// Validate QR code
+  static Future<Map<String, dynamic>> validateQrCode(String qrToken) async {
+    try {
+      final response = await _dio.post('/api/visit/qr/validate', data: {
+        'qr_token': qrToken,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Process QR scan for car wash visit
+  static Future<Map<String, dynamic>> processQrScan({
+    required String qrToken,
+    String? vehicleId,
+  }) async {
+    try {
+      final response = await _dio.post('/api/visit/qr/scan', data: {
+        'qr_token': qrToken,
+        if (vehicleId != null) 'vehicle_id': vehicleId,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // ==================== WEATHER SERVICE ====================
+
+  /// Get weather data for car wash recommendation
+  static Future<Map<String, dynamic>> getWeatherData({
+    double? latitude,
+    double? longitude,
+  }) async {
+    try {
+      final response = await _dio.get('/api/weather', queryParameters: {
+        if (latitude != null) 'lat': latitude,
+        if (longitude != null) 'lon': longitude,
+      });
+      return response.data;
+    } catch (e) {
+      // Return mock data if service unavailable
+      return {
+        'wash_rating': 92,
+        'description': "3 kun davomida yog'ingarchilik kutilmaydi. Yuvish uchun mukammal havo!",
+        'forecast': [
+          {'day': '11', 'weather': 'sunny', 'temp': '+24°', 'percent': '92%'},
+          {'day': '12', 'weather': 'sunny', 'temp': '+24°', 'percent': '85%'},
+          {'day': '13', 'weather': 'sunny', 'temp': '+24°', 'percent': '98%'},
+          {'day': '14', 'weather': 'rain', 'temp': '+24°', 'percent': '36%'},
+          {'day': '15', 'weather': 'cloudy', 'temp': '+24°', 'percent': '24%'},
+          {'day': '16', 'weather': 'cloudy', 'temp': '+24°', 'percent': '12%'},
+        ],
+      };
+    }
+  }
+
+  // ==================== SAVED LOCATIONS ====================
+
+  /// Get saved car washes
+  static Future<List<dynamic>> getSavedCarWashes() async {
+    try {
+      final response = await _dio.get('/api/user/saved');
+      return response.data;
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Save car wash
+  static Future<void> saveCarWash(String partnerId) async {
+    try {
+      await _dio.post('/api/user/saved', data: {
+        'partner_id': partnerId,
+      });
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Remove saved car wash
+  static Future<void> removeSavedCarWash(String partnerId) async {
+    try {
+      await _dio.delete('/api/user/saved/$partnerId');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // ==================== HELPER METHODS ====================
+
+  static Future<Response> get(String path, {Map<String, dynamic>? queryParameters}) async {
+    return await _dio.get(path, queryParameters: queryParameters);
+  }
+
+  static Future<Response> post(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
+    return await _dio.post(path, data: data, queryParameters: queryParameters);
+  }
+
+  static Future<Response> put(String path, {dynamic data, Map<String, dynamic>? queryParameters}) async {
+    return await _dio.put(path, data: data, queryParameters: queryParameters);
+  }
+
+  static Future<Response> delete(String path, {Map<String, dynamic>? queryParameters}) async {
+    return await _dio.delete(path, queryParameters: queryParameters);
+  }
+}
