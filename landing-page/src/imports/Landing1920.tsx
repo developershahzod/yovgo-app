@@ -1677,7 +1677,7 @@ function Screen3() {
       <div className="absolute flex h-[709.798px] items-center justify-center left-[802.47px] top-[107.02px] w-[374.677px]" style={{ "--transform-inner-width": "1200", "--transform-inner-height": "688" } as React.CSSProperties}>
         <div className="flex-none rotate-5">
           <div className="h-[684.846px] mask-alpha mask-intersect mask-no-clip mask-no-repeat mask-position-[-533.218px_-212.2px] mask-size-[1441.431px_1132.849px] relative w-[316.192px]" data-name="Paste your content" style={{ maskImage: `url('${imgPasteYourContent5}')` }}>
-            <img alt="" className="block max-w-none size-full" height="684.846" src={imgPasteYourContent6} width="316.192" />
+            <img alt="" className="block max-w-none size-full" height="684.846" src={imgPasteYourContent6} width="316.192" style={{ zIndex: 10000 }} />
           </div>
         </div>
       </div>
