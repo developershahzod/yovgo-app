@@ -211,16 +211,39 @@ export default function LandingWrapper() {
             ].map((faq, index) => (
               <div 
                 key={index}
-                className="mb-[16px] cursor-pointer"
+                className="cursor-pointer"
+                style={{ marginBottom: '20px' }}
                 onClick={() => setOpenFaqIndex(openFaqIndex === index ? -1 : index)}
               >
-                <div className="bg-[#f2f2f2] rounded-[20px] overflow-hidden transition-all duration-300">
-                  <div className="flex items-center justify-between p-[24px]">
-                    <span className="text-[20px] font-black text-[#0a0c13]" style={{ fontFamily: "'Mulish', sans-serif" }}>
+                <div 
+                  className="rounded-[20px] overflow-hidden transition-all duration-300"
+                  style={{ 
+                    backgroundColor: '#f2f2f2',
+                    boxShadow: openFaqIndex === index ? '0 4px 12px rgba(0,0,0,0.1)' : 'none'
+                  }}
+                >
+                  <div 
+                    className="flex items-center justify-between"
+                    style={{ padding: '24px 28px' }}
+                  >
+                    <span 
+                      className="font-black text-[#0a0c13]" 
+                      style={{ 
+                        fontFamily: "'Mulish', sans-serif",
+                        fontSize: '20px',
+                        lineHeight: '1.3',
+                        paddingRight: '16px'
+                      }}
+                    >
                       {faq.q}
                     </span>
                     <svg 
-                      className={`w-6 h-6 transition-transform duration-300 flex-shrink-0 ${openFaqIndex === index ? '' : 'rotate-180'}`} 
+                      className="flex-shrink-0 transition-transform duration-300" 
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        transform: openFaqIndex === index ? 'rotate(0deg)' : 'rotate(180deg)'
+                      }}
                       viewBox="0 0 24 24" 
                       fill="none" 
                       stroke="#0A0C13" 
@@ -229,11 +252,25 @@ export default function LandingWrapper() {
                       <path d="M16 14L12 10L8 14" strokeLinecap="round" strokeLinejoin="round"/>
                     </svg>
                   </div>
-                  {openFaqIndex === index && (
-                    <div className="px-[24px] pb-[24px] text-[15px] text-[#646d79]" style={{ fontFamily: "'Mulish', sans-serif" }}>
+                  <div 
+                    style={{ 
+                      maxHeight: openFaqIndex === index ? '500px' : '0px',
+                      overflow: 'hidden',
+                      transition: 'max-height 0.3s ease-in-out'
+                    }}
+                  >
+                    <div 
+                      className="text-[#646d79]" 
+                      style={{ 
+                        fontFamily: "'Mulish', sans-serif",
+                        fontSize: '16px',
+                        lineHeight: '1.6',
+                        padding: '0 28px 24px 28px'
+                      }}
+                    >
                       {faq.a}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             ))}
