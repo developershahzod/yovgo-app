@@ -200,11 +200,11 @@ export default function LandingWrapper() {
             className="absolute cursor-pointer"
             style={{ 
               top: '16px', 
-              left: '271px', 
-              width: '120px', 
+              left: '231px', 
+              width: '130px', 
               height: '50px', 
               background: 'transparent',
-              zIndex: 1000 
+              zIndex: 10001 
             }}
             aria-label="Hamkorlarga"
           />
@@ -215,11 +215,11 @@ export default function LandingWrapper() {
             className="absolute cursor-pointer"
             style={{ 
               top: '16px', 
-              left: '391px', 
-              width: '80px', 
+              left: '377px', 
+              width: '90px', 
               height: '50px', 
               background: 'transparent',
-              zIndex: 1000 
+              zIndex: 10001 
             }}
             aria-label="Narxlar"
           />
@@ -230,11 +230,11 @@ export default function LandingWrapper() {
             className="absolute cursor-pointer"
             style={{ 
               top: '16px', 
-              left: '471px', 
-              width: '200px', 
+              left: '483px', 
+              width: '210px', 
               height: '50px', 
               background: 'transparent',
-              zIndex: 1000 
+              zIndex: 10001 
             }}
             aria-label="Savollar va javoblar"
           />
@@ -242,7 +242,7 @@ export default function LandingWrapper() {
           {/* Language Selector */}
           <div 
             className="absolute"
-            style={{ top: '16px', right: '296px', zIndex: 1000 }}
+            style={{ top: '16px', right: '296px', zIndex: 10001 }}
           >
             <button 
               onClick={() => setShowLangDropdown(!showLangDropdown)}
@@ -281,7 +281,7 @@ export default function LandingWrapper() {
               width: '196px', 
               height: '50px', 
               background: 'transparent',
-              zIndex: 1000 
+              zIndex: 10001 
             }}
             aria-label="Yuklab olish"
           />
