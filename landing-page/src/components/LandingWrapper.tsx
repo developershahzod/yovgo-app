@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import LandingOriginal from "../imports/Landing1920";
 
+type Language = 'uz' | 'ru' | 'en';
+
+const langLabels: Record<Language, { name: string; flag: string }> = {
+  uz: { name: "O'zb", flag: '🇺🇿' },
+  ru: { name: 'Рус', flag: '🇷🇺' },
+  en: { name: 'Eng', flag: '🇬🇧' },
+};
+
 // Section positions in the original 1920px design (in pixels)
 const SECTION_POSITIONS = {
   partners: 737,
@@ -11,6 +19,8 @@ const SECTION_POSITIONS = {
 export default function LandingWrapper() {
   const [scale, setScale] = useState(1);
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
+  const [lang, setLang] = useState<Language>('uz');
+  const [showLangDropdown, setShowLangDropdown] = useState(false);
 
   useEffect(() => {
     const updateScale = () => {
@@ -54,38 +64,78 @@ export default function LandingWrapper() {
           {/* Original Figma Design */}
           <LandingOriginal />
           
-          {/* ===== INVISIBLE CLICK OVERLAYS ===== */}
+          {/* ===== VISIBLE INTERACTIVE HEADER OVERLAY ===== */}
           
-          {/* Header Navigation Buttons - Invisible overlays on top of original */}
-          <div className="absolute top-[16px] left-[271px] flex items-center gap-[8px]" style={{ zIndex: 1000 }}>
-            <button 
-              onClick={() => scrollToPosition(SECTION_POSITIONS.partners)}
-              className="w-[110px] h-[50px] cursor-pointer"
-              style={{ background: 'transparent' }}
-              aria-label="Hamkorlarga"
-            />
-            <button 
-              onClick={() => scrollToPosition(SECTION_POSITIONS.pricing)}
-              className="w-[70px] h-[50px] cursor-pointer"
-              style={{ background: 'transparent' }}
-              aria-label="Narxlar"
-            />
-            <button 
-              onClick={() => scrollToPosition(SECTION_POSITIONS.faq)}
-              className="w-[180px] h-[50px] cursor-pointer"
-              style={{ background: 'transparent' }}
-              aria-label="Savollar va javoblar"
-            />
-          </div>
+          {/* Header - positioned exactly over the original header */}
+          <div 
+            className="absolute top-0 left-0 right-0 h-[82px] flex items-center justify-center"
+            style={{ zIndex: 1000 }}
+          >
+            <div className="w-[1920px] h-[82px] flex items-center px-[80px] relative">
+              {/* Navigation buttons - positioned to match original */}
+              <div className="absolute left-[271px] top-[16px] flex items-center">
+                <button 
+                  onClick={() => scrollToPosition(SECTION_POSITIONS.partners)}
+                  className="px-[12px] py-[14px] text-[15px] font-bold cursor-pointer hover:text-[#00BFFE] transition-colors"
+                  style={{ background: 'transparent', fontFamily: "'Mulish', sans-serif", color: 'transparent' }}
+                >
+                  Hamkorlarga
+                </button>
+                <button 
+                  onClick={() => scrollToPosition(SECTION_POSITIONS.pricing)}
+                  className="px-[12px] py-[14px] text-[15px] font-bold cursor-pointer hover:text-[#00BFFE] transition-colors"
+                  style={{ background: 'transparent', fontFamily: "'Mulish', sans-serif", color: 'transparent' }}
+                >
+                  Narxlar
+                </button>
+                <button 
+                  onClick={() => scrollToPosition(SECTION_POSITIONS.faq)}
+                  className="px-[12px] py-[14px] text-[15px] font-bold cursor-pointer hover:text-[#00BFFE] transition-colors"
+                  style={{ background: 'transparent', fontFamily: "'Mulish', sans-serif", color: 'transparent' }}
+                >
+                  Savollar va javoblar
+                </button>
+              </div>
 
-          {/* Header Download Button (Yuklab olish) */}
-          <div className="absolute top-[16px] right-[80px]" style={{ zIndex: 1000 }}>
-            <button 
-              onClick={handleDownload}
-              className="w-[196px] h-[50px] cursor-pointer"
-              style={{ background: 'transparent' }}
-              aria-label="Yuklab olish"
-            />
+              {/* Language Selector - positioned to match original */}
+              <div className="absolute right-[296px] top-[16px]">
+                <button 
+                  onClick={() => setShowLangDropdown(!showLangDropdown)}
+                  className="flex items-center gap-[6px] h-[50px] px-[12px] cursor-pointer"
+                  style={{ background: 'transparent' }}
+                >
+                  <span className="text-[18px] opacity-0">{langLabels[lang].flag}</span>
+                  <span className="text-[15px] font-bold opacity-0" style={{ fontFamily: "'Mulish', sans-serif" }}>
+                    {langLabels[lang].name}
+                  </span>
+                </button>
+                
+                {showLangDropdown && (
+                  <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden min-w-[140px]">
+                    {(['uz', 'ru', 'en'] as Language[]).map((l) => (
+                      <button
+                        key={l}
+                        onClick={() => { setLang(l); setShowLangDropdown(false); }}
+                        className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer ${lang === l ? 'bg-[#00BFFE]/10' : ''}`}
+                      >
+                        <span className="text-lg">{langLabels[l].flag}</span>
+                        <span className="text-[15px] font-semibold text-[#0a0c13]" style={{ fontFamily: "'Mulish', sans-serif" }}>{langLabels[l].name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Download button - positioned to match original */}
+              <div className="absolute right-[80px] top-[16px]">
+                <button 
+                  onClick={handleDownload}
+                  className="w-[196px] h-[50px] cursor-pointer"
+                  style={{ background: 'transparent' }}
+                  aria-label="Yuklab olish"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Hero Section - "Ilovani yuklab olish" button */}
