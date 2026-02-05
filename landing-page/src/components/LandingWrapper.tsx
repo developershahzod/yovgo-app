@@ -64,77 +64,99 @@ export default function LandingWrapper() {
           {/* Original Figma Design */}
           <LandingOriginal />
           
-          {/* ===== VISIBLE INTERACTIVE HEADER OVERLAY ===== */}
+          {/* ===== HEADER CLICK OVERLAYS ===== */}
           
-          {/* Header - positioned exactly over the original header */}
+          {/* Hamkorlarga button */}
+          <button 
+            onClick={() => scrollToPosition(SECTION_POSITIONS.partners)}
+            className="absolute cursor-pointer"
+            style={{ 
+              top: '16px', 
+              left: '271px', 
+              width: '120px', 
+              height: '50px', 
+              background: 'transparent',
+              zIndex: 1000 
+            }}
+            aria-label="Hamkorlarga"
+          />
+          
+          {/* Narxlar button */}
+          <button 
+            onClick={() => scrollToPosition(SECTION_POSITIONS.pricing)}
+            className="absolute cursor-pointer"
+            style={{ 
+              top: '16px', 
+              left: '391px', 
+              width: '80px', 
+              height: '50px', 
+              background: 'transparent',
+              zIndex: 1000 
+            }}
+            aria-label="Narxlar"
+          />
+          
+          {/* Savollar va javoblar button */}
+          <button 
+            onClick={() => scrollToPosition(SECTION_POSITIONS.faq)}
+            className="absolute cursor-pointer"
+            style={{ 
+              top: '16px', 
+              left: '471px', 
+              width: '200px', 
+              height: '50px', 
+              background: 'transparent',
+              zIndex: 1000 
+            }}
+            aria-label="Savollar va javoblar"
+          />
+          
+          {/* Language Selector */}
           <div 
-            className="absolute top-0 left-0 right-0 h-[82px] flex items-center justify-center"
-            style={{ zIndex: 1000 }}
+            className="absolute"
+            style={{ top: '16px', right: '296px', zIndex: 1000 }}
           >
-            <div className="w-[1920px] h-[82px] flex items-center px-[80px] relative">
-              {/* Navigation buttons - positioned to match original */}
-              <div className="absolute left-[271px] top-[16px] flex items-center">
-                <button 
-                  onClick={() => scrollToPosition(SECTION_POSITIONS.partners)}
-                  className="px-[12px] py-[14px] text-[15px] font-bold cursor-pointer hover:text-[#00BFFE] transition-colors"
-                  style={{ background: 'transparent', fontFamily: "'Mulish', sans-serif", color: 'transparent' }}
-                >
-                  Hamkorlarga
-                </button>
-                <button 
-                  onClick={() => scrollToPosition(SECTION_POSITIONS.pricing)}
-                  className="px-[12px] py-[14px] text-[15px] font-bold cursor-pointer hover:text-[#00BFFE] transition-colors"
-                  style={{ background: 'transparent', fontFamily: "'Mulish', sans-serif", color: 'transparent' }}
-                >
-                  Narxlar
-                </button>
-                <button 
-                  onClick={() => scrollToPosition(SECTION_POSITIONS.faq)}
-                  className="px-[12px] py-[14px] text-[15px] font-bold cursor-pointer hover:text-[#00BFFE] transition-colors"
-                  style={{ background: 'transparent', fontFamily: "'Mulish', sans-serif", color: 'transparent' }}
-                >
-                  Savollar va javoblar
-                </button>
+            <button 
+              onClick={() => setShowLangDropdown(!showLangDropdown)}
+              className="cursor-pointer"
+              style={{ 
+                width: '100px', 
+                height: '50px', 
+                background: 'transparent'
+              }}
+              aria-label="Change language"
+            />
+            
+            {showLangDropdown && (
+              <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden min-w-[140px]">
+                {(['uz', 'ru', 'en'] as Language[]).map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => { setLang(l); setShowLangDropdown(false); }}
+                    className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer ${lang === l ? 'bg-[#00BFFE]/10' : ''}`}
+                  >
+                    <span className="text-lg">{langLabels[l].flag}</span>
+                    <span className="text-[15px] font-semibold text-[#0a0c13]" style={{ fontFamily: "'Mulish', sans-serif" }}>{langLabels[l].name}</span>
+                  </button>
+                ))}
               </div>
-
-              {/* Language Selector - positioned to match original */}
-              <div className="absolute right-[296px] top-[16px]">
-                <button 
-                  onClick={() => setShowLangDropdown(!showLangDropdown)}
-                  className="flex items-center gap-[6px] h-[50px] px-[12px] cursor-pointer"
-                  style={{ background: 'transparent' }}
-                >
-                  <span className="text-[18px] opacity-0">{langLabels[lang].flag}</span>
-                  <span className="text-[15px] font-bold opacity-0" style={{ fontFamily: "'Mulish', sans-serif" }}>
-                    {langLabels[lang].name}
-                  </span>
-                </button>
-                
-                {showLangDropdown && (
-                  <div className="absolute top-full right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden min-w-[140px]">
-                    {(['uz', 'ru', 'en'] as Language[]).map((l) => (
-                      <button
-                        key={l}
-                        onClick={() => { setLang(l); setShowLangDropdown(false); }}
-                        className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-50 transition-colors cursor-pointer ${lang === l ? 'bg-[#00BFFE]/10' : ''}`}
-                      >
-                        <span className="text-lg">{langLabels[l].flag}</span>
-                        <span className="text-[15px] font-semibold text-[#0a0c13]" style={{ fontFamily: "'Mulish', sans-serif" }}>{langLabels[l].name}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Download button - positioned to match original ButtonMin4 */}
-              <button 
-                onClick={handleDownload}
-                className="absolute right-[80px] top-[16px] w-[196px] h-[50px] cursor-pointer rounded-[16px]"
-                style={{ background: 'rgba(0,191,254,0.01)' }}
-                aria-label="Yuklab olish"
-              />
-            </div>
+            )}
           </div>
+
+          {/* Download button (Yuklab olish) */}
+          <button 
+            onClick={handleDownload}
+            className="absolute cursor-pointer rounded-[16px]"
+            style={{ 
+              top: '16px', 
+              right: '80px', 
+              width: '196px', 
+              height: '50px', 
+              background: 'transparent',
+              zIndex: 1000 
+            }}
+            aria-label="Yuklab olish"
+          />
 
           {/* Hero Section - "Ilovani yuklab olish" button */}
           <div className="absolute top-[350px] left-[80px]" style={{ zIndex: 1000 }}>
