@@ -146,11 +146,26 @@ export default function LandingWrapper() {
   const [openFaqIndex, setOpenFaqIndex] = useState(0);
   const [lang, setLang] = useState<Language>('uz');
   const [showLangDropdown, setShowLangDropdown] = useState(false);
+  const [scale, setScale] = useState(1);
   
   const t = translations[lang];
 
+  useEffect(() => {
+    const updateScale = () => {
+      const windowWidth = window.innerWidth;
+      const designWidth = 1920;
+      const newScale = Math.min(windowWidth / designWidth, 1);
+      setScale(newScale);
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
+
   const scrollToPosition = (position: number) => {
-    window.scrollTo({ top: position, behavior: 'smooth' });
+    const scaledPosition = position * scale;
+    window.scrollTo({ top: scaledPosition, behavior: 'smooth' });
   };
 
   const handleDownload = () => {
@@ -168,7 +183,7 @@ export default function LandingWrapper() {
       <div 
         className="w-[1920px] mx-auto relative"
         style={{
-          transform: `scale(${Math.min(typeof window !== 'undefined' ? window.innerWidth / 1920 : 1, 1)})`,
+          transform: `scale(${scale})`,
           transformOrigin: 'top center',
         }}
       >
@@ -455,7 +470,7 @@ export default function LandingWrapper() {
       </div>
       
       {/* Spacer to account for scaled height */}
-      <div style={{ height: `${6003 * Math.min(typeof window !== 'undefined' ? window.innerWidth / 1920 : 1, 1)}px` }} />
+      <div style={{ height: `${6003 * scale}px` }} />
     </div>
   );
 }
