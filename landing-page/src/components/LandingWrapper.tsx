@@ -329,7 +329,7 @@ export default function LandingWrapper() {
           </div>
 
           {/* FAQ Section - Interactive accordion overlay */}
-          <div className="absolute top-[5041px] left-[532px] w-[856px]" style={{ zIndex: 1000 }}>
+          <div className="absolute top-[5033px] left-[532px] w-[856px]" style={{ zIndex: 1000 }}>
             {t.faq.items.map((faq, index) => (
               <div 
                 key={index}
