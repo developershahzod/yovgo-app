@@ -399,7 +399,7 @@ export default function LandingWrapper() {
           </div>
 
           {/* Footer Links - positioned at bottom of page (6003px - 424px = 5579px) */}
-          <div className="absolute" style={{ top: '5579px', left: '80px', width: '1760px', height: '424px', zIndex: 1000 }}>
+          <div className="absolute" style={{ top: '5579px', left: '80px', width: '1760px', height: '424px', zIndex: 10001 }}>
             
             {/* Hamkorlik section - Column 1 */}
             <div className="absolute" style={{ left: '0px', top: '100px' }}>
