@@ -3268,9 +3268,6 @@ export default function Landing() {
           <Container />
         </div>
       </div>
-      <div className="absolute bottom-0 h-[6003px] left-1/2 pointer-events-none top-0">
-        <Grid />
-      </div>
       <Section />
       <Hero />
       <Logo />
