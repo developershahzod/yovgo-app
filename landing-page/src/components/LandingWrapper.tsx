@@ -179,16 +179,16 @@ export default function LandingWrapper() {
 
   return (
     <div className="w-full bg-white overflow-x-hidden">
-      {/* Scaled Landing Page - Original Design with Click Overlays */}
+      {/* Responsive Landing Page - Original Design with Click Overlays */}
       <div 
         style={{
           transform: `scale(${scale})`,
-          transformOrigin: 'top left',
+          transformOrigin: 'top center',
           width: '1920px',
-          height: `${6003 * scale}px`,
+          margin: '0 auto',
         }}
       >
-        <div className="w-[1920px] h-[6003px] relative">
+        <div className="w-[1920px] relative" style={{ minHeight: '6003px' }}>
           {/* Original Figma Design */}
           <LandingOriginal />
           
@@ -469,7 +469,9 @@ export default function LandingWrapper() {
           </div>
         </div>
       </div>
-
+      
+      {/* Spacer to account for scaled height */}
+      <div style={{ height: `${6003 * scale}px` }} />
     </div>
   );
 }

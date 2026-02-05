@@ -37,6 +37,38 @@ body {
   background: #a1a1a1;
 }
 
+/* Responsive landing page - scales content based on viewport */
+.responsive-landing {
+  width: 100vw;
+  max-width: 1920px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.responsive-landing > div {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1920 / 6003;
+}
+
+.responsive-landing > div > * {
+  transform-origin: top left;
+  transform: scale(calc(100vw / 1920));
+}
+
+@media (min-width: 1920px) {
+  .responsive-landing > div > * {
+    transform: scale(1);
+  }
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px) {
+  .responsive-landing > div {
+    aspect-ratio: 1920 / 6003;
+  }
+}
+
 /* Logo carousel animation */
 @keyframes scrollLogos {
   0% {
