@@ -166,12 +166,13 @@ export default function LandingWrapper() {
     <div className="w-full bg-white overflow-x-hidden">
       {/* Responsive Landing Page - Centered Container */}
       <div 
-        className="max-w-[1920px] mx-auto relative"
+        className="w-[1920px] mx-auto relative"
         style={{
-          width: '100%',
+          transform: `scale(${Math.min(typeof window !== 'undefined' ? window.innerWidth / 1920 : 1, 1)})`,
+          transformOrigin: 'top center',
         }}
       >
-        <div className="w-full relative">
+        <div className="w-[1920px] relative" style={{ minHeight: '6003px' }}>
           {/* Original Figma Design */}
           <LandingOriginal />
           
@@ -452,6 +453,9 @@ export default function LandingWrapper() {
           </div>
         </div>
       </div>
+      
+      {/* Spacer to account for scaled height */}
+      <div style={{ height: `${6003 * Math.min(typeof window !== 'undefined' ? window.innerWidth / 1920 : 1, 1)}px` }} />
     </div>
   );
 }
