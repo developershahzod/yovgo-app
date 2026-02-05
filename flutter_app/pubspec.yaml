@@ -50,4 +50,5 @@ flutter:
   assets:
     - assets/images/
     - assets/images/yuvgo_logo.png
+    - assets/images/yuvgo_logo_full.png
     - assets/icons/

@@ -12,33 +12,41 @@ class YuvGoLogoImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Use text-based logo for consistent rendering
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          'YUV',
-          style: TextStyle(
-            fontSize: height,
-            fontWeight: FontWeight.w900,
-            fontFamily: 'Mulish',
-            color: whiteYuv ? Colors.white : const Color(0xFF00BFFE),
-            letterSpacing: -0.5,
-            height: 1.0,
-          ),
-        ),
-        Text(
-          'GO',
-          style: TextStyle(
-            fontSize: height,
-            fontWeight: FontWeight.w900,
-            fontFamily: 'Mulish',
-            color: const Color(0xFF0A1929),
-            letterSpacing: -0.5,
-            height: 1.0,
-          ),
-        ),
-      ],
+    // Use logo image asset
+    return Image.asset(
+      'assets/images/yuvgo_logo_full.png',
+      height: height,
+      fit: BoxFit.contain,
+      errorBuilder: (context, error, stackTrace) {
+        // Fallback to text-based logo if image not found
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'YUV',
+              style: TextStyle(
+                fontSize: height,
+                fontWeight: FontWeight.w900,
+                fontFamily: 'Mulish',
+                color: whiteYuv ? Colors.white : const Color(0xFF00BFFE),
+                letterSpacing: -0.5,
+                height: 1.0,
+              ),
+            ),
+            Text(
+              'GO',
+              style: TextStyle(
+                fontSize: height,
+                fontWeight: FontWeight.w900,
+                fontFamily: 'Mulish',
+                color: const Color(0xFF0A1929),
+                letterSpacing: -0.5,
+                height: 1.0,
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
