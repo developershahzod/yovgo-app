@@ -126,15 +126,13 @@ export default function LandingWrapper() {
                 )}
               </div>
 
-              {/* Download button - positioned to match original */}
-              <div className="absolute right-[80px] top-[16px]">
-                <button 
-                  onClick={handleDownload}
-                  className="w-[196px] h-[50px] cursor-pointer"
-                  style={{ background: 'transparent' }}
-                  aria-label="Yuklab olish"
-                />
-              </div>
+              {/* Download button - positioned to match original ButtonMin4 */}
+              <button 
+                onClick={handleDownload}
+                className="absolute right-[80px] top-[16px] w-[196px] h-[50px] cursor-pointer rounded-[16px]"
+                style={{ background: 'rgba(0,191,254,0.01)' }}
+                aria-label="Yuklab olish"
+              />
             </div>
           </div>
 
