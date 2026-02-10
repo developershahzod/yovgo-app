@@ -104,7 +104,7 @@ class PartnerBase(BaseModel):
     service_type: Optional[str] = 'full_service'
     is_24_hours: Optional[bool] = False
     amenities: Optional[List[str]] = []
-    additional_services: Optional[List[str]] = []
+    additional_services: Optional[List[Any]] = []
     wash_time: Optional[int] = 60
 
 class PartnerCreate(PartnerBase):
@@ -127,7 +127,7 @@ class PartnerUpdate(BaseModel):
     service_type: Optional[str] = None
     is_24_hours: Optional[bool] = None
     amenities: Optional[List[str]] = None
-    additional_services: Optional[List[str]] = None
+    additional_services: Optional[List[Any]] = None
     wash_time: Optional[int] = None
     status: Optional[str] = None
 
