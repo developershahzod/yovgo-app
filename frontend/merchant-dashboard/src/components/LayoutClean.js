@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useMerchantAuth } from '../context/MerchantAuthContext';
 import {
   LayoutDashboard, QrCode, Users, DollarSign, Activity,
-  LogOut, Menu, X, Building2, ChevronDown, Settings, BarChart3, Bell
+  LogOut, Menu, X, Building2, ChevronDown, Settings, BarChart3
 } from 'lucide-react';
 
 const LayoutClean = () => {
@@ -20,7 +20,6 @@ const LayoutClean = () => {
     { name: 'Mijozlar', href: '/clients', icon: Users },
     { name: 'Analitika', href: '/analytics', icon: BarChart3 },
     { name: 'Filiallar', href: '/branches', icon: Building2 },
-    { name: 'Bildirishnomalar', href: '/notifications', icon: Bell },
     { name: 'Sozlamalar', href: '/settings', icon: Settings },
   ];
 
