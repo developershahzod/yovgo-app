@@ -81,25 +81,21 @@ const Branches = () => {
     try {
       setSaving(true);
       const partnerId = merchant?.partner?.id || merchant?.partner_id;
+      if (!partnerId) {
+        alert('Xatolik: Partner ID topilmadi. Qayta login qiling.');
+        return;
+      }
       const response = await axios.post(
         `${API_URL}/api/partner/merchant/branches`, formData, { params: { partner_id: partnerId } }
       );
       setBranches([...branches, response.data]);
       setShowAddModal(false);
       setFormData({ ...emptyBranch });
+      setActiveTab('info');
     } catch (error) {
       console.error('Failed to add branch:', error);
-      const mockBranch = {
-        id: Date.now().toString(),
-        ...formData,
-        is_active: true,
-        visit_count: 0,
-        staff_count: 0,
-        qr_code: `BRANCH_${Date.now()}`
-      };
-      setBranches([...branches, mockBranch]);
-      setShowAddModal(false);
-      setFormData({ ...emptyBranch });
+      const msg = error.response?.data?.detail || error.message || 'Filial qo\'shishda xatolik';
+      alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setSaving(false);
     }
@@ -117,9 +113,8 @@ const Branches = () => {
       setSelectedBranch(null);
     } catch (error) {
       console.error('Failed to update branch:', error);
-      setBranches(branches.map(b => b.id === selectedBranch.id ? { ...b, ...formData } : b));
-      setShowEditModal(false);
-      setSelectedBranch(null);
+      const msg = error.response?.data?.detail || error.message || 'Filialni yangilashda xatolik';
+      alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setSaving(false);
     }
@@ -132,7 +127,8 @@ const Branches = () => {
       setBranches(branches.filter(b => b.id !== branchId));
     } catch (error) {
       console.error('Failed to delete branch:', error);
-      setBranches(branches.filter(b => b.id !== branchId));
+      const msg = error.response?.data?.detail || error.message || 'Filialni o\'chirishda xatolik';
+      alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
     }
   };
 
