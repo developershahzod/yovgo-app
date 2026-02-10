@@ -75,6 +75,8 @@ services:
       - PAYMENT_SERVICE_URL=http://payment_service:8005
       - NOTIFICATION_SERVICE_URL=http://notification_service:8006
       - ADMIN_SERVICE_URL=http://admin_service:8007
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       postgres:
         condition: service_healthy
@@ -189,6 +191,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://yuvgo:${DB_PASSWORD:-yuvgo_secure_password_2024}@postgres:5432/yuvgo_db
       - REDIS_URL=redis://redis:6379
+      - JWT_SECRET=${JWT_SECRET:-your-production-secret-key-change-this}
       - FIREBASE_CREDENTIALS_PATH=/app/firebase-credentials.json
     depends_on:
       postgres:
@@ -269,3 +272,4 @@ networks:
 volumes:
   postgres_data:
   redis_data:
+  uploads_data:

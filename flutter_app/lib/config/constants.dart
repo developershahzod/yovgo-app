@@ -1,17 +1,44 @@
 import 'package:flutter/material.dart';
 
 class ApiConstants {
-  static const String baseUrl = 'http://localhost:8000';
-  static const String subscriptionUrl = 'http://localhost:8002';
-  static const String visitUrl = 'http://localhost:8004';
+  static const String baseUrl = 'https://app.yuvgo.uz';
   
+  // Auth
   static const String register = '/api/user/auth/register';
   static const String login = '/api/user/auth/login';
-  static const String plans = '/plans';
-  static const String subscriptions = '/subscriptions';
-  static const String subscriptionStatus = '/subscriptions/status';
-  static const String userCheckin = '/user-checkin';
-  static const String visits = '/visits';
+  static const String verifyOtp = '/api/user/auth/verify-otp';
+  static const String me = '/api/user/me';
+  
+  // Users
+  static const String users = '/api/user/users';
+  static const String vehicles = '/api/user/vehicles';
+  static const String savedCarWashes = '/api/user/saved';
+  
+  // Subscriptions
+  static const String plans = '/api/subscription/plans';
+  static const String subscriptions = '/api/subscription/subscriptions';
+  static const String subscriptionStatus = '/api/subscription/subscriptions/status';
+  
+  // Partners (Car Washes)
+  static const String partners = '/api/partner/partners';
+  static const String locations = '/api/partner/locations';
+  
+  // Visits
+  static const String visits = '/api/visit/visits';
+  static const String visitStats = '/api/visit/visits/stats';
+  static const String qrValidate = '/api/visit/qr/validate';
+  static const String qrScan = '/api/visit/qr/scan';
+  
+  // Notifications
+  static const String notifications = '/api/notification/notifications';
+  
+  // Payment
+  static const String createPayment = '/api/payment/ipakyuli/create-payment';
+  static const String paymentStatus = '/api/payment/ipakyuli/status';
+  static const String contracts = '/api/payment/ipakyuli/contracts';
+  
+  // Weather
+  static const String weather = '/api/weather';
 }
 
 class AppColors {

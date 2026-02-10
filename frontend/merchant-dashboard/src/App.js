@@ -13,6 +13,7 @@ import QRCodeDisplay from './pages/QRCodeDisplay';
 import MerchantSettings from './pages/MerchantSettings';
 import MerchantAnalytics from './pages/MerchantAnalytics';
 import Branches from './pages/Branches';
+import MerchantNotifications from './pages/MerchantNotifications';
 import Layout from './components/LayoutClean';
 
 const ProtectedRoute = ({ children }) => {
@@ -51,6 +52,7 @@ function App() {
               <Route path="qr-templates" element={<QRTemplates />} />
               <Route path="analytics" element={<MerchantAnalytics />} />
               <Route path="branches" element={<Branches />} />
+              <Route path="notifications" element={<MerchantNotifications />} />
               <Route path="settings" element={<MerchantSettings />} />
             </Route>
           </Routes>

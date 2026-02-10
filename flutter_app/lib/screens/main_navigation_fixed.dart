@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import '../config/app_theme.dart';
 import '../l10n/language_provider.dart';
-import 'home/home_screen_new.dart';
+import 'home/home_screen_fixed.dart';
 import 'map/map_screen_new.dart';
 import 'qr/qr_scanner_screen_fixed.dart';
 import 'subscriptions/subscriptions_screen.dart';
@@ -30,7 +30,7 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
   }
 
   final List<Widget> _screens = [
-    const HomeScreenNew(),
+    const HomeScreenFixed(),
     const MapScreenNew(),
     const QrScannerScreenFixed(),
     const SubscriptionsScreen(),
@@ -55,194 +55,146 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
   }
 
   Widget _buildBottomNav() {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        // Blurred background container
-        Container(
-          height: 80,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 20,
-                offset: const Offset(0, -4),
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
           ),
-          child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(24),
-              topRight: Radius.circular(24),
-            ),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-              child: Container(
-                color: Colors.white.withOpacity(0.75),
-                child: Column(
-                  children: [
-                    // Menu items
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceAround,
-                          children: [
-                            _buildNavItem(
-                              icon: Icons.home_outlined,
-                              activeIcon: Icons.home,
-                              label: context.tr('nav_home'),
-                              index: 0,
-                            ),
-                            _buildNavItem(
-                              icon: Icons.map_outlined,
-                              activeIcon: Icons.map,
-                              label: context.tr('nav_map'),
-                              index: 1,
-                            ),
-                            const SizedBox(width: 64), // Space for center button
-                            _buildNavItem(
-                              icon: Icons.credit_card_outlined,
-                              activeIcon: Icons.credit_card,
-                              label: context.tr('sub_title'),
-                              index: 3,
-                            ),
-                            _buildNavItem(
-                              icon: Icons.person_outline,
-                              activeIcon: Icons.person,
-                              label: context.tr('nav_profile'),
-                              index: 4,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    // Home indicator bar
-                    Container(
-                      height: 20,
-                      alignment: Alignment.center,
-                      child: Container(
-                        width: 134,
-                        height: 5,
-                        decoration: BoxDecoration(
-                          color: AppTheme.textPrimary,
-                          borderRadius: BorderRadius.circular(2.5),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(24),
+          topRight: Radius.circular(24),
+        ),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
+          child: SafeArea(
+            top: false,
+            child: Container(
+              height: 64,
+              color: Colors.white.withOpacity(0.85),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildNavItem(
+                    svgType: 'home',
+                    label: context.tr('nav_home'),
+                    index: 0,
+                  ),
+                  _buildNavItem(
+                    svgType: 'map',
+                    label: context.tr('nav_map'),
+                    index: 1,
+                  ),
+                  _buildCenterButton(),
+                  _buildNavItem(
+                    svgType: 'subscription',
+                    label: context.tr('profile_subscription'),
+                    index: 3,
+                  ),
+                  _buildNavItem(
+                    svgType: 'profile',
+                    label: context.tr('nav_profile'),
+                    index: 4,
+                  ),
+                ],
               ),
             ),
           ),
         ),
-        // Center QR button - positioned slightly above menu
-        Positioned(
-          top: -12,
-          left: 0,
-          right: 0,
-          child: Center(
-            child: _buildCenterButton(),
-          ),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildNavItem({
-    required IconData icon,
-    required IconData activeIcon,
+    required String svgType,
     required String label,
     required int index,
   }) {
     final isActive = _currentIndex == index;
     
+    IconData icon;
+    switch (svgType) {
+      case 'home':
+        icon = isActive ? Icons.home : Icons.home_outlined;
+        break;
+      case 'map':
+        icon = isActive ? Icons.storefront : Icons.storefront_outlined;
+        break;
+      case 'subscription':
+        icon = isActive ? Icons.qr_code_2 : Icons.qr_code_2_outlined;
+        break;
+      case 'profile':
+        icon = isActive ? Icons.person : Icons.person_outline;
+        break;
+      default:
+        icon = Icons.home_outlined;
+    }
+    
     return GestureDetector(
       onTap: () => _onTabTapped(index),
       behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Icon with background when active
-          Container(
-            width: 30,
-            height: 30,
-            decoration: isActive ? BoxDecoration(
-              color: AppTheme.primaryCyan.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ) : null,
-            child: Icon(
+      child: SizedBox(
+        width: 60,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
               icon,
               color: isActive ? AppTheme.primaryCyan : AppTheme.textPrimary,
-              size: 22,
+              size: 24,
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              fontFamily: 'Mulish',
-              color: isActive ? AppTheme.primaryCyan : AppTheme.textPrimary,
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
+                fontFamily: 'Mulish',
+                color: isActive ? AppTheme.primaryCyan : AppTheme.textPrimary,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildCenterButton() {
-    final isActive = _currentIndex == 2;
-    
     return GestureDetector(
       onTap: () => _onTabTapped(2),
       child: Container(
-        width: 64,
-        height: 64,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Outer glow circle
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.primaryCyan.withOpacity(0.2),
-              ),
-            ),
-            // Middle circle
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.primaryCyan.withOpacity(0.99),
-              ),
-            ),
-            // Inner circle with icon
-            Container(
-              width: 52,
-              height: 52,
-              decoration: const BoxDecoration(
-                color: AppTheme.primaryCyan,
-                shape: BoxShape.circle,
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.qr_code_scanner,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
+        width: 56,
+        height: 56,
+        margin: const EdgeInsets.only(bottom: 8),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppTheme.primaryCyan,
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.primaryCyan.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
+        ),
+        child: Center(
+          child: Icon(
+            Icons.qr_code_scanner_rounded,
+            color: Colors.white,
+            size: 26,
+          ),
         ),
       ),
     );

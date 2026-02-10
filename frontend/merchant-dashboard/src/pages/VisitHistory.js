@@ -4,7 +4,7 @@ import { useMerchantAuth } from '../context/MerchantAuthContext';
 import { Calendar, User, Download, Filter, RefreshCw } from 'lucide-react';
 
 const VisitHistory = () => {
-  const { merchant } = useMerchantAuth();
+  const { merchant, API_URL } = useMerchantAuth();
   const [visits, setVisits] = useState([]);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState('all');
@@ -27,8 +27,7 @@ const VisitHistory = () => {
       }
       
       // Загружаем визиты с backend
-      const VISIT_API = 'http://localhost:8004';
-      const response = await axios.get(`${VISIT_API}/visits?partner_id=${partnerId}`);
+      const response = await axios.get(`${API_URL}/api/visit/visits`, { params: { partner_id: partnerId } });
       
       let filteredVisits = response.data || [];
       

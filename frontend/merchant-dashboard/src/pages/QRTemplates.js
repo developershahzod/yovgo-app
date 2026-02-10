@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useMerchantAuth } from '../context/MerchantAuthContext';
 import { QrCode, Download, Printer, Copy, Check } from 'lucide-react';
-import QRCode from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 
 const QRTemplates = () => {
   const { merchant } = useMerchantAuth();
@@ -208,7 +208,7 @@ const QRTemplates = () => {
               </div>
 
               <div className="p-8 bg-white border-4 border-primary-600 rounded-lg">
-                <QRCode
+                <QRCodeCanvas
                   id="qr-code"
                   value={qrData}
                   size={selectedSize}

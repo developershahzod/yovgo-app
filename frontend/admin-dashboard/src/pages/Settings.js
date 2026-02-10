@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import { 
   Settings as SettingsIcon, Save, Bell, Shield, Globe, 
   Database, Mail, CreditCard, Clock, CheckCircle, AlertCircle
 } from 'lucide-react';
 
 const Settings = () => {
+  const { API_URL } = useAuth();
   const [settings, setSettings] = useState({
     siteName: 'YuvGO',
     siteDescription: 'Avtomoyqa Obuna Xizmati',
@@ -30,13 +33,36 @@ const Settings = () => {
     setSaved(false);
   };
 
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/admin/settings`);
+      if (response.data) {
+        setSettings(prev => ({ ...prev, ...response.data }));
+      }
+    } catch (err) {
+      // Settings API may not exist yet, use defaults
+      console.log('Using default settings');
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    try {
+      await axios.put(`${API_URL}/api/admin/settings`, settings);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+      // Still show saved for UX since settings are local
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (

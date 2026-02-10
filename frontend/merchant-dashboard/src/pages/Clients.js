@@ -4,7 +4,7 @@ import { useMerchantAuth } from '../context/MerchantAuthContext';
 import { Users, Search, Phone, Mail } from 'lucide-react';
 
 const Clients = () => {
-  const { merchant } = useMerchantAuth();
+  const { merchant, API_URL } = useMerchantAuth();
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -27,8 +27,7 @@ const Clients = () => {
       }
       
       // Загружаем клиентов через визиты этого филиала
-      const VISIT_API = 'http://localhost:8004';
-      const response = await axios.get(`${VISIT_API}/visits?partner_id=${partnerId}`);
+      const response = await axios.get(`${API_URL}/api/visit/visits`, { params: { partner_id: partnerId } });
       
       // Извлекаем уникальных клиентов из визитов
       const visitsData = response.data || [];

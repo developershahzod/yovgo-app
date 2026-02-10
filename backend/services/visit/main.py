@@ -214,6 +214,36 @@ async def get_visit_history(
     
     return result
 
+# Today's visits for partner (MUST be before /visits/{visit_id} to avoid route conflict)
+@app.get("/visits/today")
+async def get_today_visits(
+    partner_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Get today's visits, optionally filtered by partner"""
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    
+    query = db.query(Visit).filter(Visit.check_in_time >= today_start)
+    
+    if partner_id:
+        query = query.filter(Visit.partner_id == partner_id)
+    
+    visits = query.order_by(Visit.check_in_time.desc()).all()
+    
+    result = []
+    for visit in visits:
+        user = db.query(User).filter(User.id == visit.user_id).first()
+        result.append({
+            "id": str(visit.id),
+            "user_id": str(visit.user_id),
+            "user_name": user.full_name if user else None,
+            "user_phone": user.phone_number if user else None,
+            "check_in_time": visit.check_in_time.isoformat(),
+            "status": visit.status,
+        })
+    
+    return result
+
 @app.get("/visits/{visit_id}", response_model=VisitResponse)
 async def get_visit(
     visit_id: str,
@@ -477,36 +507,6 @@ async def user_checkin(
         "visit_id": str(visit.id),
         "visits_remaining": subscription.visits_remaining if not subscription.is_unlimited else "unlimited"
     }
-
-# Today's visits for partner
-@app.get("/visits/today")
-async def get_today_visits(
-    partner_id: Optional[str] = None,
-    db: Session = Depends(get_db)
-):
-    """Get today's visits, optionally filtered by partner"""
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    
-    query = db.query(Visit).filter(Visit.check_in_time >= today_start)
-    
-    if partner_id:
-        query = query.filter(Visit.partner_id == partner_id)
-    
-    visits = query.order_by(Visit.check_in_time.desc()).all()
-    
-    result = []
-    for visit in visits:
-        user = db.query(User).filter(User.id == visit.user_id).first()
-        result.append({
-            "id": str(visit.id),
-            "user_id": str(visit.user_id),
-            "user_name": user.full_name if user else None,
-            "user_phone": user.phone_number if user else None,
-            "check_in_time": visit.check_in_time.isoformat(),
-            "status": visit.status,
-        })
-    
-    return result
 
 # Visit statistics
 @app.get("/stats")

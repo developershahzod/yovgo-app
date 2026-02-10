@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
+import '../../l10n/language_provider.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -10,12 +12,6 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool notificationsEnabled = true;
-  String _selectedLanguage = 'uz';
-
-  final Map<String, Map<String, String>> _languages = {
-    'uz': {'name': "O'zbekcha", 'flag': '🇺🇿'},
-    'ru': {'name': 'Русский', 'flag': '🇷🇺'},
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -29,7 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Sozlanmalar',
+          context.tr('settings_title'),
           style: TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 18,
@@ -43,7 +39,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           _buildSettingItem(
             icon: Icons.notifications_outlined,
-            title: 'Bildirishnoma',
+            title: context.tr('settings_notifications'),
             trailing: Switch(
               value: notificationsEnabled,
               onChanged: (value) {
@@ -57,8 +53,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           _buildSettingItem(
             icon: Icons.language,
-            title: 'Ilova tili',
-            subtitle: _languages[_selectedLanguage]!['name']!,
+            title: context.tr('profile_language'),
+            subtitle: context.read<LanguageProvider>().languageName,
             onTap: () {
               _showLanguageSelector(context);
             },
@@ -66,7 +62,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 12),
           _buildSettingItem(
             icon: Icons.info_outline,
-            title: 'Loyiha haqida',
+            title: context.tr('profile_about'),
             onTap: () => _showAboutDialog(),
           ),
         ],
@@ -168,7 +164,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
-                  'Ilova tilini tanlang',
+                  context.tr('settings_language'),
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -221,7 +217,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Yopish', style: TextStyle(color: AppTheme.primaryCyan)),
+            child: Text(context.tr('done'), style: TextStyle(color: AppTheme.primaryCyan)),
           ),
         ],
       ),
@@ -229,12 +225,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildLanguageOption(String code, String name, String flag) {
-    final isSelected = _selectedLanguage == code;
+    final isSelected = context.read<LanguageProvider>().languageCode == code;
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _selectedLanguage = code;
-        });
+        context.read<LanguageProvider>().setLanguage(code);
         Navigator.pop(context);
       },
       child: Container(

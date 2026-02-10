@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:math' as math;
-import '../../config/app_theme.dart';
+import '../../services/full_api_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -14,24 +13,17 @@ class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
-  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeIn),
     );
-
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
-    );
-
     _controller.forward();
     _checkAuthAndNavigate();
   }
@@ -39,18 +31,15 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _checkAuthAndNavigate() async {
     await Future.delayed(const Duration(seconds: 2));
     if (!mounted) return;
-    
     final prefs = await SharedPreferences.getInstance();
     final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
-    final token = prefs.getString('auth_token');
-    
+    final isLoggedIn = await FullApiService.isLoggedIn();
     if (!onboardingCompleted) {
       Navigator.pushReplacementNamed(context, '/onboarding');
-    } else if (token != null && token.isNotEmpty) {
+    } else if (isLoggedIn) {
       Navigator.pushReplacementNamed(context, '/main');
     } else {
-      // For demo, go directly to main
-      Navigator.pushReplacementNamed(context, '/main');
+      Navigator.pushReplacementNamed(context, '/login');
     }
   }
 
@@ -62,138 +51,64 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
     return Scaffold(
-      backgroundColor: AppTheme.primaryCyan,
+      backgroundColor: const Color(0xFF00BFFE),
       body: Stack(
         children: [
-          // Background gradient
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [
-                  AppTheme.primaryCyan,
-                  AppTheme.primaryCyan.withBlue(220),
-                ],
-              ),
-            ),
-          ),
-          
-          // Animated waves at top
+          // Cyan background
+          Container(color: const Color(0xFF00BFFE)),
+
+          // Top waves (dark navy)
           Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
+            top: -20,
+            left: -40,
+            right: -40,
             child: CustomPaint(
-              size: Size(MediaQuery.of(context).size.width, 200),
-              painter: WavePainter(isTop: true),
+              size: Size(size.width + 80, 220),
+              painter: _SplashWavePainter(isTop: true),
             ),
           ),
-          
-          // Animated waves at bottom
+
+          // Bottom waves (dark navy)
           Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
+            bottom: -20,
+            left: -40,
+            right: -40,
             child: CustomPaint(
-              size: Size(MediaQuery.of(context).size.width, 200),
-              painter: WavePainter(isTop: false),
+              size: Size(size.width + 80, 220),
+              painter: _SplashWavePainter(isTop: false),
             ),
           ),
-          
-          // Logo in center
+
+          // YUVGO logo centered
           Center(
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, child) {
-                return Opacity(
-                  opacity: _fadeAnimation.value,
-                  child: Transform.scale(
-                    scale: _scaleAnimation.value,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Logo
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(24),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.1),
-                                blurRadius: 30,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Image.asset(
-                            'assets/images/Light BG Default.png',
-                            height: 48,
-                            fit: BoxFit.contain,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Text(
-                                'YuvGO',
-                                style: TextStyle(
-                                  color: AppTheme.primaryCyan,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.w900,
-                                  fontFamily: 'Mulish',
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        // Tagline
-                        Text(
-                          'Avtomobil yuvish oson!',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Mulish',
-                          ),
-                        ),
-                      ],
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'YUV',
+                    style: TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                      fontFamily: 'Mulish',
+                      letterSpacing: 1,
                     ),
                   ),
-                );
-              },
-            ),
-          ),
-          
-          // Loading indicator
-          Positioned(
-            bottom: 100,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: SizedBox(
-                width: 32,
-                height: 32,
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 3,
-                ),
-              ),
-            ),
-          ),
-          
-          // Home indicator
-          Positioned(
-            bottom: 8,
-            left: 0,
-            right: 0,
-            child: Center(
-              child: Container(
-                width: 134,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(2.5),
-                ),
+                  Text(
+                    'GO',
+                    style: TextStyle(
+                      fontSize: 42,
+                      fontWeight: FontWeight.w900,
+                      color: const Color(0xFF0A0C13),
+                      fontFamily: 'Mulish',
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -203,56 +118,57 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-class WavePainter extends CustomPainter {
+class _SplashWavePainter extends CustomPainter {
   final bool isTop;
-  
-  WavePainter({required this.isTop});
+  _SplashWavePainter({required this.isTop});
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
+      ..color = const Color(0xFF0A0C13)
       ..style = PaintingStyle.fill;
+    final w = size.width;
+    final h = size.height;
 
-    final path = Path();
-    
     if (isTop) {
-      path.moveTo(0, 0);
-      path.lineTo(0, size.height * 0.6);
-      
-      // Wave curve
-      path.quadraticBezierTo(
-        size.width * 0.25, size.height * 0.8,
-        size.width * 0.5, size.height * 0.6,
-      );
-      path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.4,
-        size.width, size.height * 0.6,
-      );
-      
-      path.lineTo(size.width, 0);
-      path.close();
+      // Wave band 1 — flows from top-left down then up to top-right
+      final p1 = Path();
+      p1.moveTo(-40, 0);
+      p1.lineTo(w + 40, 0);
+      p1.lineTo(w + 40, h * 0.32);
+      p1.cubicTo(w * 0.75, h * 0.05, w * 0.25, h * 0.55, -40, h * 0.18);
+      p1.close();
+      canvas.drawPath(p1, paint);
+
+      // Wave band 2 — parallel S-curve below
+      final p2 = Path();
+      p2.moveTo(-40, h * 0.38);
+      p2.cubicTo(w * 0.25, h * 0.75, w * 0.75, h * 0.22, w + 40, h * 0.55);
+      p2.lineTo(w + 40, h * 0.75);
+      p2.cubicTo(w * 0.75, h * 0.42, w * 0.25, h * 0.95, -40, h * 0.58);
+      p2.close();
+      canvas.drawPath(p2, paint);
     } else {
-      path.moveTo(0, size.height);
-      path.lineTo(0, size.height * 0.4);
-      
-      // Wave curve
-      path.quadraticBezierTo(
-        size.width * 0.25, size.height * 0.2,
-        size.width * 0.5, size.height * 0.4,
-      );
-      path.quadraticBezierTo(
-        size.width * 0.75, size.height * 0.6,
-        size.width, size.height * 0.4,
-      );
-      
-      path.lineTo(size.width, size.height);
-      path.close();
+      // Wave band 1 — mirror of top band 2
+      final p1 = Path();
+      p1.moveTo(-40, h * 0.25);
+      p1.cubicTo(w * 0.25, h * 0.58, w * 0.75, h * 0.05, w + 40, h * 0.42);
+      p1.lineTo(w + 40, h * 0.62);
+      p1.cubicTo(w * 0.75, h * 0.25, w * 0.25, h * 0.78, -40, h * 0.45);
+      p1.close();
+      canvas.drawPath(p1, paint);
+
+      // Wave band 2 — flows to bottom edge
+      final p2 = Path();
+      p2.moveTo(-40, h * 0.68);
+      p2.cubicTo(w * 0.25, h * 0.95, w * 0.75, h * 0.55, w + 40, h * 0.82);
+      p2.lineTo(w + 40, h + 20);
+      p2.lineTo(-40, h + 20);
+      p2.close();
+      canvas.drawPath(p2, paint);
     }
-    
-    canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(WavePainter oldDelegate) => false;
+  bool shouldRepaint(_SplashWavePainter oldDelegate) => false;
 }

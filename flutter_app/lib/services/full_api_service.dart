@@ -6,7 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 class FullApiService {
   // Use 10.0.2.2 for Android emulator, localhost for iOS simulator
   // For real device, use your computer's IP address
-  static const String _baseUrl = 'http://10.0.2.2:8000';
+  static const String _baseUrl = 'https://app.yuvgo.uz';
   
   static final Dio _dio = Dio(
     BaseOptions(
@@ -94,11 +94,14 @@ class FullApiService {
     String? email,
   }) async {
     try {
-      final response = await _dio.post('/api/user/users', data: {
+      final response = await _dio.post('/api/user/auth/register', data: {
         'phone_number': phoneNumber,
         'full_name': fullName,
         'email': email,
       });
+      if (response.data['access_token'] != null) {
+        await saveToken(response.data['access_token']);
+      }
       return response.data;
     } catch (e) {
       rethrow;
@@ -186,7 +189,7 @@ class FullApiService {
   /// Get all subscription plans
   static Future<List<dynamic>> getSubscriptionPlans() async {
     try {
-      final response = await _dio.get('/api/subscription/plans');
+      final response = await _dio.get('/api/mobile/subscriptions/plans');
       return response.data;
     } catch (e) {
       rethrow;
@@ -196,7 +199,7 @@ class FullApiService {
   /// Get subscription plan by ID
   static Future<Map<String, dynamic>> getSubscriptionPlan(String planId) async {
     try {
-      final response = await _dio.get('/api/subscription/plans/$planId');
+      final response = await _dio.get('/api/mobile/subscriptions/plans/$planId');
       return response.data;
     } catch (e) {
       rethrow;
@@ -206,7 +209,7 @@ class FullApiService {
   /// Get current subscription status
   static Future<Map<String, dynamic>> getSubscriptionStatus() async {
     try {
-      final response = await _dio.get('/api/subscription/subscriptions/status');
+      final response = await _dio.get('/api/mobile/subscriptions/active');
       return response.data;
     } catch (e) {
       rethrow;
@@ -219,7 +222,7 @@ class FullApiService {
     bool autoRenew = false,
   }) async {
     try {
-      final response = await _dio.post('/api/subscription/subscriptions', data: {
+      final response = await _dio.post('/api/mobile/subscriptions/create', data: {
         'plan_id': planId,
         'auto_renew': autoRenew,
       });
@@ -232,7 +235,7 @@ class FullApiService {
   /// Cancel subscription
   static Future<void> cancelSubscription(String subscriptionId) async {
     try {
-      await _dio.post('/api/subscription/subscriptions/$subscriptionId/cancel');
+      await _dio.post('/api/mobile/subscriptions/$subscriptionId/cancel');
     } catch (e) {
       rethrow;
     }
@@ -516,26 +519,22 @@ class FullApiService {
   static Future<Map<String, dynamic>> getWeatherData({
     double? latitude,
     double? longitude,
+    String lang = 'uz',
   }) async {
     try {
-      final response = await _dio.get('/api/weather', queryParameters: {
-        if (latitude != null) 'lat': latitude,
-        if (longitude != null) 'lon': longitude,
+      final response = await _dio.get('/api/mobile/weather', queryParameters: {
+        if (latitude != null) 'latitude': latitude,
+        if (longitude != null) 'longitude': longitude,
+        'lang': lang,
       });
       return response.data;
     } catch (e) {
-      // Return mock data if service unavailable
       return {
-        'wash_rating': 92,
-        'description': "3 kun davomida yog'ingarchilik kutilmaydi. Yuvish uchun mukammal havo!",
-        'forecast': [
-          {'day': '11', 'weather': 'sunny', 'temp': '+24°', 'percent': '92%'},
-          {'day': '12', 'weather': 'sunny', 'temp': '+24°', 'percent': '85%'},
-          {'day': '13', 'weather': 'sunny', 'temp': '+24°', 'percent': '98%'},
-          {'day': '14', 'weather': 'rain', 'temp': '+24°', 'percent': '36%'},
-          {'day': '15', 'weather': 'cloudy', 'temp': '+24°', 'percent': '24%'},
-          {'day': '16', 'weather': 'cloudy', 'temp': '+24°', 'percent': '12%'},
-        ],
+        'success': false,
+        'wash_rating': 0,
+        'recommendation': '',
+        'current': {},
+        'forecast': [],
       };
     }
   }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useAuth } from '../context/AuthContext';
 import { 
   MapPin, Search, Filter, Navigation, Phone, 
   Building2, Clock, Star, Eye, Edit, Trash2,
@@ -7,6 +8,7 @@ import {
 } from 'lucide-react';
 
 const LocationsMap = () => {
+  const { API_URL } = useAuth();
   const [partners, setPartners] = useState([]);
   const [filteredPartners, setFilteredPartners] = useState([]);
   const [selectedPartner, setSelectedPartner] = useState(null);
@@ -29,7 +31,6 @@ const LocationsMap = () => {
 
   const fetchPartners = async () => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000';
       const response = await axios.get(`${API_URL}/api/partner/partners`);
       const data = response.data;
       

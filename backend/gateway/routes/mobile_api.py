@@ -15,7 +15,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared.database import get_db
-from shared.models import Partner, PartnerLocation, User, Subscription, Visit, SubscriptionPlan, Review, Payment
+from shared.models import Partner, PartnerLocation, User, Subscription, Visit, SubscriptionPlan, Review, Payment, Vehicle
 from shared.auth import AuthHandler
 
 # Get current user dependency
@@ -1245,3 +1245,157 @@ def get_status_text(partner: Partner) -> str:
         return "22:00 GACHA OCHIQ"
     else:
         return "YOPIQ 8:00 GACHA"
+
+
+# ==================== VEHICLES ====================
+
+class VehicleCreate(BaseModel):
+    license_plate: str
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    color: Optional[str] = None
+    year: Optional[int] = None
+
+class VehicleUpdate(BaseModel):
+    license_plate: Optional[str] = None
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    color: Optional[str] = None
+    year: Optional[int] = None
+
+@router.get("/vehicles/my")
+async def get_my_vehicles(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get current user's vehicles"""
+    user_id = current_user.get("sub")
+    vehicles = db.query(Vehicle).filter(
+        Vehicle.user_id == user_id,
+        Vehicle.is_active == True
+    ).order_by(Vehicle.created_at.desc()).all()
+    
+    return {
+        "success": True,
+        "vehicles": [
+            {
+                "id": str(v.id),
+                "license_plate": v.license_plate,
+                "brand": v.brand,
+                "model": v.model,
+                "color": v.color,
+                "year": v.year,
+                "name": f"{v.brand or ''} {v.model or ''}".strip() or v.license_plate,
+                "created_at": v.created_at.isoformat() if v.created_at else None,
+            }
+            for v in vehicles
+        ]
+    }
+
+@router.post("/vehicles")
+async def create_vehicle(
+    vehicle_data: VehicleCreate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Add a new vehicle for the current user"""
+    user_id = current_user.get("sub")
+    
+    vehicle = Vehicle(
+        user_id=user_id,
+        license_plate=vehicle_data.license_plate,
+        brand=vehicle_data.brand,
+        model=vehicle_data.model,
+        color=vehicle_data.color,
+        year=vehicle_data.year,
+        is_active=True,
+    )
+    db.add(vehicle)
+    db.commit()
+    db.refresh(vehicle)
+    
+    return {
+        "success": True,
+        "vehicle": {
+            "id": str(vehicle.id),
+            "license_plate": vehicle.license_plate,
+            "brand": vehicle.brand,
+            "model": vehicle.model,
+            "color": vehicle.color,
+            "year": vehicle.year,
+            "name": f"{vehicle.brand or ''} {vehicle.model or ''}".strip() or vehicle.license_plate,
+        }
+    }
+
+@router.put("/vehicles/{vehicle_id}")
+async def update_vehicle(
+    vehicle_id: str,
+    vehicle_data: VehicleUpdate,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Update a vehicle"""
+    user_id = current_user.get("sub")
+    vehicle = db.query(Vehicle).filter(
+        Vehicle.id == vehicle_id,
+        Vehicle.user_id == user_id
+    ).first()
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    
+    for field, value in vehicle_data.dict(exclude_unset=True).items():
+        if value is not None:
+            setattr(vehicle, field, value)
+    
+    db.commit()
+    db.refresh(vehicle)
+    return {"success": True, "message": "Vehicle updated"}
+
+@router.delete("/vehicles/{vehicle_id}")
+async def delete_vehicle(
+    vehicle_id: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Delete (deactivate) a vehicle"""
+    user_id = current_user.get("sub")
+    vehicle = db.query(Vehicle).filter(
+        Vehicle.id == vehicle_id,
+        Vehicle.user_id == user_id
+    ).first()
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    
+    vehicle.is_active = False
+    db.commit()
+    return {"success": True, "message": "Vehicle deleted"}
+
+@router.get("/vehicles/all")
+async def get_all_vehicles(
+    db: Session = Depends(get_db),
+):
+    """Get all vehicles (admin endpoint)"""
+    vehicles = db.query(Vehicle).filter(Vehicle.is_active == True).order_by(Vehicle.created_at.desc()).all()
+    
+    result = []
+    for v in vehicles:
+        user = db.query(User).filter(User.id == v.user_id).first()
+        result.append({
+            "id": str(v.id),
+            "license_plate": v.license_plate,
+            "brand": v.brand,
+            "model": v.model,
+            "color": v.color,
+            "year": v.year,
+            "name": f"{v.brand or ''} {v.model or ''}".strip() or v.license_plate,
+            "user_id": str(v.user_id) if v.user_id else None,
+            "user_name": user.full_name if user else None,
+            "user_phone": user.phone_number if user else None,
+            "created_at": v.created_at.isoformat() if v.created_at else None,
+        })
+    
+    return {
+        "success": True,
+        "vehicles": result,
+        "total": len(result),
+    }

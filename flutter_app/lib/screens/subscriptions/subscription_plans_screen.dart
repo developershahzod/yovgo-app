@@ -1,308 +1,218 @@
 import 'package:flutter/material.dart';
-import '../../config/app_theme.dart';
+import '../../services/full_api_service.dart';
 
-class SubscriptionPlansScreen extends StatelessWidget {
+class SubscriptionPlansScreen extends StatefulWidget {
   const SubscriptionPlansScreen({Key? key}) : super(key: key);
+
+  @override
+  State<SubscriptionPlansScreen> createState() => _SubscriptionPlansScreenState();
+}
+
+class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
+  List<Map<String, dynamic>> _plans = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPlans();
+  }
+
+  Future<void> _loadPlans() async {
+    try {
+      final res = await FullApiService.get('/api/mobile/subscriptions/plans');
+      if (res.statusCode == 200 && res.data != null) {
+        final list = res.data['plans'] as List? ?? res.data as List? ?? [];
+        setState(() {
+          _plans = list.map((e) => e as Map<String, dynamic>).toList();
+          _isLoading = false;
+        });
+        return;
+      }
+    } catch (_) {}
+    // Fallback demo data
+    setState(() {
+      _plans = [
+        {'id': 1, 'name': '30 kunlik', 'duration_days': 30, 'price': 1200000, 'old_price': 18000000, 'discount': 20},
+        {'id': 2, 'name': '90 kunlik', 'duration_days': 90, 'price': 3150000, 'old_price': 4500000, 'discount': 30},
+        {'id': 3, 'name': '365 kunlik', 'duration_days': 365, 'price': 10800000, 'old_price': 18000000, 'discount': 40},
+      ];
+      _isLoading = false;
+    });
+  }
+
+  String _fmt(dynamic price) {
+    final p = (price is int) ? price : (price as num).toInt();
+    final str = p.toString();
+    final buf = StringBuffer();
+    int c = 0;
+    for (int i = str.length - 1; i >= 0; i--) {
+      buf.write(str[i]);
+      c++;
+      if (c % 3 == 0 && i > 0) buf.write(' ');
+    }
+    return buf.toString().split('').reversed.join();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.lightBackground,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: AppTheme.white,
+        backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Obunalar',
-          style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Color(0xFF0A0C13)), onPressed: () => Navigator.pop(context)),
+        title: const Text('Obunalar', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Header Card
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppTheme.primaryCyan, Color(0xFF00B8D4)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
+              child: Column(
                 children: [
+                  // Cyan banner
                   Container(
-                    width: 48,
-                    height: 48,
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppTheme.white.withOpacity(0.3),
-                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(colors: [Color(0xFF00BFFE), Color(0xFF00A3E0)]),
+                      borderRadius: BorderRadius.circular(20),
                     ),
-                    child: Icon(
-                      Icons.check_circle,
-                      color: AppTheme.white,
-                      size: 28,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       children: [
-                        Text(
-                          'YuvGO bilan xarajatlaringizni tejang!',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.white,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'YuvGO bilan\nxarajatlaringizni tejang!',
+                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white, fontFamily: 'Mulish', height: 1.3),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Sizga mos keladigan obuna turini tanlang',
+                                style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.9), fontFamily: 'Mulish'),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Sizga mos keladigan obuna turini tanlang',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppTheme.white.withOpacity(0.9),
-                          ),
+                        Container(
+                          width: 40, height: 40,
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.25), shape: BoxShape.circle),
+                          child: const Icon(Icons.check_circle_outline, color: Colors.white, size: 24),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(height: 16),
+
+                  // Car washes row
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFF0F0F0)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36, height: 36,
+                          decoration: BoxDecoration(color: const Color(0xFFF5F7FA), borderRadius: BorderRadius.circular(10)),
+                          child: const Icon(Icons.store_outlined, size: 18, color: Color(0xFF0A0C13)),
+                        ),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Avtomoykalarni ko\'rish', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                              Text('+ 60 avtomoykalar', style: TextStyle(fontSize: 12, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.chevron_right, size: 22, color: Color(0xFF8F96A0)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Plan cards
+                  ..._plans.map((plan) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildPlanCard(plan),
+                  )),
                 ],
               ),
             ),
-            
-            const SizedBox(height: 16),
-            
-            // Car Washes Info
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppTheme.borderGray, width: 1),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.store,
-                    color: AppTheme.textPrimary,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Avtomoykalarni ko\'rish',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    '+ 60 avtomoykalar',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    Icons.chevron_right,
-                    color: AppTheme.textSecondary,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-            
-            const SizedBox(height: 20),
-            
-            // 30 Days Plan
-            _buildPlanCard(
-              context,
-              icon: '30',
-              title: '30 kunlik',
-              originalPrice: '10 000 000 so\'m',
-              discountedPrice: '1 200 000 so\'m',
-              discount: '-20%',
-              canRenew: true,
-            ),
-            
-            const SizedBox(height: 12),
-            
-            // 90 Days Plan
-            _buildPlanCard(
-              context,
-              icon: '90',
-              title: '90 kunlik',
-              originalPrice: '4 500 000 so\'m',
-              discountedPrice: '3 150 000 so\'m',
-              discount: '-30%',
-              canRenew: true,
-            ),
-            
-            const SizedBox(height: 12),
-            
-            // 365 Days Plan
-            _buildPlanCard(
-              context,
-              icon: '365',
-              title: '365 kunlik',
-              originalPrice: '18 000 000 so\'m',
-              discountedPrice: '10 800 000 so\'m',
-              discount: '-40%',
-              canRenew: true,
-            ),
-          ],
-        ),
-      ),
     );
   }
 
-  Widget _buildPlanCard(
-    BuildContext context, {
-    required String icon,
-    required String title,
-    required String originalPrice,
-    required String discountedPrice,
-    required String discount,
-    required bool canRenew,
-  }) {
+  Widget _buildPlanCard(Map<String, dynamic> plan) {
+    final name = plan['name'] ?? '${plan['duration_days']} kunlik';
+    final price = plan['price'] ?? 0;
+    final oldPrice = plan['old_price'] ?? price;
+    final discount = plan['discount'] ?? 0;
+
     return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(context, '/subscription-detail');
-      },
+      onTap: () => Navigator.pushNamed(context, '/checkout', arguments: plan),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.borderGray, width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
+          border: Border.all(color: const Color(0xFFF0F0F0)),
         ),
         child: Row(
           children: [
-            // Icon with 3D effect
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  icon,
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: AppTheme.white,
+            // Plan image thumbnail
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.asset(
+                'assets/images/72736a3105b93be09268e4ff3f9cf58a4e3a202e.png',
+                width: 60, height: 60, fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 60, height: 60,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [Color(0xFF1A3A7A), Color(0xFF3B7DDD)]),
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: Center(child: Text('${plan['duration_days'] ?? ''}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white))),
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      color: AppTheme.textPrimary,
-                    ),
+                  Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                  const SizedBox(height: 2),
+                  if (oldPrice != price)
+                    Text('${_fmt(oldPrice)} so\'m', style: const TextStyle(fontSize: 13, color: Color(0xFF8F96A0), decoration: TextDecoration.lineThrough, fontFamily: 'Mulish')),
+                  Row(
+                    children: [
+                      if (discount > 0)
+                        Container(
+                          margin: const EdgeInsets.only(right: 8),
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                          decoration: BoxDecoration(color: const Color(0xFF00BFFE), borderRadius: BorderRadius.circular(6)),
+                          child: Text('-$discount%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
+                        ),
+                      Text('${_fmt(price)} so\'m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppTheme.darkNavy,
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          discount,
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.white,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        discountedPrice,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.primaryCyan,
-                        ),
-                      ),
+                      Icon(Icons.refresh, size: 13, color: const Color(0xFF8F96A0)),
+                      const SizedBox(width: 4),
+                      const Text('Qayta rasmiylashtirish mumkin', style: TextStyle(fontSize: 11, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    originalPrice,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textTertiary,
-                      decoration: TextDecoration.lineThrough,
-                    ),
-                  ),
-                  if (canRenew) ...[
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.refresh,
-                          size: 14,
-                          color: AppTheme.textSecondary,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Qayta rasmiylashtiris mumkin',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
                 ],
               ),
             ),
-            Icon(
-              Icons.chevron_right,
-              color: AppTheme.textSecondary,
-              size: 24,
-            ),
+            const Icon(Icons.chevron_right, size: 22, color: Color(0xFF8F96A0)),
           ],
         ),
       ),

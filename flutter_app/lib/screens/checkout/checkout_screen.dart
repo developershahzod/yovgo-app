@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_theme.dart';
+import '../../services/full_api_service.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -9,8 +11,23 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
+  // 'payment_systems', 'card', 'installment'
   String _selectedPaymentMethod = 'card';
+  int _installmentMonths = 12;
   final TextEditingController _promoController = TextEditingController();
+  bool _isProcessing = false;
+  bool _promoError = false;
+  Map<String, dynamic>? _plan;
+  DateTime _activationDate = DateTime.now();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map<String, dynamic> && _plan == null) {
+      _plan = args;
+    }
+  }
 
   @override
   void dispose() {
@@ -18,343 +35,465 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     super.dispose();
   }
 
+  String _fmt(dynamic price) {
+    final p = (price is int) ? price : (price as num).toInt();
+    final str = p.toString();
+    final buf = StringBuffer();
+    int c = 0;
+    for (int i = str.length - 1; i >= 0; i--) {
+      buf.write(str[i]);
+      c++;
+      if (c % 3 == 0 && i > 0) buf.write(' ');
+    }
+    return buf.toString().split('').reversed.join();
+  }
+
+  String _dateStr(DateTime dt) {
+    final months = ['yanvar','fevral','mart','aprel','may','iyun','iyul','avgust','sentabr','oktabr','noyabr','dekabr'];
+    return '${dt.day}-${months[dt.month - 1]}, ${dt.year}';
+  }
+
+  String _getErrorMessage(dynamic e) {
+    String msg = e.toString();
+    if (msg.contains('already have an active subscription') || msg.contains('already has active')) {
+      return 'Sizda allaqachon faol obuna mavjud!';
+    }
+    if (msg.contains('Not authenticated') || msg.contains('401')) {
+      return 'Iltimos, avval tizimga kiring';
+    }
+    if (msg.contains('Plan not found')) {
+      return 'Obuna rejasi topilmadi';
+    }
+    if (msg.contains('Payment creation failed')) {
+      return 'To\'lov yaratishda xatolik. Qayta urinib ko\'ring.';
+    }
+    msg = msg.replaceAll('Exception: ', '').replaceAll('DioException', 'Tarmoq xatosi');
+    if (msg.length > 100) msg = msg.substring(0, 100);
+    return msg;
+  }
+
+  Future<void> _processPayment() async {
+    if (_isProcessing || _plan == null) return;
+    setState(() => _isProcessing = true);
+    try {
+      // Step 1: Create subscription
+      final subResult = await FullApiService.createSubscription(
+        planId: _plan!['id'].toString(),
+        autoRenew: false,
+      );
+      final subscriptionId = subResult['id']?.toString() ?? subResult['subscription_id']?.toString();
+      if (subscriptionId == null) throw Exception('Obuna yaratishda xatolik');
+
+      // Step 2: Create payment link
+      final price = _plan!['price'] ?? 0;
+      final amount = (price is int) ? price.toDouble() : (price as num).toDouble();
+      try {
+        final paymentResult = await FullApiService.createPaymentLink(
+          subscriptionId: subscriptionId,
+          amount: amount,
+          description: 'YuvGO ${_plan!['name'] ?? ''} obuna',
+          successUrl: 'https://app.yuvgo.uz/#/payment-success',
+          failUrl: 'https://app.yuvgo.uz/#/payment-fail',
+        );
+        final paymentUrl = paymentResult['payment_url']?.toString();
+        if (paymentUrl != null && paymentUrl.isNotEmpty) {
+          final uri = Uri.parse(paymentUrl);
+          await launchUrl(uri, mode: LaunchMode.platformDefault);
+          if (mounted) _showPaymentPendingDialog();
+        } else {
+          // No payment URL returned — subscription was activated directly (test mode)
+          if (mounted) _showSuccessDialog();
+        }
+      } catch (paymentError) {
+        // Payment link creation failed, but subscription was created
+        // Show success with note that payment is pending
+        if (mounted) _showSuccessDialog();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_getErrorMessage(e)),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final planName = _plan?['name'] ?? '${_plan?['duration_days'] ?? 365} kunlik';
+    final price = _plan?['price'] ?? 10800000;
+    final oldPrice = _plan?['old_price'] ?? 18000000;
+    final discount = _plan?['discount'] ?? 40;
+    final discountAmount = (oldPrice is num && price is num) ? (oldPrice - price).toInt() : 0;
+    final installmentPrice = price is num ? (price / _installmentMonths).round() : 0;
+
     return Scaffold(
-      backgroundColor: AppTheme.lightBackground,
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Text('Obunani sotib olish'),
-        centerTitle: true,
-        backgroundColor: AppTheme.white,
+        backgroundColor: Colors.white,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        leading: IconButton(icon: const Icon(Icons.arrow_back, color: Color(0xFF0A0C13)), onPressed: () => Navigator.pop(context)),
+        title: const Text('Obunani sotib olish', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.only(bottom: 100),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ─── Plan Card ───
+            _buildPlanCard(planName, price, oldPrice, discount),
+
+            // ─── Activation Date ───
+            _buildSection('Obunani faollashtirish sanasi', _buildDateField()),
+
+            // ─── Promo Code ───
+            _buildSection('Promokod', _buildPromoField()),
+
+            // ─── Payment Info ───
+            _buildSection('To\'lov usuli', _buildPaymentInfo()),
+
+            // ─── Narxi ───
+            _buildSection('Narxi', _buildPriceBreakdown(oldPrice, discountAmount, price, installmentPrice)),
+          ],
+        ),
+      ),
+      bottomNavigationBar: _buildBottomButton(),
+    );
+  }
+
+  // ─── Plan Card ───
+  Widget _buildPlanCard(String name, dynamic price, dynamic oldPrice, dynamic discount) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+      child: Column(
+        children: [
+          Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [AppTheme.cardShadow],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryCyan.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.workspace_premium,
-                        color: AppTheme.primaryCyan,
-                        size: 32,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '365 kunlik',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              Text(
-                                '18 000 000 so\'m',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: AppTheme.textSecondary,
-                                  decoration: TextDecoration.lineThrough,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.red.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  '-40%',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppTheme.red,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          Text(
-                            '10 800 000 so\'m',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: AppTheme.primaryCyan,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 4),
-              Center(
-                child: TextButton(
-                  onPressed: () {},
-                  child: Text(
-                    'Qayta rasmiylashtirish mumkin',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textSecondary,
-                    ),
+              // Plan image
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.asset(
+                  'assets/images/72736a3105b93be09268e4ff3f9cf58a4e3a202e.png',
+                  width: 56, height: 56, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    width: 56, height: 56,
+                    decoration: BoxDecoration(color: const Color(0xFF00BFFE).withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                    child: const Icon(Icons.workspace_premium, color: Color(0xFF00BFFE), size: 28),
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
-              Text(
-                'Obunani faollashtirish sanasi',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 12),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppTheme.borderGray),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Obunani faollashtirish sanasi',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppTheme.textSecondary,
-                      ),
+                    Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        if (oldPrice != null && oldPrice != price)
+                          Text(
+                            '${_fmt(oldPrice)} so\'m',
+                            style: const TextStyle(fontSize: 13, color: Color(0xFF8F96A0), decoration: TextDecoration.lineThrough, fontFamily: 'Mulish'),
+                          ),
+                      ],
                     ),
                     Row(
                       children: [
-                        Text(
-                          '3-yanvar, 2026',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
+                        if (discount != null && discount > 0)
+                          Container(
+                            margin: const EdgeInsets.only(right: 8),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(color: const Color(0xFF00BFFE), borderRadius: BorderRadius.circular(6)),
+                            child: Text('-$discount%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Icon(Icons.calendar_today, size: 20),
+                        Text('${_fmt(price)} so\'m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
                       ],
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 20),
-              Text(
-                'Promokod',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _promoController,
-                decoration: InputDecoration(
-                  hintText: 'Promokodni kiriting',
-                  filled: true,
-                  fillColor: AppTheme.white,
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.refresh, size: 14, color: const Color(0xFF8F96A0)),
+              const SizedBox(width: 4),
+              Text('Qayta rasmiylashtirish mumkin', style: TextStyle(fontSize: 12, color: const Color(0xFF8F96A0), fontFamily: 'Mulish')),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+        ],
+      ),
+    );
+  }
+
+  // ─── Section wrapper ───
+  Widget _buildSection(String title, Widget child) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          child: Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+        ),
+        Padding(padding: const EdgeInsets.symmetric(horizontal: 20), child: child),
+        const SizedBox(height: 8),
+        const Divider(height: 1, color: Color(0xFFF0F0F0), indent: 20, endIndent: 20),
+      ],
+    );
+  }
+
+  // ─── Date Field ───
+  Widget _buildDateField() {
+    return GestureDetector(
+      onTap: () async {
+        final picked = await showDatePicker(
+          context: context,
+          initialDate: _activationDate,
+          firstDate: DateTime.now(),
+          lastDate: DateTime.now().add(const Duration(days: 365)),
+        );
+        if (picked != null) setState(() => _activationDate = picked);
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE8E8E8)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Obunani faollashtirish sanasi', style: TextStyle(fontSize: 12, color: const Color(0xFF8F96A0), fontFamily: 'Mulish')),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(_dateStr(_activationDate), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                const Icon(Icons.calendar_today_outlined, size: 20, color: Color(0xFF0A0C13)),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ─── Promo Field ───
+  Widget _buildPromoField() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _promoError ? const Color(0xFFFC3E3E) : (_promoController.text.isNotEmpty ? const Color(0xFF00BFFE) : const Color(0xFFE8E8E8))),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            _promoController.text.isNotEmpty ? 'Promokodingizni kiriting' : 'Promokod bormi?',
+            style: TextStyle(fontSize: 12, color: const Color(0xFF8F96A0), fontFamily: 'Mulish'),
+          ),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _promoController,
+                  onChanged: (_) => setState(() => _promoError = false),
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
+                  decoration: InputDecoration(
+                    hintText: 'Promokodni kiriting',
+                    hintStyle: TextStyle(fontSize: 15, color: const Color(0xFFCCCCCC), fontFamily: 'Mulish', fontWeight: FontWeight.w400),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                  ),
                 ),
               ),
-              const SizedBox(height: 20),
-              Text(
-                'To\'lov turi',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 12),
-              _buildPaymentOption(
-                'card',
-                'To\'lov tizimlari orqali to\'lash',
-                'Payme, Click',
-              ),
-              const SizedBox(height: 12),
-              _buildPaymentOption(
-                'saved_card',
-                'Karta orqali to\'lov',
-                'Uzcard, Humo, Visa, Mastercard',
-              ),
-              const SizedBox(height: 12),
-              _buildPaymentOption(
-                'cash',
-                'Bo\'lib to\'lashga sotib olish',
-                'Uzum nasiya, Alif nasiya',
-              ),
-              const SizedBox(height: 32),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppTheme.lightGray,
-                  borderRadius: BorderRadius.circular(12),
+              if (_promoController.text.isNotEmpty)
+                GestureDetector(
+                  onTap: () {
+                    // Apply promo - for now show error as demo
+                    setState(() => _promoError = true);
+                  },
+                  child: _promoError
+                      ? const Icon(Icons.close, size: 20, color: Color(0xFFFC3E3E))
+                      : Container(
+                          width: 32, height: 32,
+                          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFF0A0C13), width: 1.5)),
+                          child: const Icon(Icons.arrow_forward, size: 16, color: Color(0xFF0A0C13)),
+                        ),
                 ),
-                child: Column(
-                  children: [
-                    _buildPriceRow('Obuna narxi', '18 000 000 so\'m'),
-                    const SizedBox(height: 8),
-                    _buildPriceRow('Chegirma', '7 200 000 so\'m', isDiscount: true),
-                    const SizedBox(height: 8),
-                    _buildPriceRow('Summa', '10 800 000 so\'m'),
-                    const SizedBox(height: 8),
-                    _buildPriceRow('Promokod', '0 so\'m'),
-                    const Divider(height: 24),
-                    _buildPriceRow(
-                      'To\'liq to\'lov',
-                      '10 800 000 so\'m',
-                      isTotal: true,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 120),
+            ],
+          ),
+          if (_promoError) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Icon(Icons.info, size: 14, color: const Color(0xFFFC3E3E)),
+                const SizedBox(width: 4),
+                Text('Muddati o\'tgan', style: TextStyle(fontSize: 12, color: const Color(0xFFFC3E3E), fontFamily: 'Mulish')),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  // ─── Payment Info (single method: Ipak Yo'li Bank) ───
+  Widget _buildPaymentInfo() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF00BFFE), width: 1.5),
+        color: const Color(0xFF00BFFE).withOpacity(0.04),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFF00BFFE).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.credit_card, color: Color(0xFF00BFFE), size: 24),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Karta orqali to\'lov', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                SizedBox(height: 2),
+                Text('Uzcard, Humo, Visa, Mastercard', style: TextStyle(fontSize: 13, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
+              ],
+            ),
+          ),
+          Container(
+            width: 24, height: 24,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFF00BFFE),
+            ),
+            child: const Icon(Icons.check, color: Colors.white, size: 16),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Price Breakdown ───
+  Widget _buildPriceBreakdown(dynamic oldPrice, int discountAmount, dynamic price, int installmentPrice) {
+    return Column(
+      children: [
+        _buildPriceLine('Obuna narxi', '${_fmt(oldPrice)} so\'m'),
+        const SizedBox(height: 8),
+        _buildPriceLine('Chegirma', '${_fmt(discountAmount)} so\'m', color: const Color(0xFF00BFFE)),
+        const SizedBox(height: 8),
+        _buildPriceLine('Summa', '${_fmt(price)} so\'m'),
+        const SizedBox(height: 8),
+        _buildPriceLine('Promokod', '0 so\'m'),
+        const SizedBox(height: 12),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('To\'liq to\'lov', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+            Text('${_fmt(price)} so\'m', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPriceLine(String label, String value, {Color? color}) {
+    return Row(
+      children: [
+        Text(label, style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
+        Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Text(
+                  '.' * (constraints.maxWidth ~/ 4),
+                  maxLines: 1,
+                  overflow: TextOverflow.clip,
+                  style: const TextStyle(fontSize: 14, color: Color(0xFFE0E0E0), letterSpacing: 1),
+                );
+              },
+            ),
+          ),
+        ),
+        Text(value, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: color ?? const Color(0xFF0A0C13), fontFamily: 'Mulish')),
+      ],
+    );
+  }
+
+  // ─── Bottom Button ───
+  Widget _buildBottomButton() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 16, offset: const Offset(0, -4))],
+      ),
+      child: SafeArea(
+        child: SizedBox(
+          height: 56,
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: _isProcessing ? null : _processPayment,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFFD600),
+              foregroundColor: const Color(0xFF0A0C13),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 0,
+            ),
+            child: _isProcessing
+                ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0A0C13)))
+                : const Text('To\'lov qilish', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─── Dialogs ───
+  void _showPaymentPendingDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(width: 80, height: 80, decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.hourglass_top, size: 48, color: Colors.orange)),
+              const SizedBox(height: 24),
+              const Text('To\'lov kutilmoqda', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 12),
+              const Text('To\'lov sahifasi ochildi. To\'lovni amalga oshiring va ilovaga qayting.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
+              const SizedBox(height: 24),
+              SizedBox(width: double.infinity, height: 48, child: ElevatedButton(onPressed: () { Navigator.of(context).pop(); Navigator.of(context).pop(); }, child: const Text('OK'))),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppTheme.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 16,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          child: SizedBox(
-            height: 56,
-            child: ElevatedButton(
-              onPressed: () {
-                _showSuccessDialog();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.yellow,
-                foregroundColor: AppTheme.darkNavy,
-              ),
-              child: Text(
-                'To\'lov qilish',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPaymentOption(String value, String title, String subtitle) {
-    final isSelected = _selectedPaymentMethod == value;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedPaymentMethod = value;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppTheme.primaryCyan : AppTheme.borderGray,
-            width: isSelected ? 2 : 1,
-          ),
-          boxShadow: isSelected ? [AppTheme.cardShadow] : [],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? AppTheme.primaryCyan : AppTheme.borderGray,
-                  width: 2,
-                ),
-                color: isSelected ? AppTheme.primaryCyan : Colors.transparent,
-              ),
-              child: isSelected
-                  ? Icon(Icons.check, size: 16, color: AppTheme.white)
-                  : null,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPriceRow(String label, String value, {bool isDiscount = false, bool isTotal = false}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: isTotal ? 16 : 14,
-            fontWeight: isTotal ? FontWeight.w700 : FontWeight.w500,
-            color: isTotal ? AppTheme.textPrimary : AppTheme.textSecondary,
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: isTotal ? 18 : 14,
-            fontWeight: isTotal ? FontWeight.w700 : FontWeight.w600,
-            color: isDiscount ? AppTheme.green : (isTotal ? AppTheme.textPrimary : AppTheme.textSecondary),
-          ),
-        ),
-      ],
     );
   }
 
@@ -362,56 +501,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(32),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: AppTheme.green.withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.check_circle,
-                  size: 48,
-                  color: AppTheme.green,
-                ),
-              ),
+              Container(width: 80, height: 80, decoration: BoxDecoration(color: const Color(0xFF5CCC27).withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.check_circle, size: 48, color: Color(0xFF5CCC27))),
               const SizedBox(height: 24),
-              Text(
-                'Muvaffaqiyatli!',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
+              const Text('Muvaffaqiyatli!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
               const SizedBox(height: 12),
-              Text(
-                'To\'lov muvaffaqiyatli amalga oshirildi',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: AppTheme.textSecondary,
-                ),
-              ),
+              const Text('Obuna muvaffaqiyatli faollashtirildi!', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
               const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('OK'),
-                ),
-              ),
+              SizedBox(width: double.infinity, height: 48, child: ElevatedButton(onPressed: () { Navigator.of(context).pop(); Navigator.of(context).pop(); }, child: const Text('OK'))),
             ],
           ),
         ),

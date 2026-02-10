@@ -1,29 +1,52 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useMerchantAuth } from '../context/MerchantAuthContext';
 import axios from 'axios';
 import { 
   Building2, Plus, MapPin, Clock, Users, QrCode, 
-  Edit2, Trash2, Eye, X, Check, Phone, ChevronRight
+  Edit2, Trash2, Eye, X, Check, Phone, ChevronRight,
+  Image, DollarSign, Car, Droplets, Sparkles, Save,
+  Upload, Camera, Navigation, ExternalLink, Copy, ChevronDown
 } from 'lucide-react';
-import QRCode from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
+
+const DEFAULT_SERVICE_PRICES = [
+  { name: 'Express yuvish', price: 50000, icon: 'express' },
+  { name: 'Sedan', price: 110000, icon: 'sedan' },
+  { name: 'Krossover / SUV', price: 120000, icon: 'suv' },
+];
+
+const formatPrice = (price) => {
+  return new Intl.NumberFormat('uz-UZ').format(price) + ' so\'m';
+};
 
 const Branches = () => {
   const { API_URL, merchant } = useMerchantAuth();
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showStaffModal, setShowStaffModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedBranch, setSelectedBranch] = useState(null);
   const [branchStaff, setBranchStaff] = useState([]);
+  const [activeTab, setActiveTab] = useState('info');
+  const [saving, setSaving] = useState(false);
 
-  const [newBranch, setNewBranch] = useState({
+  const emptyBranch = {
     name: '',
     address: '',
     city: 'Tashkent',
     phone_number: '',
-    working_hours: { open: '08:00', close: '22:00' }
-  });
+    latitude: null,
+    longitude: null,
+    working_hours: { open: '08:00', close: '22:00' },
+    banner_url: '',
+    gallery_urls: [],
+    service_prices: [...DEFAULT_SERVICE_PRICES],
+  };
+
+  const [formData, setFormData] = useState({ ...emptyBranch });
 
   const [newStaff, setNewStaff] = useState({
     full_name: '',
@@ -38,37 +61,14 @@ const Branches = () => {
   const fetchBranches = async () => {
     try {
       setLoading(true);
+      const partnerId = merchant?.partner?.id || merchant?.partner_id;
       const response = await axios.get(
-        `${API_URL}/api/partner/merchant/branches?partner_id=${merchant?.partner_id}`
+        `${API_URL}/api/partner/merchant/branches`, { params: { partner_id: partnerId } }
       );
       setBranches(response.data || []);
     } catch (error) {
       console.error('Failed to fetch branches:', error);
-      // Mock data for demo
-      setBranches([
-        {
-          id: '1',
-          name: 'Asosiy filial',
-          address: 'Yunusobod tumani, Amir Temur ko\'chasi 15',
-          city: 'Tashkent',
-          is_active: true,
-          visit_count: 156,
-          staff_count: 3,
-          qr_code: 'BRANCH_1',
-          working_hours: { open: '08:00', close: '22:00' }
-        },
-        {
-          id: '2',
-          name: 'Chilonzor filiali',
-          address: 'Chilonzor tumani, 9-mavze',
-          city: 'Tashkent',
-          is_active: true,
-          visit_count: 89,
-          staff_count: 2,
-          qr_code: 'BRANCH_2',
-          working_hours: { open: '09:00', close: '21:00' }
-        }
-      ]);
+      setBranches([]);
     } finally {
       setLoading(false);
     }
@@ -76,25 +76,19 @@ const Branches = () => {
 
   const handleAddBranch = async () => {
     try {
+      setSaving(true);
+      const partnerId = merchant?.partner?.id || merchant?.partner_id;
       const response = await axios.post(
-        `${API_URL}/api/partner/merchant/branches?partner_id=${merchant?.partner_id}`,
-        newBranch
+        `${API_URL}/api/partner/merchant/branches`, formData, { params: { partner_id: partnerId } }
       );
       setBranches([...branches, response.data]);
       setShowAddModal(false);
-      setNewBranch({
-        name: '',
-        address: '',
-        city: 'Tashkent',
-        phone_number: '',
-        working_hours: { open: '08:00', close: '22:00' }
-      });
+      setFormData({ ...emptyBranch });
     } catch (error) {
       console.error('Failed to add branch:', error);
-      // Add mock branch for demo
       const mockBranch = {
         id: Date.now().toString(),
-        ...newBranch,
+        ...formData,
         is_active: true,
         visit_count: 0,
         staff_count: 0,
@@ -102,19 +96,34 @@ const Branches = () => {
       };
       setBranches([...branches, mockBranch]);
       setShowAddModal(false);
-      setNewBranch({
-        name: '',
-        address: '',
-        city: 'Tashkent',
-        phone_number: '',
-        working_hours: { open: '08:00', close: '22:00' }
-      });
+      setFormData({ ...emptyBranch });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUpdateBranch = async () => {
+    if (!selectedBranch) return;
+    try {
+      setSaving(true);
+      const response = await axios.put(
+        `${API_URL}/api/partner/merchant/branches/${selectedBranch.id}`, formData
+      );
+      setBranches(branches.map(b => b.id === selectedBranch.id ? { ...b, ...response.data } : b));
+      setShowEditModal(false);
+      setSelectedBranch(null);
+    } catch (error) {
+      console.error('Failed to update branch:', error);
+      setBranches(branches.map(b => b.id === selectedBranch.id ? { ...b, ...formData } : b));
+      setShowEditModal(false);
+      setSelectedBranch(null);
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleDeleteBranch = async (branchId) => {
     if (!window.confirm('Filialni o\'chirmoqchimisiz?')) return;
-    
     try {
       await axios.delete(`${API_URL}/api/partner/merchant/branches/${branchId}`);
       setBranches(branches.filter(b => b.id !== branchId));
@@ -122,6 +131,29 @@ const Branches = () => {
       console.error('Failed to delete branch:', error);
       setBranches(branches.filter(b => b.id !== branchId));
     }
+  };
+
+  const handleEditBranch = (branch) => {
+    setSelectedBranch(branch);
+    setFormData({
+      name: branch.name || '',
+      address: branch.address || '',
+      city: branch.city || 'Tashkent',
+      phone_number: branch.phone_number || '',
+      latitude: branch.latitude || null,
+      longitude: branch.longitude || null,
+      working_hours: branch.working_hours || { open: '08:00', close: '22:00' },
+      banner_url: branch.banner_url || '',
+      gallery_urls: branch.gallery_urls || [],
+      service_prices: branch.service_prices?.length > 0 ? branch.service_prices : [...DEFAULT_SERVICE_PRICES],
+    });
+    setActiveTab('info');
+    setShowEditModal(true);
+  };
+
+  const handleViewBranch = (branch) => {
+    setSelectedBranch(branch);
+    setShowDetailModal(true);
   };
 
   const handleShowQR = (branch) => {
@@ -137,11 +169,7 @@ const Branches = () => {
       );
       setBranchStaff(response.data || []);
     } catch (error) {
-      // Mock staff data
-      setBranchStaff([
-        { id: '1', full_name: 'Alisher Karimov', phone_number: '+998901234567', role: 'manager' },
-        { id: '2', full_name: 'Dilshod Rahimov', phone_number: '+998901234568', role: 'staff' }
-      ]);
+      setBranchStaff([]);
     }
     setShowStaffModal(true);
   };
@@ -154,22 +182,17 @@ const Branches = () => {
       );
       setBranchStaff([...branchStaff, response.data]);
       setNewStaff({ full_name: '', phone_number: '', role: 'staff' });
+      if (response.data.pin_code) {
+        alert(`Xodim qo'shildi! PIN kod: ${response.data.pin_code}`);
+      }
     } catch (error) {
-      // Add mock staff
-      const mockStaff = {
-        id: Date.now().toString(),
-        ...newStaff,
-        pin_code: Math.floor(1000 + Math.random() * 9000).toString()
-      };
-      setBranchStaff([...branchStaff, mockStaff]);
-      setNewStaff({ full_name: '', phone_number: '', role: 'staff' });
-      alert(`Xodim qo'shildi! PIN kod: ${mockStaff.pin_code}`);
+      console.error('Failed to add staff:', error);
+      alert(error.response?.data?.detail || 'Xodim qo\'shishda xatolik');
     }
   };
 
   const handleRemoveStaff = async (staffId) => {
     if (!window.confirm('Xodimni o\'chirmoqchimisiz?')) return;
-    
     try {
       await axios.delete(
         `${API_URL}/api/partner/merchant/branches/${selectedBranch.id}/staff/${staffId}`
@@ -177,6 +200,55 @@ const Branches = () => {
       setBranchStaff(branchStaff.filter(s => s.id !== staffId));
     } catch (error) {
       setBranchStaff(branchStaff.filter(s => s.id !== staffId));
+    }
+  };
+
+  const addServicePrice = () => {
+    setFormData({
+      ...formData,
+      service_prices: [...formData.service_prices, { name: '', price: 0, icon: 'custom' }]
+    });
+  };
+
+  const updateServicePrice = (index, field, value) => {
+    const updated = [...formData.service_prices];
+    updated[index] = { ...updated[index], [field]: field === 'price' ? parseInt(value) || 0 : value };
+    setFormData({ ...formData, service_prices: updated });
+  };
+
+  const removeServicePrice = (index) => {
+    setFormData({
+      ...formData,
+      service_prices: formData.service_prices.filter((_, i) => i !== index)
+    });
+  };
+
+  const addGalleryUrl = () => {
+    const url = prompt('Rasm URL manzilini kiriting:');
+    if (url) {
+      setFormData({ ...formData, gallery_urls: [...formData.gallery_urls, url] });
+    }
+  };
+
+  const removeGalleryUrl = (index) => {
+    setFormData({
+      ...formData,
+      gallery_urls: formData.gallery_urls.filter((_, i) => i !== index)
+    });
+  };
+
+  const getWorkingHoursDisplay = (wh) => {
+    if (!wh) return '08:00 - 22:00';
+    if (wh.open) return `${wh.open} - ${wh.close || '22:00'}`;
+    return '08:00 - 22:00';
+  };
+
+  const getServiceIcon = (icon) => {
+    switch (icon) {
+      case 'express': return <Sparkles size={18} className="text-yellow-500" />;
+      case 'sedan': return <Car size={18} className="text-blue-500" />;
+      case 'suv': return <Car size={18} className="text-emerald-500" />;
+      default: return <Droplets size={18} className="text-cyan-500" />;
     }
   };
 
@@ -194,11 +266,14 @@ const Branches = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Filiallar</h1>
-          <p className="text-gray-600">Barcha filiallaringizni boshqaring</p>
+          <p className="text-gray-500">Barcha filiallaringizni boshqaring</p>
         </div>
         <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+          onClick={() => {
+            setFormData({ ...emptyBranch });
+            setShowAddModal(true);
+          }}
+          className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-colors font-medium shadow-sm"
         >
           <Plus size={20} />
           Yangi filial
@@ -206,72 +281,140 @@ const Branches = () => {
       </div>
 
       {/* Branches Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {branches.map((branch) => (
-          <div key={branch.id} className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <div className="p-5">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-emerald-100 rounded-lg">
-                    <Building2 className="text-emerald-600" size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{branch.name}</h3>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${
-                      branch.is_active 
-                        ? 'bg-green-100 text-green-700' 
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {branch.is_active ? 'Faol' : 'Nofaol'}
-                    </span>
-                  </div>
+          <div key={branch.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+            {/* Branch Banner */}
+            <div className="relative h-40 bg-gradient-to-br from-emerald-400 to-emerald-600 overflow-hidden">
+              {branch.banner_url ? (
+                <img src={branch.banner_url} alt={branch.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Building2 size={48} className="text-white/40" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+              <div className="absolute bottom-3 left-4 right-4">
+                <h3 className="text-lg font-bold text-white">{branch.name}</h3>
+                <div className="flex items-center gap-1 text-white/80 text-sm mt-0.5">
+                  <MapPin size={14} />
+                  <span className="truncate">{branch.address}</span>
                 </div>
               </div>
+              <div className="absolute top-3 right-3">
+                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                  branch.is_active 
+                    ? 'bg-green-500/90 text-white' 
+                    : 'bg-gray-500/90 text-white'
+                }`}>
+                  {branch.is_active ? 'Faol' : 'Nofaol'}
+                </span>
+              </div>
+            </div>
 
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center gap-2 text-gray-600">
-                  <MapPin size={16} />
-                  <span>{branch.address}</span>
+            {/* Branch Info */}
+            <div className="p-4">
+              {/* Working Hours & Phone */}
+              <div className="flex items-center gap-4 text-sm text-gray-600 mb-3">
+                <div className="flex items-center gap-1.5">
+                  <Clock size={14} className="text-emerald-500" />
+                  <span>{getWorkingHoursDisplay(branch.working_hours)}</span>
                 </div>
-                <div className="flex items-center gap-2 text-gray-600">
-                  <Clock size={16} />
-                  <span>{branch.working_hours?.open || '08:00'} - {branch.working_hours?.close || '22:00'}</span>
-                </div>
+                {branch.phone_number && (
+                  <div className="flex items-center gap-1.5">
+                    <Phone size={14} className="text-emerald-500" />
+                    <span>{branch.phone_number}</span>
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center gap-4 mt-4 pt-4 border-t">
+              {/* Service Prices Preview */}
+              {branch.service_prices && branch.service_prices.length > 0 && (
+                <div className="mb-3">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Xizmat narxlari</p>
+                  <div className="space-y-1.5">
+                    {branch.service_prices.slice(0, 3).map((sp, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-sm">
+                        <div className="flex items-center gap-2">
+                          {getServiceIcon(sp.icon)}
+                          <span className="text-gray-700">{sp.name}</span>
+                        </div>
+                        <span className="font-semibold text-gray-900">{formatPrice(sp.price)}</span>
+                      </div>
+                    ))}
+                    {branch.service_prices.length > 3 && (
+                      <p className="text-xs text-emerald-600 font-medium">+{branch.service_prices.length - 3} boshqa xizmat</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Gallery Preview */}
+              {branch.gallery_urls && branch.gallery_urls.length > 0 && (
+                <div className="mb-3">
+                  <div className="flex gap-1.5 overflow-hidden rounded-lg">
+                    {branch.gallery_urls.slice(0, 3).map((url, idx) => (
+                      <div key={idx} className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                    {branch.gallery_urls.length > 3 && (
+                      <div className="w-16 h-16 rounded-md bg-gray-100 flex items-center justify-center text-gray-500 text-xs font-medium flex-shrink-0">
+                        +{branch.gallery_urls.length - 3}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Stats */}
+              <div className="flex items-center gap-4 pt-3 border-t border-gray-100">
                 <div className="flex-1 text-center">
-                  <p className="text-2xl font-bold text-gray-900">{branch.visit_count || 0}</p>
+                  <p className="text-xl font-bold text-gray-900">{branch.visit_count || 0}</p>
                   <p className="text-xs text-gray-500">Tashriflar</p>
                 </div>
-                <div className="flex-1 text-center border-l">
-                  <p className="text-2xl font-bold text-gray-900">{branch.staff_count || 0}</p>
+                <div className="w-px h-8 bg-gray-200" />
+                <div className="flex-1 text-center">
+                  <p className="text-xl font-bold text-gray-900">{branch.staff_count || 0}</p>
                   <p className="text-xs text-gray-500">Xodimlar</p>
+                </div>
+                <div className="w-px h-8 bg-gray-200" />
+                <div className="flex-1 text-center">
+                  <p className="text-xl font-bold text-gray-900">{branch.service_prices?.length || 0}</p>
+                  <p className="text-xs text-gray-500">Xizmatlar</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex border-t">
+            {/* Actions */}
+            <div className="grid grid-cols-4 border-t border-gray-100">
+              <button
+                onClick={() => handleViewBranch(branch)}
+                className="flex flex-col items-center justify-center gap-1 py-3 text-gray-500 hover:bg-gray-50 hover:text-emerald-600 transition-colors"
+              >
+                <Eye size={16} />
+                <span className="text-[10px] font-medium">Ko'rish</span>
+              </button>
+              <button
+                onClick={() => handleEditBranch(branch)}
+                className="flex flex-col items-center justify-center gap-1 py-3 text-gray-500 hover:bg-gray-50 hover:text-blue-600 transition-colors"
+              >
+                <Edit2 size={16} />
+                <span className="text-[10px] font-medium">Tahrirlash</span>
+              </button>
               <button
                 onClick={() => handleShowQR(branch)}
-                className="flex-1 flex items-center justify-center gap-2 py-3 text-emerald-600 hover:bg-emerald-50 transition-colors"
+                className="flex flex-col items-center justify-center gap-1 py-3 text-gray-500 hover:bg-gray-50 hover:text-purple-600 transition-colors"
               >
-                <QrCode size={18} />
-                QR kod
+                <QrCode size={16} />
+                <span className="text-[10px] font-medium">QR kod</span>
               </button>
               <button
                 onClick={() => handleShowStaff(branch)}
-                className="flex-1 flex items-center justify-center gap-2 py-3 text-blue-600 hover:bg-blue-50 transition-colors border-l"
+                className="flex flex-col items-center justify-center gap-1 py-3 text-gray-500 hover:bg-gray-50 hover:text-orange-600 transition-colors"
               >
-                <Users size={18} />
-                Xodimlar
-              </button>
-              <button
-                onClick={() => handleDeleteBranch(branch.id)}
-                className="flex-1 flex items-center justify-center gap-2 py-3 text-red-600 hover:bg-red-50 transition-colors border-l"
-              >
-                <Trash2 size={18} />
-                O'chirish
+                <Users size={16} />
+                <span className="text-[10px] font-medium">Xodimlar</span>
               </button>
             </div>
           </div>
@@ -279,125 +422,613 @@ const Branches = () => {
       </div>
 
       {branches.length === 0 && (
-        <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
-          <Building2 className="mx-auto text-gray-400 mb-4" size={48} />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Filiallar yo'q</h3>
-          <p className="text-gray-500 mb-4">Birinchi filialingizni qo'shing</p>
+        <div className="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <div className="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <Building2 className="text-emerald-500" size={40} />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Filiallar yo'q</h3>
+          <p className="text-gray-500 mb-6 max-w-sm mx-auto">Birinchi filialingizni qo'shing va xizmat narxlarini belgilang</p>
           <button
-            onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+            onClick={() => {
+              setFormData({ ...emptyBranch });
+              setShowAddModal(true);
+            }}
+            className="px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium"
           >
+            <Plus size={18} className="inline mr-2" />
             Filial qo'shish
           </button>
         </div>
       )}
 
-      {/* Add Branch Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl w-full max-w-md mx-4 p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">Yangi filial</h2>
-              <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
+      {/* ==================== ADD / EDIT BRANCH MODAL ==================== */}
+      {(showAddModal || showEditModal) && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h2 className="text-xl font-bold text-gray-900">
+                {showEditModal ? 'Filialni tahrirlash' : 'Yangi filial qo\'shish'}
+              </h2>
+              <button 
+                onClick={() => { setShowAddModal(false); setShowEditModal(false); }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} className="text-gray-500" />
               </button>
             </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Filial nomi</label>
-                <input
-                  type="text"
-                  value={newBranch.name}
-                  onChange={(e) => setNewBranch({...newBranch, name: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                  placeholder="Masalan: Chilonzor filiali"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Manzil</label>
-                <input
-                  type="text"
-                  value={newBranch.address}
-                  onChange={(e) => setNewBranch({...newBranch, address: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                  placeholder="To'liq manzil"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Shahar</label>
-                <select
-                  value={newBranch.city}
-                  onChange={(e) => setNewBranch({...newBranch, city: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
+            {/* Tabs */}
+            <div className="flex border-b border-gray-100 px-6">
+              {[
+                { id: 'info', label: 'Asosiy ma\'lumot', icon: Building2 },
+                { id: 'prices', label: 'Xizmat narxlari', icon: DollarSign },
+                { id: 'gallery', label: 'Galereya', icon: Image },
+                { id: 'location', label: 'Lokatsiya', icon: MapPin },
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                    activeTab === tab.id
+                      ? 'border-emerald-500 text-emerald-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
                 >
-                  <option value="Tashkent">Toshkent</option>
-                  <option value="Samarkand">Samarqand</option>
-                  <option value="Bukhara">Buxoro</option>
-                  <option value="Namangan">Namangan</option>
-                  <option value="Andijan">Andijon</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Ochilish</label>
-                  <input
-                    type="time"
-                    value={newBranch.working_hours.open}
-                    onChange={(e) => setNewBranch({
-                      ...newBranch, 
-                      working_hours: {...newBranch.working_hours, open: e.target.value}
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Yopilish</label>
-                  <input
-                    type="time"
-                    value={newBranch.working_hours.close}
-                    onChange={(e) => setNewBranch({
-                      ...newBranch, 
-                      working_hours: {...newBranch.working_hours, close: e.target.value}
-                    })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500"
-                  />
-                </div>
-              </div>
+                  <tab.icon size={16} />
+                  {tab.label}
+                </button>
+              ))}
             </div>
 
-            <div className="flex gap-3 mt-6">
+            {/* Tab Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {/* INFO TAB */}
+              {activeTab === 'info' && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Filial nomi *</label>
+                    <input
+                      type="text"
+                      value={formData.name}
+                      onChange={(e) => setFormData({...formData, name: e.target.value})}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                      placeholder="Masalan: Chilonzor filiali"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Manzil *</label>
+                    <input
+                      type="text"
+                      value={formData.address}
+                      onChange={(e) => setFormData({...formData, address: e.target.value})}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                      placeholder="To'liq manzil"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Shahar</label>
+                      <select
+                        value={formData.city}
+                        onChange={(e) => setFormData({...formData, city: e.target.value})}
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                      >
+                        <option value="Tashkent">Toshkent</option>
+                        <option value="Samarkand">Samarqand</option>
+                        <option value="Bukhara">Buxoro</option>
+                        <option value="Namangan">Namangan</option>
+                        <option value="Andijan">Andijon</option>
+                        <option value="Fergana">Farg'ona</option>
+                        <option value="Nukus">Nukus</option>
+                        <option value="Karshi">Qarshi</option>
+                        <option value="Navoi">Navoiy</option>
+                        <option value="Jizzakh">Jizzax</option>
+                        <option value="Urgench">Urganch</option>
+                        <option value="Termez">Termiz</option>
+                        <option value="Gulistan">Guliston</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Telefon raqam</label>
+                      <input
+                        type="tel"
+                        value={formData.phone_number}
+                        onChange={(e) => setFormData({...formData, phone_number: e.target.value})}
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                        placeholder="+998 90 123 45 67"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Ish vaqti</label>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Ochilish</label>
+                        <input
+                          type="time"
+                          value={formData.working_hours?.open || '08:00'}
+                          onChange={(e) => setFormData({
+                            ...formData, 
+                            working_hours: {...formData.working_hours, open: e.target.value}
+                          })}
+                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">Yopilish</label>
+                        <input
+                          type="time"
+                          value={formData.working_hours?.close || '22:00'}
+                          onChange={(e) => setFormData({
+                            ...formData, 
+                            working_hours: {...formData.working_hours, close: e.target.value}
+                          })}
+                          className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Banner rasm (URL)</label>
+                    <input
+                      type="url"
+                      value={formData.banner_url}
+                      onChange={(e) => setFormData({...formData, banner_url: e.target.value})}
+                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                      placeholder="https://example.com/banner.jpg"
+                    />
+                    {formData.banner_url && (
+                      <div className="mt-2 rounded-xl overflow-hidden h-32 bg-gray-100">
+                        <img src={formData.banner_url} alt="Banner" className="w-full h-full object-cover" 
+                          onError={(e) => { e.target.style.display = 'none'; }} />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* PRICES TAB */}
+              {activeTab === 'prices' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Xizmat narxlari</h3>
+                      <p className="text-sm text-gray-500">Moyxona xizmatlarining narxlarini belgilang</p>
+                    </div>
+                    <button
+                      onClick={addServicePrice}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 text-sm font-medium transition-colors"
+                    >
+                      <Plus size={16} />
+                      Qo'shish
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {formData.service_prices.map((sp, index) => (
+                      <div key={index} className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+                        <select
+                          value={sp.icon}
+                          onChange={(e) => updateServicePrice(index, 'icon', e.target.value)}
+                          className="w-28 px-2 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+                        >
+                          <option value="express">Express</option>
+                          <option value="sedan">Sedan</option>
+                          <option value="suv">SUV/Krossover</option>
+                          <option value="custom">Boshqa</option>
+                        </select>
+                        <input
+                          type="text"
+                          value={sp.name}
+                          onChange={(e) => updateServicePrice(index, 'name', e.target.value)}
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white"
+                          placeholder="Xizmat nomi"
+                        />
+                        <div className="relative">
+                          <input
+                            type="number"
+                            value={sp.price}
+                            onChange={(e) => updateServicePrice(index, 'price', e.target.value)}
+                            className="w-36 px-3 py-2 border border-gray-200 rounded-lg text-sm bg-white pr-14"
+                            placeholder="Narx"
+                          />
+                          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">so'm</span>
+                        </div>
+                        <button
+                          onClick={() => removeServicePrice(index)}
+                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+
+                  {formData.service_prices.length === 0 && (
+                    <div className="text-center py-8 bg-gray-50 rounded-xl">
+                      <DollarSign size={32} className="mx-auto text-gray-300 mb-2" />
+                      <p className="text-gray-500 text-sm">Xizmat narxlari qo'shilmagan</p>
+                      <button
+                        onClick={() => setFormData({ ...formData, service_prices: [...DEFAULT_SERVICE_PRICES] })}
+                        className="mt-3 text-sm text-emerald-600 font-medium hover:underline"
+                      >
+                        Standart narxlarni qo'shish
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Price Preview */}
+                  {formData.service_prices.length > 0 && (
+                    <div className="mt-6 p-4 bg-emerald-50 rounded-xl border border-emerald-100">
+                      <h4 className="text-sm font-semibold text-emerald-800 mb-3">Ko'rinishi</h4>
+                      <div className="space-y-2">
+                        {formData.service_prices.map((sp, idx) => (
+                          <div key={idx} className="flex items-center justify-between bg-white px-3 py-2 rounded-lg">
+                            <div className="flex items-center gap-2">
+                              {getServiceIcon(sp.icon)}
+                              <span className="text-sm font-medium text-gray-800">{sp.name || 'Nomsiz'}</span>
+                            </div>
+                            <span className="text-sm font-bold text-emerald-700">{formatPrice(sp.price)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* GALLERY TAB */}
+              {activeTab === 'gallery' && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Galereya</h3>
+                      <p className="text-sm text-gray-500">Filial rasmlarini qo'shing</p>
+                    </div>
+                    <button
+                      onClick={addGalleryUrl}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 text-sm font-medium transition-colors"
+                    >
+                      <Plus size={16} />
+                      Rasm qo'shish
+                    </button>
+                  </div>
+
+                  {formData.gallery_urls.length > 0 ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {formData.gallery_urls.map((url, index) => (
+                        <div key={index} className="relative group rounded-xl overflow-hidden bg-gray-100 aspect-square">
+                          <img src={url} alt={`Gallery ${index + 1}`} className="w-full h-full object-cover" 
+                            onError={(e) => { e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect fill="%23f3f4f6" width="100" height="100"/><text x="50" y="55" text-anchor="middle" fill="%239ca3af" font-size="12">Rasm</text></svg>'; }} />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <button
+                              onClick={() => removeGalleryUrl(index)}
+                              className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                      <Camera size={40} className="mx-auto text-gray-300 mb-3" />
+                      <p className="text-gray-500 font-medium">Rasmlar qo'shilmagan</p>
+                      <p className="text-sm text-gray-400 mt-1">Filial rasmlarini URL orqali qo'shing</p>
+                      <button
+                        onClick={addGalleryUrl}
+                        className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
+                      >
+                        <Upload size={16} className="inline mr-1.5" />
+                        Rasm qo'shish
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* LOCATION TAB */}
+              {activeTab === 'location' && (
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Lokatsiya</h3>
+                    <p className="text-sm text-gray-500">Filial joylashuvini xaritada ko'rsating</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Kenglik (Latitude)</label>
+                      <input
+                        type="number"
+                        step="0.000001"
+                        value={formData.latitude || ''}
+                        onChange={(e) => setFormData({...formData, latitude: parseFloat(e.target.value) || null})}
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                        placeholder="41.311081"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Uzunlik (Longitude)</label>
+                      <input
+                        type="number"
+                        step="0.000001"
+                        value={formData.longitude || ''}
+                        onChange={(e) => setFormData({...formData, longitude: parseFloat(e.target.value) || null})}
+                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
+                        placeholder="69.279737"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Map Preview */}
+                  {formData.latitude && formData.longitude ? (
+                    <div className="rounded-xl overflow-hidden border border-gray-200">
+                      <iframe
+                        title="Branch Location"
+                        width="100%"
+                        height="300"
+                        frameBorder="0"
+                        src={`https://www.openstreetmap.org/export/embed.html?bbox=${formData.longitude - 0.005},${formData.latitude - 0.003},${formData.longitude + 0.005},${formData.latitude + 0.003}&layer=mapnik&marker=${formData.latitude},${formData.longitude}`}
+                        style={{ border: 0 }}
+                      />
+                      <div className="p-3 bg-gray-50 flex items-center justify-between">
+                        <span className="text-sm text-gray-600">
+                          {formData.latitude.toFixed(6)}, {formData.longitude.toFixed(6)}
+                        </span>
+                        <a
+                          href={`https://www.google.com/maps?q=${formData.latitude},${formData.longitude}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-sm text-emerald-600 hover:underline"
+                        >
+                          <ExternalLink size={14} />
+                          Google Maps
+                        </a>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                      <Navigation size={40} className="mx-auto text-gray-300 mb-3" />
+                      <p className="text-gray-500 font-medium">Lokatsiya belgilanmagan</p>
+                      <p className="text-sm text-gray-400 mt-1">Kenglik va uzunlik koordinatalarini kiriting</p>
+                      <button
+                        onClick={() => {
+                          if (navigator.geolocation) {
+                            navigator.geolocation.getCurrentPosition(
+                              (pos) => {
+                                setFormData({
+                                  ...formData,
+                                  latitude: pos.coords.latitude,
+                                  longitude: pos.coords.longitude
+                                });
+                              },
+                              () => alert('Joylashuvni aniqlab bo\'lmadi')
+                            );
+                          }
+                        }}
+                        className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
+                      >
+                        <Navigation size={16} className="inline mr-1.5" />
+                        Joriy joylashuvni aniqlash
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
               <button
-                onClick={() => setShowAddModal(false)}
-                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                onClick={() => { setShowAddModal(false); setShowEditModal(false); }}
+                className="px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-100 font-medium transition-colors"
               >
                 Bekor qilish
               </button>
               <button
-                onClick={handleAddBranch}
-                disabled={!newBranch.name || !newBranch.address}
-                className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50"
+                onClick={showEditModal ? handleUpdateBranch : handleAddBranch}
+                disabled={!formData.name || !formData.address || saving}
+                className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 font-medium transition-colors"
               >
-                Qo'shish
+                {saving ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Save size={18} />
+                )}
+                {showEditModal ? 'Saqlash' : 'Qo\'shish'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* QR Code Modal */}
+      {/* ==================== BRANCH DETAIL MODAL ==================== */}
+      {showDetailModal && selectedBranch && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Banner */}
+            <div className="relative h-48 bg-gradient-to-br from-emerald-400 to-emerald-600">
+              {selectedBranch.banner_url ? (
+                <img src={selectedBranch.banner_url} alt={selectedBranch.name} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Building2 size={64} className="text-white/30" />
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
+              <button 
+                onClick={() => setShowDetailModal(false)}
+                className="absolute top-3 right-3 p-2 bg-black/30 hover:bg-black/50 rounded-full text-white transition-colors"
+              >
+                <X size={20} />
+              </button>
+              <div className="absolute bottom-4 left-5 right-5">
+                <h2 className="text-2xl font-bold text-white">{selectedBranch.name}</h2>
+                <div className="flex items-center gap-2 text-white/80 text-sm mt-1">
+                  <MapPin size={14} />
+                  <span>{selectedBranch.address}, {selectedBranch.city}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-5 space-y-5">
+              {/* Info Cards */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-emerald-50 rounded-xl">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Clock size={16} className="text-emerald-600" />
+                    <span className="text-xs font-medium text-emerald-600">Ish vaqti</span>
+                  </div>
+                  <p className="text-sm font-semibold text-gray-900">{getWorkingHoursDisplay(selectedBranch.working_hours)}</p>
+                </div>
+                {selectedBranch.phone_number && (
+                  <div className="p-3 bg-blue-50 rounded-xl">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Phone size={16} className="text-blue-600" />
+                      <span className="text-xs font-medium text-blue-600">Telefon</span>
+                    </div>
+                    <p className="text-sm font-semibold text-gray-900">{selectedBranch.phone_number}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Service Prices */}
+              {selectedBranch.service_prices && selectedBranch.service_prices.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <DollarSign size={16} className="text-emerald-500" />
+                    Xizmat narxlari
+                  </h3>
+                  <div className="space-y-2">
+                    {selectedBranch.service_prices.map((sp, idx) => (
+                      <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                            {getServiceIcon(sp.icon)}
+                          </div>
+                          <span className="font-medium text-gray-800">{sp.name}</span>
+                        </div>
+                        <span className="text-lg font-bold text-emerald-600">{formatPrice(sp.price)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Gallery */}
+              {selectedBranch.gallery_urls && selectedBranch.gallery_urls.length > 0 && (
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <Image size={16} className="text-emerald-500" />
+                    Galereya
+                  </h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {selectedBranch.gallery_urls.map((url, idx) => (
+                      <div key={idx} className="aspect-square rounded-xl overflow-hidden bg-gray-100">
+                        <img src={url} alt={`Photo ${idx + 1}`} className="w-full h-full object-cover" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Location Map */}
+              {selectedBranch.latitude && selectedBranch.longitude && (
+                <div>
+                  <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                    <MapPin size={16} className="text-emerald-500" />
+                    Lokatsiya
+                  </h3>
+                  <div className="rounded-xl overflow-hidden border border-gray-200">
+                    <iframe
+                      title="Branch Location"
+                      width="100%"
+                      height="200"
+                      frameBorder="0"
+                      src={`https://www.openstreetmap.org/export/embed.html?bbox=${selectedBranch.longitude - 0.005},${selectedBranch.latitude - 0.003},${selectedBranch.longitude + 0.005},${selectedBranch.latitude + 0.003}&layer=mapnik&marker=${selectedBranch.latitude},${selectedBranch.longitude}`}
+                      style={{ border: 0 }}
+                    />
+                    <a
+                      href={`https://www.google.com/maps?q=${selectedBranch.latitude},${selectedBranch.longitude}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center gap-2 p-2.5 bg-gray-50 text-emerald-600 hover:bg-emerald-50 text-sm font-medium transition-colors"
+                    >
+                      <ExternalLink size={14} />
+                      Google Maps da ochish
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Branch ID */}
+              <div className="p-3 bg-gray-50 rounded-xl">
+                <p className="text-xs text-gray-400 mb-1">Filial ID</p>
+                <div className="flex items-center gap-2">
+                  <code className="text-sm text-gray-700 font-mono flex-1 truncate">{selectedBranch.id}</code>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(selectedBranch.id);
+                      alert('ID nusxalandi!');
+                    }}
+                    className="p-1.5 hover:bg-gray-200 rounded-lg transition-colors"
+                  >
+                    <Copy size={14} className="text-gray-500" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="flex gap-3 p-4 border-t border-gray-100">
+              <button
+                onClick={() => {
+                  setShowDetailModal(false);
+                  handleEditBranch(selectedBranch);
+                }}
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium transition-colors"
+              >
+                <Edit2 size={16} />
+                Tahrirlash
+              </button>
+              <button
+                onClick={() => {
+                  setShowDetailModal(false);
+                  handleShowQR(selectedBranch);
+                }}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 font-medium transition-colors"
+              >
+                <QrCode size={16} />
+                QR kod
+              </button>
+              <button
+                onClick={() => {
+                  handleDeleteBranch(selectedBranch.id);
+                  setShowDetailModal(false);
+                }}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 border border-red-200 text-red-600 rounded-xl hover:bg-red-50 font-medium transition-colors"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ==================== QR CODE MODAL ==================== */}
       {showQRModal && selectedBranch && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl w-full max-w-sm mx-4 p-6 text-center">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 text-center">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">QR kod</h2>
-              <button onClick={() => setShowQRModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
+              <h2 className="text-xl font-bold text-gray-900">QR kod</h2>
+              <button onClick={() => setShowQRModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <X size={20} className="text-gray-500" />
               </button>
             </div>
 
-            <div className="bg-white p-4 rounded-xl inline-block border-2 border-gray-200">
-              <QRCode 
+            <div className="bg-white p-6 rounded-2xl inline-block border-2 border-gray-100 shadow-sm">
+              <QRCodeCanvas 
                 value={`YUVGO_BRANCH_${selectedBranch.id}`}
                 size={200}
                 level="H"
@@ -405,7 +1036,7 @@ const Branches = () => {
             </div>
 
             <div className="mt-4">
-              <h3 className="font-semibold text-gray-900">{selectedBranch.name}</h3>
+              <h3 className="font-bold text-gray-900">{selectedBranch.name}</h3>
               <p className="text-sm text-gray-500">{selectedBranch.address}</p>
             </div>
 
@@ -415,7 +1046,6 @@ const Branches = () => {
 
             <button
               onClick={() => {
-                // Download QR code
                 const canvas = document.querySelector('canvas');
                 if (canvas) {
                   const url = canvas.toDataURL('image/png');
@@ -425,7 +1055,7 @@ const Branches = () => {
                   link.click();
                 }
               }}
-              className="mt-4 w-full px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"
+              className="mt-4 w-full px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 font-medium transition-colors"
             >
               QR kodni yuklab olish
             </button>
@@ -433,92 +1063,97 @@ const Branches = () => {
         </div>
       )}
 
-      {/* Staff Modal */}
+      {/* ==================== STAFF MODAL ==================== */}
       {showStaffModal && selectedBranch && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl w-full max-w-lg mx-4 p-6">
-            <div className="flex items-center justify-between mb-6">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
-                <h2 className="text-xl font-bold">Xodimlar</h2>
+                <h2 className="text-xl font-bold text-gray-900">Xodimlar</h2>
                 <p className="text-sm text-gray-500">{selectedBranch.name}</p>
               </div>
-              <button onClick={() => setShowStaffModal(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={24} />
+              <button onClick={() => setShowStaffModal(false)} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                <X size={20} className="text-gray-500" />
               </button>
             </div>
 
-            {/* Add Staff Form */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <h3 className="font-medium text-gray-900 mb-3">Yangi xodim qo'shish</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  value={newStaff.full_name}
-                  onChange={(e) => setNewStaff({...newStaff, full_name: e.target.value})}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  placeholder="Ism familiya"
-                />
-                <input
-                  type="tel"
-                  value={newStaff.phone_number}
-                  onChange={(e) => setNewStaff({...newStaff, phone_number: e.target.value})}
-                  className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                  placeholder="+998901234567"
-                />
-              </div>
-              <div className="flex gap-3 mt-3">
-                <select
-                  value={newStaff.role}
-                  onChange={(e) => setNewStaff({...newStaff, role: e.target.value})}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
-                >
-                  <option value="staff">Xodim</option>
-                  <option value="manager">Menejer</option>
-                </select>
-                <button
-                  onClick={handleAddStaff}
-                  disabled={!newStaff.full_name || !newStaff.phone_number}
-                  className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 text-sm"
-                >
-                  Qo'shish
-                </button>
-              </div>
-            </div>
-
-            {/* Staff List */}
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {branchStaff.map((staff) => (
-                <div key={staff.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-medium">
-                      {staff.full_name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-medium text-gray-900">{staff.full_name}</p>
-                      <p className="text-sm text-gray-500">{staff.phone_number}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      staff.role === 'manager' 
-                        ? 'bg-blue-100 text-blue-700' 
-                        : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {staff.role === 'manager' ? 'Menejer' : 'Xodim'}
-                    </span>
-                    <button
-                      onClick={() => handleRemoveStaff(staff.id)}
-                      className="p-1 text-red-500 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
+            <div className="flex-1 overflow-y-auto p-6">
+              {/* Add Staff Form */}
+              <div className="bg-gray-50 rounded-xl p-4 mb-4">
+                <h3 className="font-medium text-gray-900 mb-3">Yangi xodim qo'shish</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={newStaff.full_name}
+                    onChange={(e) => setNewStaff({...newStaff, full_name: e.target.value})}
+                    className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="Ism familiya"
+                  />
+                  <input
+                    type="tel"
+                    value={newStaff.phone_number}
+                    onChange={(e) => setNewStaff({...newStaff, phone_number: e.target.value})}
+                    className="px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                    placeholder="+998901234567"
+                  />
                 </div>
-              ))}
+                <div className="flex gap-3 mt-3">
+                  <select
+                    value={newStaff.role}
+                    onChange={(e) => setNewStaff({...newStaff, role: e.target.value})}
+                    className="flex-1 px-3 py-2.5 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    <option value="staff">Xodim</option>
+                    <option value="manager">Menejer</option>
+                  </select>
+                  <button
+                    onClick={handleAddStaff}
+                    disabled={!newStaff.full_name || !newStaff.phone_number}
+                    className="px-5 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 disabled:opacity-50 text-sm font-medium transition-colors"
+                  >
+                    Qo'shish
+                  </button>
+                </div>
+              </div>
 
-              {branchStaff.length === 0 && (
-                <p className="text-center text-gray-500 py-4">Xodimlar yo'q</p>
-              )}
+              {/* Staff List */}
+              <div className="space-y-2">
+                {branchStaff.map((staff) => (
+                  <div key={staff.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-bold text-sm">
+                        {staff.full_name?.charAt(0) || '?'}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{staff.full_name}</p>
+                        <p className="text-sm text-gray-500">{staff.phone_number}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                        staff.role === 'manager' 
+                          ? 'bg-blue-100 text-blue-700' 
+                          : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {staff.role === 'manager' ? 'Menejer' : 'Xodim'}
+                      </span>
+                      <button
+                        onClick={() => handleRemoveStaff(staff.id)}
+                        className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+
+                {branchStaff.length === 0 && (
+                  <div className="text-center py-8">
+                    <Users size={32} className="mx-auto text-gray-300 mb-2" />
+                    <p className="text-gray-500">Xodimlar yo'q</p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

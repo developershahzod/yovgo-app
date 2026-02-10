@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   LayoutDashboard, Users, Building2, CreditCard, Receipt,
   BarChart3, Shield, Tag, FileText, LogOut, Menu, X,
-  Bell, Settings, Search, ChevronDown, Sparkles, MapPin, Car
+  Bell, Settings, Search, ChevronDown, Sparkles, MapPin, Car, MessageSquare
 } from 'lucide-react';
 
 const LayoutNew = () => {
@@ -19,11 +19,13 @@ const LayoutNew = () => {
     { name: 'Партнеры (Автомойки)', href: '/partners', icon: Building2, permission: 'partners.read' },
     { name: 'Карта локаций', href: '/locations-map', icon: MapPin, permission: 'partners.read' },
     { name: 'Посещения моек', href: '/visits', icon: Car, permission: 'analytics.read' },
+    { name: 'Автомобили', href: '/vehicles', icon: Car, permission: 'users.read' },
     { name: 'Подписки', href: '/subscriptions', icon: CreditCard, permission: 'subscriptions.read' },
     { name: 'Платежи', href: '/payments', icon: Receipt, permission: 'payments.read' },
     { name: 'Аналитика', href: '/analytics', icon: BarChart3, permission: 'analytics.read' },
     { name: 'Отчеты', href: '/reports', icon: FileText, permission: 'analytics.read' },
     { name: 'Администраторы', href: '/admins', icon: Shield, permission: 'admins.read' },
+    { name: 'Уведомления', href: '/notifications', icon: Bell, permission: 'users.read' },
     { name: 'Акции', href: '/promotions', icon: Tag, permission: 'promotions.read' },
     { name: 'Настройки', href: '/settings', icon: Settings, permission: 'settings.read' },
   ];

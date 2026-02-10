@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/app_theme.dart';
 
 class OnboardingScreenFixed extends StatefulWidget {
@@ -25,13 +26,13 @@ class _OnboardingScreenFixedState extends State<OnboardingScreenFixed> {
         },
         {
           'icon': Icons.qr_code_scanner,
-          'title': 'Tez va oson boshqaruv',
-          'description': 'QR-kodni skaner qilib, avtomobil yuvish jarayonini tez va oson boshqaring',
+          'title': 'Быстрое и удобное управление',
+          'description': 'Сканируйте QR-код и быстро и легко управляйте процессом мойки автомобиля',
         },
         {
           'icon': Icons.attach_money,
-          'title': 'Biz bilan pulingizni tejang',
-          'description': 'Obuna xizmatidan foydalanib, avtomobil yuvishda kamroq xarajat qiling va muntazam pul tejang',
+          'title': 'Экономьте с нами',
+          'description': 'Используя подписку, тратьте меньше на мойку автомобиля и регулярно экономьте деньги',
         },
       ];
     } else {
@@ -231,8 +232,12 @@ class _OnboardingScreenFixedState extends State<OnboardingScreenFixed> {
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pushReplacementNamed('/main');
+                        onPressed: () async {
+                          final prefs = await SharedPreferences.getInstance();
+                          await prefs.setBool('onboarding_completed', true);
+                          if (context.mounted) {
+                            Navigator.of(context).pushReplacementNamed('/login');
+                          }
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppTheme.darkNavy,
@@ -254,16 +259,7 @@ class _OnboardingScreenFixedState extends State<OnboardingScreenFixed> {
                     ),
                   ),
 
-                  // Home indicator
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 8),
-                    width: 134,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: AppTheme.textPrimary,
-                      borderRadius: BorderRadius.circular(2.5),
-                    ),
-                  ),
+                  const SizedBox(height: 8),
                 ],
               ),
 
@@ -357,9 +353,9 @@ class _OnboardingScreenFixedState extends State<OnboardingScreenFixed> {
   Widget _buildUzbekFlag() {
     return Column(
       children: [
+        Expanded(flex: 2, child: Container(color: const Color(0xFF0099B5))),
+        Expanded(flex: 1, child: Container(color: const Color(0xFFCE1126))),
         Expanded(flex: 2, child: Container(color: const Color(0xFF1EB53A))),
-        Expanded(flex: 1, child: Container(color: Colors.white)),
-        Expanded(flex: 2, child: Container(color: const Color(0xFFCE1126))),
       ],
     );
   }

@@ -19,8 +19,9 @@ const MerchantAnalytics = () => {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
+      const partnerId = merchant?.partner?.id || merchant?.partner_id;
       const response = await axios.get(
-        `${API_URL}/api/partner/merchant/analytics?partner_id=${merchant?.partner_id}&period=${period}`
+        `${API_URL}/api/partner/merchant/analytics`, { params: { partner_id: partnerId, period } }
       );
       setAnalyticsData(response.data);
     } catch (error) {

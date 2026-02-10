@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../services/full_api_service.dart';
 
 class WashRatingScreen extends StatefulWidget {
   const WashRatingScreen({super.key});
@@ -11,17 +12,97 @@ class WashRatingScreen extends StatefulWidget {
 }
 
 class _WashRatingScreenState extends State<WashRatingScreen> {
-  final int _washRating = 92;
-  
-  final List<WeatherForecast> _weeklyForecast = [
-    WeatherForecast(day: 'Bugun', percentage: 92, tempHigh: 24, tempLow: 10, icon: Icons.wb_sunny),
-    WeatherForecast(day: 'Sesh', percentage: 85, tempHigh: 22, tempLow: 5, icon: Icons.wb_sunny),
-    WeatherForecast(day: 'Chor', percentage: 72, tempHigh: 16, tempLow: 4, icon: Icons.cloud),
-    WeatherForecast(day: 'Pay', percentage: 22, tempHigh: 24, tempLow: 10, icon: Icons.water_drop),
-    WeatherForecast(day: 'Jum', percentage: 48, tempHigh: 10, tempLow: 3, icon: Icons.cloud),
-    WeatherForecast(day: 'Shan', percentage: 70, tempHigh: 16, tempLow: 4, icon: Icons.wb_cloudy),
-    WeatherForecast(day: 'Yak', percentage: 12, tempHigh: 3, tempLow: -2, icon: Icons.ac_unit),
-  ];
+  Map<String, dynamic>? _weatherData;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map<String, dynamic> && args['success'] == true) {
+        setState(() {
+          _weatherData = args;
+          _isLoading = false;
+        });
+      } else {
+        _loadWeather();
+      }
+    });
+  }
+
+  Future<void> _loadWeather() async {
+    setState(() => _isLoading = true);
+    try {
+      final data = await FullApiService.getWeatherData();
+      if (mounted) setState(() { _weatherData = data; _isLoading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  int get _washRating {
+    final r = _weatherData?['wash_rating'];
+    if (r is int) return r;
+    if (r is num) return r.toInt();
+    return 0;
+  }
+
+  String get _recommendation => _weatherData?['recommendation'] ?? '';
+
+  Map<String, dynamic> get _current => (_weatherData?['current'] as Map<String, dynamic>?) ?? {};
+
+  List<dynamic> get _forecast => (_weatherData?['forecast'] as List?) ?? [];
+
+  String _statusLabel(int rating) {
+    if (rating >= 80) return "A'lo";
+    if (rating >= 60) return 'Yaxshi';
+    if (rating >= 40) return "O'rtacha";
+    if (rating >= 20) return 'Yomon';
+    return 'Juda yomon';
+  }
+
+  IconData _weatherTypeIcon(String type) {
+    switch (type) {
+      case 'sunny': return Icons.wb_sunny;
+      case 'partly_cloudy': return Icons.wb_cloudy;
+      case 'cloudy': return Icons.cloud;
+      case 'drizzle': return Icons.grain;
+      case 'rain': return Icons.water_drop;
+      case 'snow': return Icons.ac_unit;
+      case 'thunderstorm': return Icons.flash_on;
+      case 'fog': return Icons.blur_on;
+      default: return Icons.wb_sunny;
+    }
+  }
+
+  Color _weatherTypeColor(String type) {
+    switch (type) {
+      case 'sunny': return Colors.amber;
+      case 'partly_cloudy': return Colors.orange;
+      case 'cloudy': return Colors.grey;
+      case 'drizzle': return Colors.blueGrey;
+      case 'rain': return AppColors.primary;
+      case 'snow': return Colors.lightBlue;
+      case 'thunderstorm': return Colors.deepOrange;
+      case 'fog': return Colors.grey;
+      default: return Colors.amber;
+    }
+  }
+
+  String _weatherTypeLabel(String type) {
+    switch (type) {
+      case 'sunny': return 'Quyoshli';
+      case 'partly_cloudy': return 'Qisman bulutli';
+      case 'cloudy': return 'Bulutli';
+      case 'drizzle': return 'Mayda yomg\'ir';
+      case 'rain': return 'Yomg\'irli';
+      case 'snow': return 'Qorli';
+      case 'thunderstorm': return 'Momaqaldiroq';
+      case 'fog': return 'Tumanli';
+      default: return 'Ochiq';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,17 +118,23 @@ class _WashRatingScreenState extends State<WashRatingScreen> {
         title: const Text('Yuvish reytingi', style: AppTextStyles.appBarTitle),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            _buildRatingGauge(),
-            _buildRecommendation(),
-            _buildCurrentWeather(),
-            _buildWeeklyForecast(),
-            const SizedBox(height: 100),
-          ],
-        ),
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : RefreshIndicator(
+              onRefresh: _loadWeather,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  children: [
+                    _buildRatingGauge(),
+                    _buildRecommendation(),
+                    _buildCurrentWeather(),
+                    _buildWeeklyForecast(),
+                    const SizedBox(height: 100),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 
@@ -66,7 +153,7 @@ class _WashRatingScreenState extends State<WashRatingScreen> {
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Text(
-                      'Holat: A\'lo',
+                      'Holat: ${_statusLabel(_washRating)}',
                       style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
                     ),
                     const SizedBox(height: 4),
@@ -89,40 +176,45 @@ class _WashRatingScreenState extends State<WashRatingScreen> {
   }
 
   Widget _buildRecommendation() {
+    final isGood = _washRating >= 50;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1),
+        color: (isGood ? AppColors.primary : AppColors.error).withOpacity(0.1),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+        border: Border.all(color: (isGood ? AppColors.primary : AppColors.error).withOpacity(0.2)),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.primary,
+              color: isGood ? AppColors.primary : AppColors.error,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.check_circle, color: Colors.white, size: 24),
+            child: Icon(
+              isGood ? Icons.check_circle : Icons.warning,
+              color: Colors.white,
+              size: 24,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   'Tavsiya',
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.primary,
+                    color: isGood ? AppColors.primary : AppColors.error,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '4 kun davomida yog\'ingarchilik kutilmaydi. Yuvish uchun mukammal havo.',
+                  _recommendation,
                   style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
                 ),
               ],
@@ -134,6 +226,18 @@ class _WashRatingScreenState extends State<WashRatingScreen> {
   }
 
   Widget _buildCurrentWeather() {
+    final temp = _current['temperature'] ?? 0;
+    final weatherType = _current['weather_type'] ?? 'sunny';
+    final humidity = _current['humidity'] ?? 0;
+    final windSpeed = _current['wind_speed'] ?? 0;
+    final city = _current['city'] ?? 'Toshkent';
+    
+    // Get today's temp range from forecast
+    String tempRange = '';
+    if (_forecast.isNotEmpty) {
+      tempRange = '${_forecast[0]['temp'] ?? ''}  /  ${_forecast[0]['temp_min'] ?? ''}';
+    }
+
     return Container(
       margin: const EdgeInsets.all(16),
       padding: const EdgeInsets.all(20),
@@ -151,27 +255,28 @@ class _WashRatingScreenState extends State<WashRatingScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Hozirgi havo harorati:', style: AppTextStyles.labelMedium),
+          Text('$city — Hozirgi ob-havo:', style: AppTextStyles.labelMedium),
           const SizedBox(height: 12),
           Row(
             children: [
-              const Icon(Icons.wb_sunny, color: Colors.amber, size: 32),
+              Icon(_weatherTypeIcon(weatherType), color: _weatherTypeColor(weatherType), size: 32),
               const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Quyoshli',
-                    style: TextStyle(
+                  Text(
+                    '${temp > 0 ? "+" : ""}$temp° — ${_weatherTypeLabel(weatherType)}',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
                     ),
                   ),
-                  Text(
-                    'Kunduz: +24°  |  Tunda: +10°',
-                    style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-                  ),
+                  if (tempRange.isNotEmpty)
+                    Text(
+                      tempRange,
+                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
+                    ),
                 ],
               ),
             ],
@@ -180,9 +285,13 @@ class _WashRatingScreenState extends State<WashRatingScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildWeatherStat(Icons.air, '24 km/h', 'Shamol'),
-              _buildWeatherStat(Icons.water_drop, '10%', 'Yomg\'ir'),
-              _buildWeatherStat(Icons.thermostat, '10%', 'Chang'),
+              _buildWeatherStat(Icons.air, '${windSpeed} km/h', 'Shamol'),
+              _buildWeatherStat(Icons.water_drop, '$humidity%', 'Namlik'),
+              _buildWeatherStat(
+                Icons.umbrella,
+                '${_forecast.isNotEmpty ? _forecast[0]['precip_prob'] ?? 0 : 0}%',
+                'Yomg\'ir',
+              ),
             ],
           ),
         ],
@@ -231,17 +340,25 @@ class _WashRatingScreenState extends State<WashRatingScreen> {
         children: [
           const Text('Haftalik prognoz', style: AppTextStyles.h5),
           const SizedBox(height: 16),
-          ..._weeklyForecast.map((forecast) => _buildForecastRow(forecast)),
+          for (int i = 0; i < _forecast.length; i++)
+            _buildForecastRow(_forecast[i], i == 0),
         ],
       ),
     );
   }
 
-  Widget _buildForecastRow(WeatherForecast forecast) {
+  Widget _buildForecastRow(dynamic forecastItem, bool isToday) {
+    final f = forecastItem as Map<String, dynamic>;
+    final weekday = f['weekday']?.toString() ?? '';
+    final rating = (f['wash_rating'] is int) ? f['wash_rating'] as int : ((f['wash_rating'] as num?)?.toInt() ?? 0);
+    final temp = f['temp']?.toString() ?? '';
+    final tempMin = f['temp_min']?.toString() ?? '';
+    final weatherType = f['weather']?.toString() ?? 'sunny';
+
     Color ratingColor;
-    if (forecast.percentage >= 70) {
+    if (rating >= 70) {
       ratingColor = AppColors.success;
-    } else if (forecast.percentage >= 40) {
+    } else if (rating >= 40) {
       ratingColor = AppColors.warning;
     } else {
       ratingColor = AppColors.error;
@@ -254,20 +371,25 @@ class _WashRatingScreenState extends State<WashRatingScreen> {
           SizedBox(
             width: 50,
             child: Text(
-              forecast.day,
-              style: AppTextStyles.labelMedium,
+              isToday ? 'Bugun' : weekday,
+              style: isToday
+                  ? AppTextStyles.labelMedium.copyWith(fontWeight: FontWeight.w700)
+                  : AppTextStyles.labelMedium,
             ),
           ),
           const SizedBox(width: 8),
-          Text(
-            '${forecast.percentage}%',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: ratingColor,
+          SizedBox(
+            width: 38,
+            child: Text(
+              '$rating%',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: ratingColor,
+              ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           Expanded(
             child: Container(
               height: 8,
@@ -277,7 +399,7 @@ class _WashRatingScreenState extends State<WashRatingScreen> {
               ),
               child: FractionallySizedBox(
                 alignment: Alignment.centerLeft,
-                widthFactor: forecast.percentage / 100,
+                widthFactor: rating / 100,
                 child: Container(
                   decoration: BoxDecoration(
                     color: ratingColor,
@@ -287,38 +409,16 @@ class _WashRatingScreenState extends State<WashRatingScreen> {
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          Text(
-            'K: +${forecast.tempHigh}°',
-            style: AppTextStyles.bodySmall,
-          ),
+          const SizedBox(width: 10),
+          Text(temp, style: AppTextStyles.bodySmall),
           const SizedBox(width: 4),
-          Text(
-            'T: ${forecast.tempLow > 0 ? '+' : ''}${forecast.tempLow}°',
-            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary),
-          ),
+          Text(tempMin, style: AppTextStyles.bodySmall.copyWith(color: AppColors.textTertiary)),
           const SizedBox(width: 8),
-          Icon(forecast.icon, size: 20, color: Colors.amber),
+          Icon(_weatherTypeIcon(weatherType), size: 20, color: _weatherTypeColor(weatherType)),
         ],
       ),
     );
   }
-}
-
-class WeatherForecast {
-  final String day;
-  final int percentage;
-  final int tempHigh;
-  final int tempLow;
-  final IconData icon;
-
-  WeatherForecast({
-    required this.day,
-    required this.percentage,
-    required this.tempHigh,
-    required this.tempLow,
-    required this.icon,
-  });
 }
 
 class GaugePainter extends CustomPainter {

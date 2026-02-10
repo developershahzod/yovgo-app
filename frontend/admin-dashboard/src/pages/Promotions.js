@@ -46,67 +46,21 @@ const Promotions = () => {
   const fetchPromotions = async () => {
     try {
       setLoading(true);
-      
-      // Mock data - replace with actual API call
-      const mockPromotions = [
-        {
-          id: '1',
-          code: 'SUMMER2024',
-          description: 'Summer special discount',
-          discount_type: 'percentage',
-          discount_value: 20,
-          max_uses: 100,
-          used_count: 45,
-          valid_from: '2024-06-01',
-          valid_until: '2024-08-31',
-          is_active: true,
-          created_at: '2024-05-15'
-        },
-        {
-          id: '2',
-          code: 'NEWUSER50',
-          description: 'New user welcome discount',
-          discount_type: 'fixed',
-          discount_value: 50000,
-          max_uses: 500,
-          used_count: 234,
-          valid_from: '2024-01-01',
-          valid_until: '2024-12-31',
-          is_active: true,
-          created_at: '2024-01-01'
-        },
-        {
-          id: '3',
-          code: 'PREMIUM15',
-          description: '15% off premium plans',
-          discount_type: 'percentage',
-          discount_value: 15,
-          max_uses: 200,
-          used_count: 189,
-          valid_from: '2024-11-01',
-          valid_until: '2024-12-31',
-          is_active: true,
-          created_at: '2024-10-25'
-        },
-        {
-          id: '4',
-          code: 'EXPIRED10',
-          description: 'Expired promotion',
-          discount_type: 'percentage',
-          discount_value: 10,
-          max_uses: 50,
-          used_count: 50,
-          valid_from: '2024-01-01',
-          valid_until: '2024-06-30',
-          is_active: false,
-          created_at: '2024-01-01'
-        }
-      ];
-
-      setPromotions(mockPromotions);
+      const response = await axios.get(`${API_URL}/api/admin/promotions`);
+      const data = response.data || [];
+      setPromotions(data.map(p => ({
+        ...p,
+        used_count: p.used_count || p.usage_count || 0,
+        max_uses: p.max_uses || p.usage_limit || 100,
+        discount_type: p.discount_type || (p.discount_percentage ? 'percentage' : 'fixed'),
+        discount_value: p.discount_value || p.discount_percentage || p.discount_amount || 0,
+        valid_from: p.valid_from || p.start_date || p.created_at,
+        valid_until: p.valid_until || p.end_date || '',
+      })));
     } catch (error) {
       console.error('Error fetching promotions:', error);
-      setError('Failed to load promotions');
+      // If API returns empty or error, show empty state
+      setPromotions([]);
     } finally {
       setLoading(false);
     }

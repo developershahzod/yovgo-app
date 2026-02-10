@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMerchantAuth } from '../context/MerchantAuthContext';
-import { Building2, Phone, Lock, ArrowRight, AlertCircle, Store } from 'lucide-react';
+import { Building2, Mail, Lock, ArrowRight, AlertCircle, Store, Eye, EyeOff } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 
 const MerchantLogin = () => {
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [pinCode, setPinCode] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useMerchantAuth();
@@ -18,7 +19,7 @@ const MerchantLogin = () => {
     setError('');
     setLoading(true);
 
-    const result = await login(phoneNumber, pinCode);
+    const result = await login(email, password);
 
     if (result.success) {
       navigate('/dashboard');
@@ -95,16 +96,16 @@ const MerchantLogin = () => {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                Phone Number
+                Email
               </label>
               <div className="relative">
-                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
-                  type="tel"
-                  value={phoneNumber}
-                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="+998901234567"
+                  placeholder="merchant@example.com"
                   required
                 />
               </div>
@@ -113,23 +114,29 @@ const MerchantLogin = () => {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  PIN Code
+                  Password
                 </label>
                 <button type="button" className="text-sm text-emerald-600 hover:underline">
-                  Forgot PIN?
+                  Forgot password?
                 </button>
               </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
-                  type="password"
-                  value={pinCode}
-                  onChange={(e) => setPinCode(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="••••••"
-                  maxLength="6"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background pl-10 pr-10 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="••••••••"
                   required
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
               </div>
             </div>
 
@@ -155,10 +162,10 @@ const MerchantLogin = () => {
           <Card className="border-dashed">
             <CardContent className="pt-6">
               <div className="text-center space-y-2">
-                <p className="text-sm text-muted-foreground">Test Credentials</p>
+                <p className="text-sm text-muted-foreground">Demo Credentials</p>
                 <div className="font-mono text-xs space-y-1">
-                  <p className="text-foreground">+998901111111</p>
-                  <p className="text-muted-foreground">PIN: 1234</p>
+                  <p className="text-foreground">crystal@test.com</p>
+                  <p className="text-muted-foreground">merchant123</p>
                 </div>
               </div>
             </CardContent>

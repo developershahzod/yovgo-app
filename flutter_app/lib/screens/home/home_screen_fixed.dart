@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'dart:ui';
+import 'package:geolocator/geolocator.dart';
 import '../../config/app_theme.dart';
+import '../../services/full_api_service.dart';
+import '../../l10n/language_provider.dart';
 
 class HomeScreenFixed extends StatefulWidget {
   const HomeScreenFixed({Key? key}) : super(key: key);
@@ -11,6 +14,145 @@ class HomeScreenFixed extends StatefulWidget {
 }
 
 class _HomeScreenFixedState extends State<HomeScreenFixed> {
+  // Auth state
+  bool _isLoggedIn = false;
+
+  // Subscription data
+  bool _hasSubscription = false;
+  String _planName = '';
+  String _endDate = '';
+  int _usedVisits = 0;
+  int _totalVisits = 0;
+  int _savedAmount = 0;
+
+  // Car washes
+  List<Map<String, dynamic>> _nearbyCarWashes = [];
+
+  // Recent visits
+  List<Map<String, dynamic>> _recentVisits = [];
+
+  // Weather
+  Map<String, dynamic>? _weatherData;
+
+  // Promo plan for banner
+  Map<String, dynamic>? _promoPlan;
+
+  // User location
+  double _userLat = 41.311;
+  double _userLng = 69.279;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadHomeData();
+  }
+
+  Future<void> _getUserLocation() async {
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+        return; // Use default Tashkent coords
+      }
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.medium,
+      );
+      if (mounted) {
+        setState(() {
+          _userLat = position.latitude;
+          _userLng = position.longitude;
+        });
+      }
+    } catch (_) {
+      // Geolocation not available — use default Tashkent coords
+    }
+  }
+
+  Future<void> _loadHomeData() async {
+    // Get user location first
+    await _getUserLocation();
+
+    // Check auth
+    final loggedIn = await FullApiService.isLoggedIn();
+    if (mounted) setState(() => _isLoggedIn = loggedIn);
+
+    // Load subscription
+    try {
+      final sub = await FullApiService.getSubscriptionStatus();
+      if (mounted && sub != null && sub['status'] == 'active') {
+        setState(() {
+          _hasSubscription = true;
+          _planName = sub['plan_name'] ?? '';
+          _usedVisits = sub['used_visits'] ?? 0;
+          _totalVisits = sub['total_visits'] ?? 0;
+          _savedAmount = (_usedVisits * 15000);
+          if (sub['end_date'] != null) {
+            try {
+              final dt = DateTime.parse(sub['end_date']);
+              final months = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+              _endDate = '${months[dt.month - 1]} ${dt.day}';
+            } catch (_) {
+              _endDate = sub['end_date'] ?? '';
+            }
+          }
+        });
+      }
+    } catch (_) {}
+
+    // Load weather with real location
+    try {
+      final weather = await FullApiService.getWeatherData(
+        latitude: _userLat,
+        longitude: _userLng,
+      );
+      if (mounted) setState(() => _weatherData = weather);
+    } catch (_) {}
+
+    // Load promo plan (best value plan for banner)
+    try {
+      final resp = await FullApiService.get('/api/mobile/subscriptions/plans');
+      if (mounted && resp.statusCode == 200) {
+        final plans = (resp.data['plans'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        if (plans.isNotEmpty) {
+          // Pick the plan with the most duration_days (best value)
+          plans.sort((a, b) => (b['duration_days'] ?? 0).compareTo(a['duration_days'] ?? 0));
+          setState(() => _promoPlan = plans.first);
+        }
+      }
+    } catch (_) {}
+
+    // Load nearby car washes with real location
+    try {
+      final resp = await FullApiService.get('/api/mobile/car-washes/nearby', queryParameters: {'latitude': _userLat, 'longitude': _userLng});
+      if (mounted && resp.statusCode == 200) {
+        final partners = (resp.data['partners'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        setState(() => _nearbyCarWashes = partners);
+      }
+    } catch (_) {}
+
+    // Load recent visits (only for logged-in users)
+    if (_isLoggedIn) {
+      try {
+        final visits = await FullApiService.getVisitHistory(limit: 3);
+        if (mounted) setState(() => _recentVisits = visits.cast<Map<String, dynamic>>());
+      } catch (_) {}
+    }
+  }
+
+  String _formatNumber(int n) {
+    final str = n.toString();
+    final buffer = StringBuffer();
+    int count = 0;
+    for (int i = str.length - 1; i >= 0; i--) {
+      buffer.write(str[i]);
+      count++;
+      if (count % 3 == 0 && i > 0) buffer.write(' ');
+    }
+    return buffer.toString().split('').reversed.join();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -22,17 +164,17 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
             children: [
               _buildTopBar(),
               const SizedBox(height: 16),
-              _buildPremiumCard(),
-              const SizedBox(height: 16),
+              if (_hasSubscription) _buildPremiumCard(),
+              if (_hasSubscription) const SizedBox(height: 16),
               _buildWeatherWidget(),
               const SizedBox(height: 16),
-              _buildSubscriptionBanner(),
-              const SizedBox(height: 16),
+              if (!_hasSubscription) _buildSubscriptionBanner(),
+              if (!_hasSubscription) const SizedBox(height: 16),
               _buildCategoriesSection(),
               const SizedBox(height: 24),
               _buildNearestCarWashesSection(),
-              const SizedBox(height: 24),
-              _buildRecentVisitsSection(),
+              if (_isLoggedIn) const SizedBox(height: 24),
+              if (_isLoggedIn) _buildRecentVisitsSection(),
               const SizedBox(height: 120),
             ],
           ),
@@ -170,7 +312,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
                 child: Column(
                   children: [
                     // Top section
@@ -213,7 +355,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                             const SizedBox(height: 8),
                             // 90 kunlik
                             Text(
-                              '90 kunlik',
+                              _planName.isNotEmpty ? _planName : '90 kunlik',
                               style: TextStyle(
                                 color: const Color(0xFFFFEEEA),
                                 fontSize: 20,
@@ -224,7 +366,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                             const SizedBox(height: 4),
                             // Tugaydi
                             Text(
-                              'Tugaydi: Yanvar 15',
+                              _endDate.isNotEmpty ? '${context.tr('sub_expires')}: $_endDate' : '${context.tr('sub_expires')}: ---',
                               style: TextStyle(
                                 color: const Color(0xFFFFEEEA),
                                 fontSize: 12,
@@ -274,7 +416,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Tejalgan pul',
+                                      context.tr('saved_money'),
                                       style: TextStyle(
                                         color: const Color(0xFFFFEEEA),
                                         fontSize: 12,
@@ -288,7 +430,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                       textBaseline: TextBaseline.alphabetic,
                                       children: [
                                         Text(
-                                          '120 000',
+                                          _formatNumber(_savedAmount),
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 16,
@@ -298,7 +440,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                         ),
                                         const SizedBox(width: 2),
                                         Text(
-                                          'so\'m',
+                                          context.tr('currency'),
                                           style: TextStyle(
                                             color: Colors.white,
                                             fontSize: 14,
@@ -339,7 +481,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Shu oy tashriflari',
+                                      context.tr('monthly_visits'),
                                       style: TextStyle(
                                         color: const Color(0xFFFFEEEA),
                                         fontSize: 12,
@@ -352,7 +494,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                       text: TextSpan(
                                         children: [
                                           TextSpan(
-                                            text: '8/',
+                                            text: '$_usedVisits/',
                                             style: TextStyle(
                                               color: const Color(0xFFFFEEEA),
                                               fontSize: 16,
@@ -361,7 +503,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                             ),
                                           ),
                                           TextSpan(
-                                            text: '12',
+                                            text: '$_totalVisits',
                                             style: TextStyle(
                                               color: const Color(0xFFFFEEEA),
                                               fontSize: 12,
@@ -391,90 +533,103 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
   }
 
   Widget _buildWeatherWidget() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Wash rating section
-            Row(
-              children: [
-                // Gauge
-                SizedBox(
-                  width: 60,
-                  height: 38,
-                  child: CustomPaint(
-                    painter: GaugePainter(92),
+    final washRating = _weatherData?['wash_rating'] ?? 0;
+    final recommendation = _weatherData?['recommendation'] ?? context.tr('home_weather_good');
+    final forecast = (_weatherData?['forecast'] as List?) ?? [];
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(context, '/wash-rating', arguments: _weatherData);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 20,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Wash rating section
+              Row(
+                children: [
+                  // Gauge
+                  SizedBox(
+                    width: 60,
+                    height: 38,
+                    child: CustomPaint(
+                      painter: GaugePainter(washRating is int ? washRating : (washRating as num).toInt()),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                // Content
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              'Yuvish reytingi',
-                              style: TextStyle(
-                                color: AppTheme.textPrimary,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w900,
-                                fontFamily: 'Mulish',
+                  const SizedBox(width: 12),
+                  // Content
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                context.tr('home_weather_title'),
+                                style: TextStyle(
+                                  color: AppTheme.textPrimary,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w900,
+                                  fontFamily: 'Mulish',
+                                ),
                               ),
                             ),
-                          ),
-                          Icon(
-                            Icons.chevron_right,
-                            size: 24,
-                            color: const Color(0xFF8F96A0),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '3 kun davomida yog\'ingarchilik kutilmaydi. Yuvish uchun mukammal havo!',
-                        style: TextStyle(
-                          color: const Color(0xFF8F96A0),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                          fontFamily: 'Mulish',
+                            Icon(
+                              Icons.chevron_right,
+                              size: 24,
+                              color: const Color(0xFF8F96A0),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Text(
+                          recommendation,
+                          style: TextStyle(
+                            color: const Color(0xFF8F96A0),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            fontFamily: 'Mulish',
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            // Weather forecast days
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildDayForecast('11', 'sunny', '+24°', '92%', true),
-                _buildDayForecast('12', 'sunny', '+24°', '85%', false),
-                _buildDayForecast('13', 'sunny', '+24°', '98%', false),
-                _buildDayForecast('14', 'rain', '+24°', '36%', false),
-                _buildDayForecast('15', 'cloudy', '+24°', '24%', false),
-                _buildDayForecast('16', 'cloudy', '+24°', '12%', false),
-              ],
-            ),
-          ],
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Weather forecast days
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (int i = 0; i < forecast.length && i < 6; i++)
+                    _buildDayForecast(
+                      forecast[i]['day']?.toString() ?? '',
+                      forecast[i]['weather']?.toString() ?? 'sunny',
+                      forecast[i]['temp']?.toString() ?? '',
+                      '${forecast[i]['wash_rating'] ?? 0}%',
+                      i == 0,
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -532,10 +687,20 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
     switch (type) {
       case 'sunny':
         return Icon(Icons.wb_sunny, color: Colors.amber, size: 24);
-      case 'rain':
-        return Icon(Icons.grain, color: AppTheme.primaryCyan, size: 24);
+      case 'partly_cloudy':
+        return Icon(Icons.wb_cloudy, color: Colors.orange, size: 24);
       case 'cloudy':
         return Icon(Icons.cloud, color: Colors.grey, size: 24);
+      case 'drizzle':
+        return Icon(Icons.grain, color: Colors.blueGrey, size: 24);
+      case 'rain':
+        return Icon(Icons.water_drop, color: AppTheme.primaryCyan, size: 24);
+      case 'snow':
+        return Icon(Icons.ac_unit, color: Colors.lightBlue, size: 24);
+      case 'thunderstorm':
+        return Icon(Icons.flash_on, color: Colors.deepOrange, size: 24);
+      case 'fog':
+        return Icon(Icons.blur_on, color: Colors.grey, size: 24);
       default:
         return Icon(Icons.wb_sunny, color: Colors.amber, size: 24);
     }
@@ -547,11 +712,17 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
       child: Row(
         children: [
           Expanded(
-            child: _buildCategoryCard('Premium avto\nmoykalar', 'assets/images/af4f3f12083748892aa8cce089849a9c6258d073.png'),
+            child: GestureDetector(
+              onTap: () => Navigator.pushNamed(context, '/map', arguments: {'filter': 'premium'}),
+              child: _buildCategoryCard(context.tr('premium_car_washes'), 'assets/images/af4f3f12083748892aa8cce089849a9c6258d073.png'),
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: _buildCategoryCard('Yangi avto\nmoykalar', 'assets/images/72736a3105b93be09268e4ff3f9cf58a4e3a202e.png'),
+            child: GestureDetector(
+              onTap: () => Navigator.pushNamed(context, '/map', arguments: {'filter': 'new'}),
+              child: _buildCategoryCard(context.tr('new_car_washes'), 'assets/images/72736a3105b93be09268e4ff3f9cf58a4e3a202e.png'),
+            ),
           ),
         ],
       ),
@@ -619,7 +790,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Eng yaqin avto moykalar',
+                context.tr('home_nearest'),
                 style: TextStyle(
                   color: AppTheme.textPrimary,
                   fontSize: 20,
@@ -630,7 +801,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
               TextButton(
                 onPressed: () {},
                 child: Text(
-                  'Hammasi',
+                  context.tr('home_see_all'),
                   style: TextStyle(
                     color: AppTheme.primaryCyan,
                     fontSize: 14,
@@ -645,31 +816,36 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
         const SizedBox(height: 12),
         // Car wash cards
         SizedBox(
-          height: 300,
+          height: 310,
           child: ListView(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            children: [
-              _buildCarWashCard(
-                'Black Star Car Wash',
-                'Matbuotchilar Street 32, Tashkent',
-                '500 m',
-                4.6,
-                '22:00 GACHA OCHIQ',
-                true,
-                'assets/images/194b66145883c040db1229c8b27859f09f39f78f.png',
-              ),
-              const SizedBox(width: 12),
-              _buildCarWashCard(
-                'Wash N Go Car Wash',
-                'Tutzor mahallasi, 35 uy',
-                '900 m',
-                4.6,
-                'YOPIQ 8:00 GACHA',
-                false,
-                'assets/images/4b1424abcdb0e2bc7c588b386fefdd18f7346127.png',
-              ),
-            ],
+            children: _nearbyCarWashes.isNotEmpty
+              ? _nearbyCarWashes.take(5).map((p) {
+                  final distKm = p['distance'] != null ? (p['distance'] as num).toDouble() : 0.0;
+                  final dist = p['distance'] != null
+                      ? (distKm < 1 ? '${(distKm * 1000).toInt()} m' : '${distKm.toStringAsFixed(1)} km')
+                      : '';
+                  final imageUrl = p['image_url'] ?? p['photo_url'] ?? '';
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: _buildCarWashCard(
+                      p['name'] ?? 'Car Wash',
+                      p['address'] ?? '',
+                      dist,
+                      (p['rating'] ?? 4.5).toDouble(),
+                      p['is_open'] == true ? '22:00 ${context.tr('open_until')}' : context.tr('detail_closed'),
+                      p['is_open'] == true,
+                      imageUrl,
+                      partnerData: p,
+                    ),
+                  );
+                }).toList()
+              : [
+                  _buildCarWashCard('Black Star Car Wash', 'Matbuotchilar Street 32, Tashkent', '500 m', 4.6, '22:00 ${context.tr('open_until')}', true, ''),
+                  const SizedBox(width: 12),
+                  _buildCarWashCard('Wash N Go Car Wash', 'Tutzor mahallasi, 35 uy', '900 m', 4.6, context.tr('detail_closed'), false, ''),
+                ],
           ),
         ),
       ],
@@ -683,35 +859,33 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
     double rating,
     String status,
     bool isOpen,
-    String imagePath,
-  ) {
+    String imagePath, {
+    Map<String, dynamic>? partnerData,
+  }) {
     return GestureDetector(
       onTap: () {
-        Navigator.push(
+        Navigator.pushNamed(
           context,
-          MaterialPageRoute(
-            builder: (context) => CarWashDetailPage(
-              name: name,
-              address: address,
-              distance: distance,
-              rating: rating,
-              status: status,
-              isOpen: isOpen,
-              imagePath: imagePath,
-            ),
-          ),
+          '/car-wash-detail',
+          arguments: partnerData ?? {
+            'name': name,
+            'address': address,
+            'rating': rating,
+            'status': status,
+            'is_open': isOpen,
+          },
         );
       },
       child: Container(
-        width: 245,
+        width: 300,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -726,19 +900,37 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                   topLeft: Radius.circular(24),
                   topRight: Radius.circular(24),
                 ),
-                child: Image.asset(
-                  imagePath,
-                  width: 245,
-                  height: 160,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 245,
-                      height: 160,
-                      color: AppTheme.lightGray,
-                    );
-                  },
-                ),
+                child: imagePath.startsWith('http')
+                  ? Image.network(
+                      imagePath,
+                      width: 300,
+                      height: 180,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 300,
+                          height: 180,
+                          decoration: BoxDecoration(
+                            color: AppTheme.lightGray,
+                            image: const DecorationImage(
+                              image: AssetImage('assets/images/194b66145883c040db1229c8b27859f09f39f78f.png'),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                  : Container(
+                      width: 300,
+                      height: 180,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1A2332),
+                        image: const DecorationImage(
+                          image: AssetImage('assets/images/194b66145883c040db1229c8b27859f09f39f78f.png'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
               ),
               // Rating badge
               Positioned(
@@ -765,6 +957,24 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                       ),
                     ],
                   ),
+                ),
+              ),
+              // Carousel dots
+              Positioned(
+                bottom: 12,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(5, (i) => Container(
+                    width: i == 0 ? 16 : 6,
+                    height: 6,
+                    margin: const EdgeInsets.symmetric(horizontal: 2),
+                    decoration: BoxDecoration(
+                      color: i == 0 ? Colors.white : Colors.white.withOpacity(0.5),
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  )),
                 ),
               ),
             ],
@@ -1228,123 +1438,200 @@ class GaugePainter extends CustomPainter {
 }
 
 extension HomeScreenMethods on _HomeScreenFixedState {
+  String _formatPrice(num price) {
+    final str = price.toInt().toString();
+    final buffer = StringBuffer();
+    int count = 0;
+    for (int i = str.length - 1; i >= 0; i--) {
+      buffer.write(str[i]);
+      count++;
+      if (count % 3 == 0 && i > 0) buffer.write(' ');
+    }
+    return buffer.toString().split('').reversed.join();
+  }
+
   Widget _buildSubscriptionBanner() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [
-              const Color(0xFF0A2A3A),
-              const Color(0xFF006B8F),
-            ],
+    if (_promoPlan == null) {
+      // Fallback: show static banner that navigates to subscriptions
+      return _buildStaticBanner();
+    }
+
+    final plan = _promoPlan!;
+    final price = (plan['price'] ?? 0) as num;
+    final days = plan['duration_days'] ?? 90;
+    final name = plan['name'] ?? '';
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(context, '/checkout', arguments: plan);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                const Color(0xFF0A2A3A),
+                const Color(0xFF006B8F),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(24),
           ),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '$days kunlik obuna uchun\nmaxsus chegirma',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Mulish',
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '${_formatPrice(price)} so\'m',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'Mulish',
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      name,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 13,
+                        fontFamily: 'Mulish',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Column(
                 children: [
-                  Text(
-                    '360 kunlik obuna uchun\nmaxsus chegirma',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'Mulish',
-                      height: 1.3,
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.1),
+                      shape: BoxShape.circle,
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '18 000 000 so\'m',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.5),
-                      fontSize: 14,
-                      fontFamily: 'Mulish',
-                      decoration: TextDecoration.lineThrough,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        '10 800 000 so\'m',
+                    child: Center(
+                      child: Text(
+                        '%',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          fontFamily: 'Mulish',
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFC3E3E),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          '-40%',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'Mulish',
-                          ),
-                        ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      context.tr('home_subscribe_btn'),
+                      style: TextStyle(
+                        color: AppTheme.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Mulish',
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
-            ),
-            Column(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '%',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    'Sotib olish',
-                    style: TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      fontFamily: 'Mulish',
-                    ),
-                  ),
-                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStaticBanner() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(context, '/subscriptions');
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [
+                const Color(0xFF0A2A3A),
+                const Color(0xFF006B8F),
               ],
             ),
-          ],
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.tr('home_subscribe_title'),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Mulish',
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      context.tr('home_subscribe_desc'),
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.7),
+                        fontSize: 13,
+                        fontFamily: 'Mulish',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  context.tr('home_subscribe_btn'),
+                  style: TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    fontFamily: 'Mulish',
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1361,7 +1648,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'So\'nggi tashriflar',
+                context.tr('home_recent'),
                 style: TextStyle(
                   color: AppTheme.textPrimary,
                   fontSize: 20,
@@ -1372,7 +1659,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
               TextButton(
                 onPressed: () {},
                 child: Text(
-                  'Hammasi',
+                  context.tr('home_see_all'),
                   style: TextStyle(
                     color: AppTheme.primaryCyan,
                     fontSize: 14,

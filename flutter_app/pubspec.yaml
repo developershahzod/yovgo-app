@@ -28,8 +28,11 @@ dependencies:
   flutter_secure_storage: ^9.0.0
   
   # QR Code
-  qr_code_scanner: ^1.0.1
+  mobile_scanner: ^6.0.2
   qr_flutter: ^4.1.0
+  
+  # Permissions
+  permission_handler: ^11.3.0
   
   # Maps
   google_maps_flutter: ^2.5.0

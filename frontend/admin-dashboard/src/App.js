@@ -16,6 +16,8 @@ import LocationsMap from './pages/LocationsMap';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
 import Visits from './pages/Visits';
+import Notifications from './pages/Notifications';
+import Vehicles from './pages/Vehicles';
 import Layout from './components/LayoutNew';
 
 const ProtectedRoute = ({ children, requiredPermission }) => {
@@ -155,6 +157,24 @@ function App() {
               element={
                 <ProtectedRoute requiredPermission="analytics.read">
                   <Visits />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="notifications"
+              element={
+                <ProtectedRoute requiredPermission="users.read">
+                  <Notifications />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="vehicles"
+              element={
+                <ProtectedRoute requiredPermission="users.read">
+                  <Vehicles />
                 </ProtectedRoute>
               }
             />

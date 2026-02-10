@@ -5,7 +5,7 @@ class AppTheme {
   // Exact colors from Figma/React prototype
   static const Color primaryCyan = Color(0xFF00BFFE);
   static const Color darkNavy = Color(0xFF03142A);
-  static const Color lightBackground = Color(0xFFEEF2F6);
+  static const Color lightBackground = Color(0xFFFFFFFF);
   static const Color white = Color(0xFFFFFFFF);
   static const Color black = Color(0xFF000000);
   static const Color textPrimary = Color(0xFF0A0C13);
@@ -17,6 +17,7 @@ class AppTheme {
   static const Color orange = Color(0xFFFC941A);
   static const Color blue = Color(0xFF1D99F2);
   static const Color lightGray = Color(0xFFF0F4F9);
+  static const Color cardBg = Color(0xFFF2F2F2);
   static const Color borderGray = Color(0xFFD9DDE3);
   static const Color overlayDark = Color(0x99000000);
   static const Color premiumGold = Color(0xFFFFD600);
@@ -29,81 +30,99 @@ class AppTheme {
   static const Color lightRed = Color(0xFFFFEBEB);
   static const Color premiumCardBg = Color(0xFFFFEEEA);
 
+  static TextStyle mulish({
+    double fontSize = 14,
+    FontWeight fontWeight = FontWeight.w400,
+    Color color = textPrimary,
+    double? height,
+    double? letterSpacing,
+  }) {
+    return GoogleFonts.mulish(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color,
+      height: height,
+      letterSpacing: letterSpacing,
+    );
+  }
+
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
       primaryColor: primaryCyan,
-      scaffoldBackgroundColor: lightBackground,
+      scaffoldBackgroundColor: white,
       colorScheme: const ColorScheme.light(
         primary: primaryCyan,
         secondary: darkNavy,
         surface: white,
         error: red,
       ),
-      textTheme: GoogleFonts.interTextTheme().copyWith(
-        displayLarge: GoogleFonts.inter(
+      fontFamily: GoogleFonts.mulish().fontFamily,
+      textTheme: GoogleFonts.mulishTextTheme().copyWith(
+        displayLarge: GoogleFonts.mulish(
           fontSize: 32,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w900,
           color: textPrimary,
         ),
-        displayMedium: GoogleFonts.inter(
+        displayMedium: GoogleFonts.mulish(
           fontSize: 28,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w900,
           color: textPrimary,
         ),
-        displaySmall: GoogleFonts.inter(
+        displaySmall: GoogleFonts.mulish(
           fontSize: 24,
+          fontWeight: FontWeight.w900,
+          color: textPrimary,
+        ),
+        headlineMedium: GoogleFonts.mulish(
+          fontSize: 20,
+          fontWeight: FontWeight.w800,
+          color: textPrimary,
+        ),
+        headlineSmall: GoogleFonts.mulish(
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          color: textPrimary,
+        ),
+        titleLarge: GoogleFonts.mulish(
+          fontSize: 16,
           fontWeight: FontWeight.w700,
           color: textPrimary,
         ),
-        headlineMedium: GoogleFonts.inter(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          color: textPrimary,
-        ),
-        headlineSmall: GoogleFonts.inter(
-          fontSize: 18,
-          fontWeight: FontWeight.w600,
-          color: textPrimary,
-        ),
-        titleLarge: GoogleFonts.inter(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: textPrimary,
-        ),
-        titleMedium: GoogleFonts.inter(
+        titleMedium: GoogleFonts.mulish(
           fontSize: 14,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w700,
           color: textPrimary,
         ),
-        bodyLarge: GoogleFonts.inter(
+        bodyLarge: GoogleFonts.mulish(
           fontSize: 16,
           fontWeight: FontWeight.w400,
           color: textPrimary,
         ),
-        bodyMedium: GoogleFonts.inter(
+        bodyMedium: GoogleFonts.mulish(
           fontSize: 14,
           fontWeight: FontWeight.w400,
           color: textSecondary,
         ),
-        bodySmall: GoogleFonts.inter(
+        bodySmall: GoogleFonts.mulish(
           fontSize: 12,
           fontWeight: FontWeight.w400,
           color: textTertiary,
         ),
-        labelLarge: GoogleFonts.inter(
+        labelLarge: GoogleFonts.mulish(
           fontSize: 14,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w700,
           color: textPrimary,
         ),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: white,
         elevation: 0,
+        scrolledUnderElevation: 0,
         centerTitle: true,
-        titleTextStyle: GoogleFonts.inter(
+        titleTextStyle: GoogleFonts.mulish(
           fontSize: 18,
-          fontWeight: FontWeight.w600,
+          fontWeight: FontWeight.w800,
           color: textPrimary,
         ),
         iconTheme: const IconThemeData(color: textPrimary),
@@ -122,11 +141,11 @@ class AppTheme {
           elevation: 0,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(16),
           ),
-          textStyle: GoogleFonts.inter(
+          textStyle: GoogleFonts.mulish(
             fontSize: 16,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
@@ -146,7 +165,7 @@ class AppTheme {
           borderSide: const BorderSide(color: primaryCyan, width: 2),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-        hintStyle: GoogleFonts.inter(
+        hintStyle: GoogleFonts.mulish(
           fontSize: 14,
           fontWeight: FontWeight.w400,
           color: textTertiary,

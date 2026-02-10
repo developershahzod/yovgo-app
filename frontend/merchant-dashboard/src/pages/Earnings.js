@@ -23,8 +23,9 @@ const Earnings = () => {
       setLoading(true);
       
       // Try to fetch from new merchant earnings API
+      const partnerId = merchant?.partner?.id || merchant?.partner_id;
       const response = await axios.get(
-        `${API_URL}/api/partner/merchant/earnings?partner_id=${merchant?.partner_id}`
+        `${API_URL}/api/partner/merchant/earnings`, { params: { partner_id: partnerId } }
       );
       
       setEarnings({
