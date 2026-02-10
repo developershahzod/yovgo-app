@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Building2, CheckCircle, XCircle, Plus, Edit, MapPin, Phone, Upload, X } from 'lucide-react';
+import { Building2, CheckCircle, XCircle, Plus, Edit, MapPin, Phone, Upload, X, Image, Clock, Star, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 
@@ -15,6 +15,13 @@ const Partners = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [logoPreview, setLogoPreview] = useState('');
+  const [galleryPreviews, setGalleryPreviews] = useState([]);
+  const [merchantForm, setMerchantForm] = useState({
+    email: '',
+    password: '',
+    full_name: '',
+    phone_number: ''
+  });
   const [partnerForm, setPartnerForm] = useState({
     name: '',
     description: '',
@@ -26,7 +33,12 @@ const Partners = () => {
     longitude: 69.2401,
     service_type: 'full_service',
     logo_url: '',
-    is_active: true
+    gallery_urls: [],
+    is_active: true,
+    is_24_hours: false,
+    is_premium: false,
+    working_hours: '08:00 - 22:00',
+    rating: 4.5
   });
   const [staffForm, setStaffForm] = useState({
     phone_number: '',
@@ -71,6 +83,19 @@ const Partners = () => {
     }
   };
 
+  const handleDelete = async (partner) => {
+    if (!window.confirm(`"${partner.name}" partnerni o'chirmoqchimisiz? Bu amalni qaytarib bo'lmaydi!`)) return;
+    try {
+      await axios.delete(`${API_URL}/api/partner/partners/${partner.id}`);
+      setSuccess('Partner o\'chirildi!');
+      fetchPartners();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      console.error('Failed to delete partner:', error);
+      setError(error.response?.data?.detail || 'O\'chirishda xatolik');
+    }
+  };
+
   const handleCreatePartner = () => {
     setEditingPartner(null);
     setPartnerForm({
@@ -84,10 +109,44 @@ const Partners = () => {
       longitude: 69.2401,
       service_type: 'full_service',
       logo_url: '',
-      is_active: true
+      gallery_urls: [],
+      is_active: true,
+      is_24_hours: false,
+      is_premium: false,
+      working_hours: '08:00 - 22:00',
+      rating: 4.5
     });
     setLogoPreview('');
+    setGalleryPreviews([]);
+    setMerchantForm({ email: '', password: '', full_name: '', phone_number: '' });
     setShowModal(true);
+  };
+
+  const handleGalleryUpload = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    try {
+      const formData = new FormData();
+      files.forEach(f => formData.append('files', f));
+      formData.append('category', 'gallery');
+      const res = await axios.post(`${API_URL}/api/upload/images`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      const urls = res.data.urls || [];
+      setGalleryPreviews(prev => [...prev, ...urls]);
+      setPartnerForm(prev => ({ ...prev, gallery_urls: [...(prev.gallery_urls || []), ...urls] }));
+    } catch (err) {
+      console.error('Gallery upload failed:', err);
+      setError('Galereya yuklashda xatolik');
+    }
+  };
+
+  const removeGalleryImage = (index) => {
+    setGalleryPreviews(prev => prev.filter((_, i) => i !== index));
+    setPartnerForm(prev => ({
+      ...prev,
+      gallery_urls: (prev.gallery_urls || []).filter((_, i) => i !== index)
+    }));
   };
 
   const handleEditPartner = async (partner) => {
@@ -103,38 +162,55 @@ const Partners = () => {
       longitude: partner.longitude || 69.2401,
       service_type: partner.service_type || 'full_service',
       logo_url: partner.logo_url || '',
-      is_active: partner.is_active
+      gallery_urls: partner.gallery_urls || [],
+      is_active: partner.is_active,
+      is_24_hours: partner.is_24_hours || false,
+      is_premium: partner.is_premium || false,
+      working_hours: partner.working_hours || '08:00 - 22:00',
+      rating: partner.rating || 4.5
     });
     setLogoPreview(partner.logo_url || '');
+    setGalleryPreviews(partner.gallery_urls || []);
     
-    // Fetch staff credentials for this partner
+    // Fetch merchant user credentials for this partner
     try {
-      const response = await axios.get(`${API_URL}/api/partner/partners/${partner.id}/staff`);
+      const response = await axios.get(`${API_URL}/api/partner/partners/${partner.id}/merchant-users`);
       if (response.data && response.data.length > 0) {
-        const staff = response.data[0]; // Get first staff member
-        setStaffForm({
-          phone_number: staff.phone_number || '',
-          pin_code: '', // Don't show existing PIN for security
-          full_name: staff.full_name || ''
+        const mu = response.data[0];
+        setMerchantForm({
+          email: mu.email || '',
+          password: '',
+          full_name: mu.full_name || '',
+          phone_number: mu.phone_number || ''
         });
+      } else {
+        setMerchantForm({ email: '', password: '', full_name: '', phone_number: '' });
       }
     } catch (error) {
-      console.log('No staff found or error fetching staff');
+      console.log('No merchant user found');
+      setMerchantForm({ email: '', password: '', full_name: '', phone_number: '' });
     }
     
     setShowModal(true);
   };
 
-  const handleLogoUpload = (e) => {
+  const handleLogoUpload = async (e) => {
     const file = e.target.files[0];
     if (file) {
-      // In production, upload to server/cloud storage
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setLogoPreview(reader.result);
-        setPartnerForm({ ...partnerForm, logo_url: reader.result });
-      };
-      reader.readAsDataURL(file);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('category', 'logo');
+        const res = await axios.post(`${API_URL}/api/upload/image`, formData, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        const url = res.data.full_url;
+        setLogoPreview(url);
+        setPartnerForm(prev => ({ ...prev, logo_url: url }));
+      } catch (err) {
+        console.error('Logo upload failed:', err);
+        setError('Logo yuklashda xatolik');
+      }
     }
   };
 
@@ -149,28 +225,62 @@ const Partners = () => {
       if (editingPartner) {
         await axios.put(`${API_URL}/api/partner/partners/${editingPartner.id}`, partnerForm);
         partnerId = editingPartner.id;
-        setSuccess('Partner updated successfully!');
+        
+        // Update merchant user credentials if editing
+        if (showStaffSection && merchantForm.email) {
+          try {
+            await axios.put(`${API_URL}/api/partner/partners/${partnerId}/merchant-users`, {
+              email: merchantForm.email,
+              password: merchantForm.password || undefined,
+              full_name: merchantForm.full_name || partnerForm.name,
+              phone_number: merchantForm.phone_number || partnerForm.phone,
+            });
+            setSuccess('Partner va merchant ma\'lumotlari yangilandi!');
+          } catch (muErr) {
+            // If no merchant user exists yet, create one
+            if (muErr.response?.status === 404 && merchantForm.password) {
+              try {
+                await axios.post(`${API_URL}/api/partner/partners/${partnerId}/merchant-users`, {
+                  email: merchantForm.email,
+                  password: merchantForm.password,
+                  full_name: merchantForm.full_name || partnerForm.name,
+                  phone_number: merchantForm.phone_number || partnerForm.phone,
+                  role: 'owner'
+                });
+                setSuccess('Partner yangilandi va merchant akkaunt yaratildi!');
+              } catch (createErr) {
+                setError('Merchant akkaunt yaratishda xatolik: ' + (createErr.response?.data?.detail || createErr.message));
+                return;
+              }
+            } else {
+              console.error('Failed to update merchant user:', muErr);
+              setSuccess('Partner yangilandi!');
+            }
+          }
+        } else {
+          setSuccess('Partner yangilandi!');
+        }
       } else {
         const response = await axios.post(`${API_URL}/api/partner/partners`, partnerForm);
         partnerId = response.data.id;
-        setSuccess('Partner created successfully!');
-      }
-
-      // Update staff credentials if provided
-      if (editingPartner && showStaffSection && (staffForm.phone_number || staffForm.pin_code)) {
-        try {
-          const staffData = {};
-          if (staffForm.full_name) staffData.full_name = staffForm.full_name;
-          if (staffForm.phone_number) staffData.phone_number = staffForm.phone_number;
-          if (staffForm.pin_code) staffData.pin_code = staffForm.pin_code;
-          
-          await axios.put(`${API_URL}/api/partner/partners/${partnerId}/staff`, staffData);
-          setSuccess('Partner and credentials updated successfully!');
-        } catch (staffError) {
-          console.error('Failed to update staff credentials:', staffError);
-          setError('Partner updated but failed to update credentials');
-          return;
+        
+        // Create merchant user for the new partner
+        if (merchantForm.email && merchantForm.password) {
+          try {
+            await axios.post(`${API_URL}/api/partner/partners/${partnerId}/merchant-users`, {
+              email: merchantForm.email,
+              password: merchantForm.password,
+              full_name: merchantForm.full_name || partnerForm.name,
+              phone_number: merchantForm.phone_number || partnerForm.phone,
+              role: 'owner'
+            });
+          } catch (muErr) {
+            console.error('Failed to create merchant user:', muErr);
+            setError('Partner yaratildi lekin merchant login yaratishda xatolik: ' + (muErr.response?.data?.detail || muErr.message));
+            return;
+          }
         }
+        setSuccess('Partner va merchant akkaunt yaratildi!');
       }
 
       setTimeout(() => {
@@ -294,6 +404,13 @@ const Partners = () => {
                               </button>
                             </>
                           )}
+                          <button
+                            onClick={() => handleDelete(partner)}
+                            className="text-red-500 hover:text-red-700"
+                            title="O'chirish"
+                          >
+                            <Trash2 size={18} />
+                          </button>
                         </div>
                       </td>
                     )}
@@ -549,100 +666,190 @@ const Partners = () => {
                 </p>
               </div>
 
-              {/* Active Status */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="is_active"
-                  checked={partnerForm.is_active}
-                  onChange={(e) => setPartnerForm({ ...partnerForm, is_active: e.target.checked })}
-                  className="w-4 h-4 text-primary border-gray-300 rounded"
-                />
-                <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
-                  Active (visible to users)
+              {/* Gallery Photos */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Image size={16} className="inline mr-1" />
+                  Gallery Photos
                 </label>
+                <div className="flex flex-wrap gap-3 mb-3">
+                  {galleryPreviews.map((img, idx) => (
+                    <div key={idx} className="relative">
+                      <img src={img} alt={`Gallery ${idx + 1}`} className="w-24 h-24 object-cover rounded-lg border" />
+                      <button
+                        type="button"
+                        onClick={() => removeGalleryImage(idx)}
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  <label className="w-24 h-24 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:border-primary-400 hover:bg-gray-50">
+                    <Plus size={20} className="text-gray-400" />
+                    <span className="text-xs text-gray-400 mt-1">Add</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleGalleryUpload}
+                      className="hidden"
+                    />
+                  </label>
+                </div>
+                <p className="text-xs text-gray-500">Upload photos of the car wash (exterior, interior, equipment)</p>
               </div>
 
-              {/* Staff Credentials Section */}
-              {editingPartner && (
-                <div className="border-t pt-4 mt-4">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Merchant Dashboard Access
-                    </h3>
+              {/* Working Hours */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Clock size={14} className="inline mr-1" />
+                    Working Hours
+                  </label>
+                  <input
+                    type="text"
+                    value={partnerForm.working_hours}
+                    onChange={(e) => setPartnerForm({ ...partnerForm, working_hours: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    placeholder="08:00 - 22:00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <Star size={14} className="inline mr-1" />
+                    Initial Rating
+                  </label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="0"
+                    max="5"
+                    value={partnerForm.rating}
+                    onChange={(e) => setPartnerForm({ ...partnerForm, rating: parseFloat(e.target.value) || 0 })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              {/* Flags */}
+              <div className="flex flex-wrap gap-6">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="is_active"
+                    checked={partnerForm.is_active}
+                    onChange={(e) => setPartnerForm({ ...partnerForm, is_active: e.target.checked })}
+                    className="w-4 h-4 text-primary border-gray-300 rounded"
+                  />
+                  <label htmlFor="is_active" className="text-sm font-medium text-gray-700">
+                    Active
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="is_24_hours"
+                    checked={partnerForm.is_24_hours}
+                    onChange={(e) => setPartnerForm({ ...partnerForm, is_24_hours: e.target.checked })}
+                    className="w-4 h-4 text-primary border-gray-300 rounded"
+                  />
+                  <label htmlFor="is_24_hours" className="text-sm font-medium text-gray-700">
+                    24/7
+                  </label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="is_premium"
+                    checked={partnerForm.is_premium}
+                    onChange={(e) => setPartnerForm({ ...partnerForm, is_premium: e.target.checked })}
+                    className="w-4 h-4 text-primary border-gray-300 rounded"
+                  />
+                  <label htmlFor="is_premium" className="text-sm font-medium text-gray-700">
+                    Premium Partner
+                  </label>
+                </div>
+              </div>
+
+              {/* Merchant Dashboard Access - for both new and existing partners */}
+              <div className="border-t pt-4 mt-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Merchant Dashboard Access
+                  </h3>
+                  {editingPartner && (
                     <button
                       type="button"
                       onClick={() => setShowStaffSection(!showStaffSection)}
                       className="text-sm text-primary-600 hover:text-primary-700 font-medium"
                     >
-                      {showStaffSection ? 'Hide' : 'Edit Credentials'}
+                      {showStaffSection ? 'Yashirish' : 'Tahrirlash'}
                     </button>
-                  </div>
+                  )}
+                </div>
+                <p className="text-sm text-gray-600 mb-4">
+                  merchant.yuvgo.uz ga kirish uchun login va parol
+                </p>
 
-                  {showStaffSection && (
-                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
-                      <p className="text-sm text-blue-800 mb-3">
-                        🔐 Update login credentials for Merchant Dashboard access
-                      </p>
-
+                {(!editingPartner || showStaffSection) && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Staff Name
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Ism *</label>
                         <input
                           type="text"
-                          value={staffForm.full_name}
-                          onChange={(e) => setStaffForm({ ...staffForm, full_name: e.target.value })}
+                          value={merchantForm.full_name}
+                          onChange={(e) => setMerchantForm({ ...merchantForm, full_name: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                          placeholder="Manager Name"
+                          placeholder="Egasi ismi"
                         />
                       </div>
-
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Phone Number (Login)
-                        </label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
                         <input
                           type="tel"
-                          value={staffForm.phone_number}
-                          onChange={(e) => setStaffForm({ ...staffForm, phone_number: e.target.value })}
+                          value={merchantForm.phone_number}
+                          onChange={(e) => setMerchantForm({ ...merchantForm, phone_number: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                           placeholder="+998901234567"
                         />
-                        <p className="text-xs text-gray-500 mt-1">
-                          This phone number will be used to login to Merchant Dashboard
-                        </p>
                       </div>
-
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Login Email *</label>
+                        <input
+                          type="email"
+                          value={merchantForm.email}
+                          onChange={(e) => setMerchantForm({ ...merchantForm, email: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                          placeholder="merchant@example.com"
+                        />
+                      </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
-                          PIN Code (6 digits)
+                          {editingPartner ? 'Yangi parol (bo\'sh qoldiring eski parolni saqlash uchun)' : 'Parol *'}
                         </label>
                         <input
                           type="text"
-                          value={staffForm.pin_code}
-                          onChange={(e) => {
-                            const value = e.target.value.replace(/\D/g, '').slice(0, 6);
-                            setStaffForm({ ...staffForm, pin_code: value });
-                          }}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-lg tracking-widest"
-                          placeholder="123456"
-                          maxLength="6"
+                          value={merchantForm.password}
+                          onChange={(e) => setMerchantForm({ ...merchantForm, password: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono"
+                          placeholder={editingPartner ? 'Yangi parol...' : 'Kamida 6 belgi'}
                         />
-                        <p className="text-xs text-gray-500 mt-1">
-                          Enter a new 6-digit PIN code. Leave empty to keep current PIN.
-                        </p>
-                      </div>
-
-                      <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
-                        <p className="text-xs text-yellow-800">
-                          ⚠️ <strong>Important:</strong> Make sure to share these credentials securely with the merchant.
-                        </p>
                       </div>
                     </div>
-                  )}
-                </div>
-              )}
+                    {editingPartner && (
+                      <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
+                        <p className="text-xs text-yellow-800">
+                          Parolni bo'sh qoldiring agar o'zgartirmoqchi bo'lmasangiz.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
 
               {/* Actions */}
               <div className="flex gap-3 pt-4">

@@ -126,7 +126,7 @@ const PerformanceChart = ({ data }) => {
 };
 
 const DashboardNew = () => {
-  const { merchant } = useMerchantAuth();
+  const { merchant, API_URL } = useMerchantAuth();
   const { t } = useLanguage();
   const navigate = useNavigate();
   const [stats, setStats] = useState({
@@ -137,6 +137,7 @@ const DashboardNew = () => {
     avgDailyVisits: 0,
     weeklyGrowth: 0,
     pendingVisits: 0,
+    rating: 0,
   });
   const [recentVisits, setRecentVisits] = useState([]);
   const [weeklyData, setWeeklyData] = useState([0, 0, 0, 0, 0, 0, 0]);
@@ -150,9 +151,24 @@ const DashboardNew = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
+      const partnerId = merchant?.partner?.id;
 
-      // Get visits from localStorage (simulated data)
-      const allVisits = JSON.parse(localStorage.getItem('merchant_visits') || '[]');
+      let allVisits = [];
+      
+      // Fetch visits from real API
+      if (partnerId) {
+        try {
+          const response = await fetch(`${API_URL}/api/visit/visits?partner_id=${partnerId}`, {
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('merchant_token')}` }
+          });
+          if (response.ok) {
+            allVisits = await response.json();
+            if (!Array.isArray(allVisits)) allVisits = [];
+          }
+        } catch (err) {
+          console.error('API fetch failed, using empty data:', err);
+        }
+      }
       
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -164,7 +180,7 @@ const DashboardNew = () => {
       }).length;
 
       // Calculate unique clients
-      const uniqueClients = new Set(allVisits.map(v => v.user_phone || v.qr_token)).size;
+      const uniqueClients = new Set(allVisits.map(v => v.user_id || v.user_phone || v.qr_token)).size;
 
       // Calculate monthly earnings (50,000 UZS per visit)
       const thisMonth = new Date();
@@ -202,6 +218,18 @@ const DashboardNew = () => {
       const lastWeekVisits = allVisits.filter(v => new Date(v.check_in_time) >= weekAgo).length;
       const weeklyGrowth = allVisits.length > 0 ? Math.round((lastWeekVisits / allVisits.length) * 100) : 0;
 
+      // Fetch real rating
+      let partnerRating = 0;
+      if (partnerId) {
+        try {
+          const ratingRes = await fetch(`${API_URL}/api/mobile/reviews/partner/${partnerId}`);
+          if (ratingRes.ok) {
+            const ratingData = await ratingRes.json();
+            partnerRating = ratingData.average_rating || 0;
+          }
+        } catch (err) { console.log('Rating fetch failed'); }
+      }
+
       setStats({
         todayVisits,
         totalVisits: allVisits.length,
@@ -210,6 +238,7 @@ const DashboardNew = () => {
         avgDailyVisits: parseFloat(avgDailyVisits),
         weeklyGrowth,
         pendingVisits: 0,
+        rating: partnerRating,
       });
 
       setRecentVisits(allVisits.slice(0, 5));
@@ -304,8 +333,6 @@ const DashboardNew = () => {
           title={t('dashboard.todayVisits')}
           value={stats.todayVisits}
           icon={Activity}
-          trend="up"
-          trendValue="+12%"
           color="green"
           subtitle={t('dashboard.today')}
         />
@@ -313,8 +340,6 @@ const DashboardNew = () => {
           title={t('dashboard.totalClients')}
           value={stats.totalClients}
           icon={Users}
-          trend="up"
-          trendValue="+8%"
           color="blue"
           subtitle={t('dashboard.uniqueClients')}
         />
@@ -322,8 +347,6 @@ const DashboardNew = () => {
           title={t('dashboard.monthlyEarnings')}
           value={formatCurrency(stats.monthlyEarnings)}
           icon={DollarSign}
-          trend="up"
-          trendValue="+15%"
           color="orange"
           subtitle={t('dashboard.thisMonth')}
         />
@@ -379,7 +402,7 @@ const DashboardNew = () => {
           {recentVisits.length > 0 && (
             <div className="p-4 border-t border-gray-100">
               <button 
-                onClick={() => navigate('/visit-history')}
+                onClick={() => navigate('/visits')}
                 className="w-full py-2 text-sm font-medium text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors flex items-center justify-center gap-1"
               >
                 {t('dashboard.viewAll')} <ChevronRight size={16} />
@@ -422,7 +445,7 @@ const DashboardNew = () => {
             <div>
               <p className="text-purple-100 text-sm font-medium">{t('dashboard.rating')}</p>
               <p className="text-3xl font-bold mt-2 flex items-center gap-2">
-                4.8 <Star size={24} fill="currentColor" />
+                {stats.rating > 0 ? stats.rating.toFixed(1) : '—'} <Star size={24} fill="currentColor" />
               </p>
               <p className="text-purple-100 text-sm mt-1">{t('dashboard.customerRating')}</p>
             </div>

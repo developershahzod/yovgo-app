@@ -211,6 +211,16 @@ async def list_subscriptions(
     
     return query.offset(skip).limit(limit).all()
 
+@app.delete("/subscriptions/{subscription_id}")
+async def delete_subscription(subscription_id: str, db: Session = Depends(get_db)):
+    """Delete a subscription (admin)"""
+    subscription = db.query(Subscription).filter(Subscription.id == subscription_id).first()
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+    db.delete(subscription)
+    db.commit()
+    return {"message": "Subscription deleted successfully"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8002)

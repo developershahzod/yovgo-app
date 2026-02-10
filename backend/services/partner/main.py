@@ -91,6 +91,16 @@ async def update_partner(
     db.refresh(partner)
     return partner
 
+@app.delete("/partners/{partner_id}")
+async def delete_partner(partner_id: str, db: Session = Depends(get_db)):
+    """Delete a partner"""
+    partner = db.query(Partner).filter(Partner.id == partner_id).first()
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+    db.delete(partner)
+    db.commit()
+    return {"message": "Partner deleted successfully"}
+
 # Location Management
 @app.post("/locations", response_model=PartnerLocationResponse)
 async def add_location(
@@ -305,6 +315,131 @@ async def generate_merchant_qr(partner_id: str, db: Session = Depends(get_db)):
         "generated_at": time.time()
     }
 
+# Merchant User Create Request Model
+class MerchantUserCreateRequest(BaseModel):
+    email: str
+    password: str
+    full_name: str
+    phone_number: str = None
+    role: str = "owner"
+
+# Create Merchant User for a Partner
+@app.post("/partners/{partner_id}/merchant-users")
+async def create_merchant_user(
+    partner_id: str,
+    user_data: MerchantUserCreateRequest,
+    db: Session = Depends(get_db)
+):
+    """Create a merchant user for a partner (used by admin panel)"""
+    from shared.auth import AuthHandler
+    auth_handler = AuthHandler()
+
+    # Verify partner exists
+    partner = db.query(Partner).filter(Partner.id == partner_id).first()
+    if not partner:
+        raise HTTPException(status_code=404, detail="Partner not found")
+
+    # Check if email already exists
+    existing = db.query(MerchantUser).filter(MerchantUser.email == user_data.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    merchant_user = MerchantUser(
+        partner_id=partner_id,
+        email=user_data.email,
+        password_hash=auth_handler.hash_password(user_data.password),
+        full_name=user_data.full_name,
+        phone_number=user_data.phone_number,
+        role=user_data.role,
+        is_active=True
+    )
+    db.add(merchant_user)
+    db.commit()
+    db.refresh(merchant_user)
+
+    return {
+        "id": str(merchant_user.id),
+        "email": merchant_user.email,
+        "full_name": merchant_user.full_name,
+        "role": merchant_user.role,
+        "partner_id": str(partner_id),
+        "message": "Merchant user created successfully"
+    }
+
+# Get Merchant Users for a Partner
+@app.get("/partners/{partner_id}/merchant-users")
+async def get_merchant_users(partner_id: str, db: Session = Depends(get_db)):
+    """Get all merchant users for a partner"""
+    users = db.query(MerchantUser).filter(
+        MerchantUser.partner_id == partner_id,
+        MerchantUser.is_active == True
+    ).all()
+    
+    return [{
+        "id": str(u.id),
+        "email": u.email,
+        "full_name": u.full_name,
+        "phone_number": u.phone_number,
+        "role": u.role,
+    } for u in users]
+
+# Update Merchant User Request Model
+class MerchantUserUpdateRequest(BaseModel):
+    email: str = None
+    password: str = None
+    full_name: str = None
+    phone_number: str = None
+
+# Update Merchant User for a Partner
+@app.put("/partners/{partner_id}/merchant-users")
+async def update_merchant_user(
+    partner_id: str,
+    user_data: MerchantUserUpdateRequest,
+    db: Session = Depends(get_db)
+):
+    """Update merchant user for a partner (used by admin panel)"""
+    from shared.auth import AuthHandler
+    auth_handler = AuthHandler()
+
+    # Find existing merchant user for this partner
+    merchant_user = db.query(MerchantUser).filter(
+        MerchantUser.partner_id == partner_id,
+        MerchantUser.is_active == True
+    ).first()
+    
+    if not merchant_user:
+        raise HTTPException(status_code=404, detail="No merchant user found for this partner")
+
+    if user_data.email:
+        # Check email uniqueness (exclude current user)
+        existing = db.query(MerchantUser).filter(
+            MerchantUser.email == user_data.email,
+            MerchantUser.id != merchant_user.id
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Email already registered by another user")
+        merchant_user.email = user_data.email
+    
+    if user_data.password:
+        merchant_user.password_hash = auth_handler.hash_password(user_data.password)
+    
+    if user_data.full_name:
+        merchant_user.full_name = user_data.full_name
+    
+    if user_data.phone_number:
+        merchant_user.phone_number = user_data.phone_number
+    
+    db.commit()
+    db.refresh(merchant_user)
+
+    return {
+        "id": str(merchant_user.id),
+        "email": merchant_user.email,
+        "full_name": merchant_user.full_name,
+        "phone_number": merchant_user.phone_number,
+        "message": "Merchant user updated successfully"
+    }
+
 # Merchant User Login Request Model
 class MerchantLoginRequest(BaseModel):
     email: str
@@ -381,6 +516,9 @@ class BranchCreate(BaseModel):
     longitude: Optional[float] = None
     working_hours: Optional[dict] = None
     phone_number: Optional[str] = None
+    banner_url: Optional[str] = None
+    gallery_urls: Optional[list] = []
+    service_prices: Optional[list] = []
 
 class BranchUpdate(BaseModel):
     name: Optional[str] = None
@@ -390,6 +528,9 @@ class BranchUpdate(BaseModel):
     longitude: Optional[float] = None
     working_hours: Optional[dict] = None
     phone_number: Optional[str] = None
+    banner_url: Optional[str] = None
+    gallery_urls: Optional[list] = None
+    service_prices: Optional[list] = None
     is_active: Optional[bool] = None
 
 @app.get("/merchant/branches")
@@ -420,6 +561,10 @@ async def get_merchant_branches(partner_id: str, db: Session = Depends(get_db)):
             "latitude": float(branch.latitude) if branch.latitude else None,
             "longitude": float(branch.longitude) if branch.longitude else None,
             "working_hours": branch.working_hours,
+            "phone_number": branch.phone_number,
+            "banner_url": branch.banner_url,
+            "gallery_urls": branch.gallery_urls or [],
+            "service_prices": branch.service_prices or [],
             "is_active": branch.is_active,
             "visit_count": visit_count,
             "staff_count": staff_count,
@@ -445,6 +590,10 @@ async def create_branch(partner_id: str, branch_data: BranchCreate, db: Session 
         latitude=branch_data.latitude,
         longitude=branch_data.longitude,
         working_hours=branch_data.working_hours or {"open": "08:00", "close": "22:00"},
+        phone_number=branch_data.phone_number,
+        banner_url=branch_data.banner_url,
+        gallery_urls=branch_data.gallery_urls or [],
+        service_prices=branch_data.service_prices or [],
         is_active=True
     )
     
@@ -457,7 +606,15 @@ async def create_branch(partner_id: str, branch_data: BranchCreate, db: Session 
         "name": branch.name,
         "address": branch.address,
         "city": branch.city,
+        "phone_number": branch.phone_number,
+        "banner_url": branch.banner_url,
+        "gallery_urls": branch.gallery_urls or [],
+        "service_prices": branch.service_prices or [],
+        "working_hours": branch.working_hours,
         "qr_code": f"BRANCH_{branch.id}",
+        "is_active": True,
+        "visit_count": 0,
+        "staff_count": 0,
         "message": "Branch created successfully"
     }
 
@@ -479,6 +636,13 @@ async def update_branch(branch_id: str, branch_data: BranchUpdate, db: Session =
         "id": str(branch.id),
         "name": branch.name,
         "address": branch.address,
+        "city": branch.city,
+        "phone_number": branch.phone_number,
+        "banner_url": branch.banner_url,
+        "gallery_urls": branch.gallery_urls or [],
+        "service_prices": branch.service_prices or [],
+        "working_hours": branch.working_hours,
+        "is_active": branch.is_active,
         "message": "Branch updated successfully"
     }
 

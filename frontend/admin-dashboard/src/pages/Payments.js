@@ -18,7 +18,8 @@ import {
   RefreshCw,
   Calendar,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Trash2
 } from 'lucide-react';
 
 const Payments = () => {
@@ -98,6 +99,17 @@ const Payments = () => {
       console.error('Error fetching payments:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeletePayment = async (payment) => {
+    if (!window.confirm(`To'lov #${payment.transactionId} ni o'chirmoqchimisiz?`)) return;
+    try {
+      await axios.delete(`${API_URL}/api/payment/payments/${payment.id}`);
+      fetchData();
+    } catch (error) {
+      console.error('Failed to delete payment:', error);
+      alert(error.response?.data?.detail || 'O\'chirishda xatolik');
     }
   };
 
@@ -334,6 +346,9 @@ const Payments = () => {
                             <RefreshCw className="h-4 w-4 text-blue-600" />
                           </Button>
                         )}
+                        <Button variant="ghost" size="sm" title="O'chirish" onClick={() => handleDeletePayment(payment)}>
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
                       </div>
                     </td>
                   </tr>

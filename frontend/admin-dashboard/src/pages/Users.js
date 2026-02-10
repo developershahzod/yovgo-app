@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
-import { Search, UserPlus, X, Eye, Edit, Mail, Phone, Calendar, CheckCircle, XCircle, Smartphone, Car, CreditCard, Activity } from 'lucide-react';
+import { Search, UserPlus, X, Eye, Edit, Mail, Phone, Calendar, CheckCircle, XCircle, Smartphone, Car, CreditCard, Activity, Trash2 } from 'lucide-react';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 
@@ -70,6 +70,17 @@ const Users = () => {
     } catch (error) {
       console.error('Failed to update user:', error);
       alert('Failed to update user');
+    }
+  };
+
+  const handleDelete = async (user) => {
+    if (!window.confirm(`"${user.full_name || user.phone_number}" foydalanuvchini o'chirmoqchimisiz? Bu amalni qaytarib bo'lmaydi!`)) return;
+    try {
+      await axios.delete(`${API_URL}/api/user/users/${user.id}`);
+      fetchUsers();
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      alert(error.response?.data?.detail || 'O\'chirishda xatolik');
     }
   };
 
@@ -200,6 +211,14 @@ const Users = () => {
                       >
                         <Edit size={16} />
                         Edit
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(user)}
+                        className="text-red-500 hover:text-red-700 ml-3 inline-flex items-center gap-1"
+                        title="O'chirish"
+                      >
+                        <Trash2 size={16} />
+                        Delete
                       </button>
                     </td>
                   </tr>

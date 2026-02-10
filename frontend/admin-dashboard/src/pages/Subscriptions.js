@@ -101,6 +101,22 @@ const Subscriptions = () => {
     }
   };
 
+  const handleDeleteSubscription = async (subscription) => {
+    const name = subscription.plan?.name || subscription.id;
+    if (!window.confirm(`"${name}" ni o'chirmoqchimisiz? Bu amalni qaytarib bo'lmaydi!`)) return;
+    try {
+      if (subscription.type === 'plan') {
+        await axios.delete(`${API_URL}/api/subscription/plans/${subscription.id}`);
+      } else {
+        await axios.delete(`${API_URL}/api/subscription/subscriptions/${subscription.id}`);
+      }
+      fetchData();
+    } catch (error) {
+      console.error('Failed to delete:', error);
+      alert(error.response?.data?.detail || 'O\'chirishda xatolik');
+    }
+  };
+
   const getStatusBadge = (status) => {
     const badges = {
       active: 'bg-green-100 text-green-800',
@@ -350,64 +366,72 @@ const Subscriptions = () => {
                 </tr>
               </thead>
               <tbody>
-                {filteredSubscriptions.map((subscription) => (
-                  <tr key={subscription.id} className="border-b hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <div>
-                        <div className="font-medium">{subscription.user.name}</div>
-                        <div className="text-sm text-gray-600">{subscription.user.phone}</div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div>
-                        <div className="font-medium">{subscription.plan.name}</div>
-                        <div className="text-sm text-gray-600">
-                          {subscription.plan.price.toLocaleString()} {subscription.plan.currency}
+                {filteredSubscriptions.map((subscription) => {
+                  const user = subscription.user || {};
+                  const plan = subscription.plan || {};
+                  const status = subscription.status || 'unknown';
+
+                  return (
+                    <tr key={subscription.id} className="border-b hover:bg-gray-50">
+                      <td className="py-3 px-4">
+                        <div>
+                          <div className="font-medium">{user.name || user.full_name || user.phone_number || '—'}</div>
+                          <div className="text-sm text-gray-600">{user.phone || user.phone_number || ''}</div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(subscription.status)}`}>
-                        {getStatusIcon(subscription.status)}
-                        {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-sm">
-                        <div>{new Date(subscription.startDate).toLocaleDateString()}</div>
-                        <div className="text-gray-600">to {new Date(subscription.endDate).toLocaleDateString()}</div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="text-sm">
-                        <div className="font-medium">{subscription.visitsUsed} visits</div>
-                        <div className="text-gray-600">
-                          of {subscription.plan.is_unlimited ? '∞' : subscription.plan.visit_limit}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div>
+                          <div className="font-medium">{plan.name || '—'}</div>
+                          <div className="text-sm text-gray-600">
+                            {plan.price ? `${plan.price.toLocaleString()} ${plan.currency || 'UZS'}` : '—'}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      {subscription.autoRenew ? (
-                        <span className="text-green-600 text-sm">Yes</span>
-                      ) : (
-                        <span className="text-gray-600 text-sm">No</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button variant="ghost" size="sm">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm">
-                          <Trash2 className="h-4 w-4 text-red-600" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${getStatusBadge(status)}`}>
+                          {getStatusIcon(status)}
+                          {status.charAt(0).toUpperCase() + status.slice(1)}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="text-sm">
+                          <div>{subscription.startDate || subscription.start_date ? new Date(subscription.startDate || subscription.start_date).toLocaleDateString() : '—'}</div>
+                          <div className="text-gray-600">
+                            {subscription.endDate || subscription.end_date ? `to ${new Date(subscription.endDate || subscription.end_date).toLocaleDateString()}` : ''}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="text-sm">
+                          <div className="font-medium">{subscription.visitsUsed || subscription.visits_used || 0} visits</div>
+                          <div className="text-gray-600">
+                            of {plan.is_unlimited ? '∞' : (plan.visit_limit || '—')}
+                          </div>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        {(subscription.autoRenew || subscription.auto_renew) ? (
+                          <span className="text-green-600 text-sm">Yes</span>
+                        ) : (
+                          <span className="text-gray-600 text-sm">No</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" onClick={() => handleDeleteSubscription(subscription)} title="O'chirish">
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

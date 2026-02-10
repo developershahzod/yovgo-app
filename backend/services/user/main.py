@@ -338,6 +338,16 @@ async def update_user(
     
     return user
 
+@app.delete("/users/{user_id}")
+async def delete_user(user_id: str, db: Session = Depends(get_db)):
+    """Delete a user (admin)"""
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user)
+    db.commit()
+    return {"message": "User deleted successfully"}
+
 @app.get("/me")
 async def get_current_user_profile(
     db: Session = Depends(get_db),

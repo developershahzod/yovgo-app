@@ -133,6 +133,16 @@ async def get_payment(
     
     return payment
 
+@app.delete("/payments/{payment_id}")
+async def delete_payment(payment_id: str, db: Session = Depends(get_db)):
+    """Delete a payment record (admin)"""
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    db.delete(payment)
+    db.commit()
+    return {"message": "Payment deleted successfully"}
+
 # ==================== IPAKYULIBANK E-COMM INTEGRATION ====================
 
 from pydantic import BaseModel
