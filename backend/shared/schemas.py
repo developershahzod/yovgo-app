@@ -56,7 +56,7 @@ class SubscriptionPlanBase(BaseModel):
     is_unlimited: bool = False
 
 class SubscriptionPlanCreate(SubscriptionPlanBase):
-    pass
+    is_active: bool = True
 
 class SubscriptionPlanResponse(SubscriptionPlanBase):
     id: UUID

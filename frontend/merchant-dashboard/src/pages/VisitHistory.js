@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useMerchantAuth } from '../context/MerchantAuthContext';
-import { Calendar, User, Download, Filter, RefreshCw } from 'lucide-react';
+import { Calendar, User, Download, Filter, RefreshCw, Car } from 'lucide-react';
 
 const VisitHistory = () => {
   const { merchant, API_URL } = useMerchantAuth();
@@ -116,6 +116,7 @@ const VisitHistory = () => {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Клиент</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Машина</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Дата и время</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase">Статус</th>
               </tr>
@@ -131,6 +132,24 @@ const VisitHistory = () => {
                       <div>
                         <p className="font-medium text-gray-900">{visit.user_name || 'Клиент'}</p>
                         <p className="text-sm text-gray-500">{visit.user_phone || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center">
+                        <Car size={20} className="text-gray-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900">{visit.vehicle_plate || '—'}</p>
+                        <div className="flex items-center gap-2">
+                          {visit.vehicle_name && <span className="text-sm text-gray-500">{visit.vehicle_name}</span>}
+                          {visit.vehicle_type && (
+                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold ${visit.vehicle_type === 'crossover' ? 'bg-orange-100 text-orange-700' : 'bg-blue-100 text-blue-700'}`}>
+                              {visit.vehicle_type === 'crossover' ? 'Кроссовер' : 'Легковой'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>

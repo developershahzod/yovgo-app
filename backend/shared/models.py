@@ -26,6 +26,7 @@ class Vehicle(Base):
     model = Column(String(100))
     color = Column(String(50))
     year = Column(Integer)
+    vehicle_type = Column(String(20), default='sedan')
     is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

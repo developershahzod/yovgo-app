@@ -278,6 +278,7 @@ async def get_subscription_plans(
             "price": float(plan.price),
             "duration_days": plan.duration_days,
             "visit_limit": plan.visit_limit,
+            "is_unlimited": plan.is_unlimited or False,
             "features": [
                 f"{plan.visit_limit} ta tashrif" if plan.visit_limit else "Cheksiz tashrif",
                 "Barcha hamkor avtomoykalar",
@@ -429,16 +430,20 @@ async def create_subscription(
 
 # ==================== QR & VISIT ENDPOINTS ====================
 
+class CheckinRequest(BaseModel):
+    qr_token: str
+    vehicle_id: Optional[str] = None
+
 @router.post("/visits/checkin")
 async def qr_checkin(
-    qr_token: str,
+    request: CheckinRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Check in at a car wash using QR code"""
     
-    # TODO: Validate QR token and get partner_id
-    # For now, extract partner_id from token format: MERCHANT_{partner_id}_{timestamp}
+    qr_token = request.qr_token
+    vehicle_id = request.vehicle_id
     
     user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
     
@@ -470,11 +475,21 @@ async def qr_checkin(
     if not subscription.is_unlimited and subscription.visits_remaining is not None and subscription.visits_remaining <= 0:
         raise HTTPException(status_code=400, detail="Visit limit reached")
     
+    # If no vehicle_id provided, try to get user's first active vehicle
+    if not vehicle_id:
+        vehicle = db.query(Vehicle).filter(
+            Vehicle.user_id == user_id,
+            Vehicle.is_active == True
+        ).first()
+        if vehicle:
+            vehicle_id = str(vehicle.id)
+    
     # Create visit
     visit = Visit(
         user_id=user_id,
         partner_id=partner_id,
         subscription_id=subscription.id,
+        vehicle_id=vehicle_id,
         check_in_time=datetime.utcnow(),
         status="completed"
     )
@@ -1284,6 +1299,7 @@ class VehicleCreate(BaseModel):
     model: Optional[str] = None
     color: Optional[str] = None
     year: Optional[int] = None
+    vehicle_type: Optional[str] = 'sedan'
 
 class VehicleUpdate(BaseModel):
     license_plate: Optional[str] = None
@@ -1291,6 +1307,7 @@ class VehicleUpdate(BaseModel):
     model: Optional[str] = None
     color: Optional[str] = None
     year: Optional[int] = None
+    vehicle_type: Optional[str] = None
 
 @router.get("/vehicles/my")
 async def get_my_vehicles(
@@ -1314,6 +1331,7 @@ async def get_my_vehicles(
                 "model": v.model,
                 "color": v.color,
                 "year": v.year,
+                "vehicle_type": getattr(v, 'vehicle_type', 'sedan') or 'sedan',
                 "name": f"{v.brand or ''} {v.model or ''}".strip() or v.license_plate,
                 "created_at": v.created_at.isoformat() if v.created_at else None,
             }
@@ -1337,6 +1355,7 @@ async def create_vehicle(
         model=vehicle_data.model,
         color=vehicle_data.color,
         year=vehicle_data.year,
+        vehicle_type=vehicle_data.vehicle_type or 'sedan',
         is_active=True,
     )
     db.add(vehicle)
@@ -1352,6 +1371,7 @@ async def create_vehicle(
             "model": vehicle.model,
             "color": vehicle.color,
             "year": vehicle.year,
+            "vehicle_type": getattr(vehicle, 'vehicle_type', 'sedan') or 'sedan',
             "name": f"{vehicle.brand or ''} {vehicle.model or ''}".strip() or vehicle.license_plate,
         }
     }
@@ -1416,6 +1436,7 @@ async def get_all_vehicles(
             "model": v.model,
             "color": v.color,
             "year": v.year,
+            "vehicle_type": getattr(v, 'vehicle_type', 'sedan') or 'sedan',
             "name": f"{v.brand or ''} {v.model or ''}".strip() or v.license_plate,
             "user_id": str(v.user_id) if v.user_id else None,
             "user_name": user.full_name if user else None,

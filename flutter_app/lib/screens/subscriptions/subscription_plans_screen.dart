@@ -204,9 +204,18 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.refresh, size: 13, color: const Color(0xFF8F96A0)),
+                      Icon(Icons.local_car_wash, size: 13, color: const Color(0xFF8F96A0)),
                       const SizedBox(width: 4),
-                      const Text('Qayta rasmiylashtirish mumkin', style: TextStyle(fontSize: 11, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
+                      Text(
+                        plan['is_unlimited'] == true
+                            ? 'Cheksiz yuvish'
+                            : '${plan['visit_limit'] ?? '—'} ta yuvish',
+                        style: const TextStyle(fontSize: 11, color: Color(0xFF8F96A0), fontFamily: 'Mulish'),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(Icons.calendar_today, size: 13, color: const Color(0xFF8F96A0)),
+                      const SizedBox(width: 4),
+                      Text('${plan['duration_days'] ?? '—'} kun', style: const TextStyle(fontSize: 11, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
                     ],
                   ),
                 ],

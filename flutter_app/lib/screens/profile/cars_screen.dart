@@ -42,77 +42,147 @@ class _CarsScreenState extends State<CarsScreen> {
     final plateCtrl = TextEditingController();
     final colorCtrl = TextEditingController();
     final yearCtrl = TextEditingController();
+    String selectedType = 'sedan';
 
     final result = await showDialog<bool>(
       context: context,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text('Mashina qo\'shish', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
-                const SizedBox(height: 20),
-                _buildInput('Davlat raqami *', plateCtrl, 'Masalan: 01 A 777 AA'),
-                const SizedBox(height: 12),
-                _buildInput('Marka', brandCtrl, 'Masalan: Chevrolet'),
-                const SizedBox(height: 12),
-                _buildInput('Model', modelCtrl, 'Masalan: Malibu 2'),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(child: _buildInput('Rang', colorCtrl, 'Oq')),
-                    const SizedBox(width: 12),
-                    Expanded(child: _buildInput('Yil', yearCtrl, '2024', isNumber: true)),
-                  ],
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
-                        child: const Text('Bekor qilish', style: TextStyle(fontFamily: 'Mulish', fontWeight: FontWeight.w600)),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setDialogState) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Mashina qo\'shish', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                  const SizedBox(height: 20),
+                  _buildInput('Davlat raqami *', plateCtrl, 'Masalan: 01 A 777 AA'),
+                  const SizedBox(height: 12),
+                  _buildInput('Marka *', brandCtrl, 'Masalan: Chevrolet'),
+                  const SizedBox(height: 12),
+                  _buildInput('Model', modelCtrl, 'Masalan: Malibu 2'),
+                  const SizedBox(height: 12),
+                  // Vehicle type selector
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Mashina turi *', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setDialogState(() => selectedType = 'sedan'),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: selectedType == 'sedan' ? AppTheme.primaryCyan : Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: selectedType == 'sedan' ? AppTheme.primaryCyan : Colors.grey[300]!,
+                                    width: selectedType == 'sedan' ? 2 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(Icons.directions_car, size: 28, color: selectedType == 'sedan' ? Colors.white : AppTheme.textSecondary),
+                                    const SizedBox(height: 4),
+                                    Text('Yengil', style: TextStyle(
+                                      fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Mulish',
+                                      color: selectedType == 'sedan' ? Colors.white : AppTheme.textPrimary,
+                                    )),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => setDialogState(() => selectedType = 'crossover'),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                decoration: BoxDecoration(
+                                  color: selectedType == 'crossover' ? AppTheme.primaryCyan : Colors.white,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: selectedType == 'crossover' ? AppTheme.primaryCyan : Colors.grey[300]!,
+                                    width: selectedType == 'crossover' ? 2 : 1,
+                                  ),
+                                ),
+                                child: Column(
+                                  children: [
+                                    Icon(Icons.airport_shuttle, size: 28, color: selectedType == 'crossover' ? Colors.white : AppTheme.textSecondary),
+                                    const SizedBox(height: 4),
+                                    Text('Krossover', style: TextStyle(
+                                      fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Mulish',
+                                      color: selectedType == 'crossover' ? Colors.white : AppTheme.textPrimary,
+                                    )),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          if (plateCtrl.text.trim().isEmpty) return;
-                          try {
-                            await FullApiService.post('/api/mobile/vehicles', data: {
-                              'license_plate': plateCtrl.text.trim(),
-                              'brand': brandCtrl.text.trim().isNotEmpty ? brandCtrl.text.trim() : null,
-                              'model': modelCtrl.text.trim().isNotEmpty ? modelCtrl.text.trim() : null,
-                              'color': colorCtrl.text.trim().isNotEmpty ? colorCtrl.text.trim() : null,
-                              'year': yearCtrl.text.trim().isNotEmpty ? int.tryParse(yearCtrl.text.trim()) : null,
-                            });
-                            Navigator.pop(ctx, true);
-                          } catch (e) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(
-                              SnackBar(content: Text('Xatolik: $e'), backgroundColor: Colors.red),
-                            );
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primaryCyan,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(child: _buildInput('Rang', colorCtrl, 'Oq')),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildInput('Yil', yearCtrl, '2024', isNumber: true)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: const Text('Bekor qilish', style: TextStyle(fontFamily: 'Mulish', fontWeight: FontWeight.w600)),
                         ),
-                        child: const Text('Qo\'shish', style: TextStyle(color: Colors.white, fontFamily: 'Mulish', fontWeight: FontWeight.w700)),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (plateCtrl.text.trim().isEmpty || brandCtrl.text.trim().isEmpty) return;
+                            try {
+                              await FullApiService.post('/api/mobile/vehicles', data: {
+                                'license_plate': plateCtrl.text.trim(),
+                                'brand': brandCtrl.text.trim().isNotEmpty ? brandCtrl.text.trim() : null,
+                                'model': modelCtrl.text.trim().isNotEmpty ? modelCtrl.text.trim() : null,
+                                'color': colorCtrl.text.trim().isNotEmpty ? colorCtrl.text.trim() : null,
+                                'year': yearCtrl.text.trim().isNotEmpty ? int.tryParse(yearCtrl.text.trim()) : null,
+                                'vehicle_type': selectedType,
+                              });
+                              Navigator.pop(ctx, true);
+                            } catch (e) {
+                              ScaffoldMessenger.of(ctx).showSnackBar(
+                                SnackBar(content: Text('Xatolik: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryCyan,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          ),
+                          child: const Text('Qo\'shish', style: TextStyle(color: Colors.white, fontFamily: 'Mulish', fontWeight: FontWeight.w700)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -293,12 +363,32 @@ class _CarsScreenState extends State<CarsScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  car['license_plate'] ?? '',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: AppTheme.textSecondary,
-                                  ),
+                                Row(
+                                  children: [
+                                    Text(
+                                      car['license_plate'] ?? '',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: AppTheme.textSecondary,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: (car['vehicle_type'] == 'crossover') ? Colors.orange.withOpacity(0.1) : AppTheme.primaryCyan.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        (car['vehicle_type'] == 'crossover') ? 'Krossover' : 'Yengil',
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: (car['vehicle_type'] == 'crossover') ? Colors.orange : AppTheme.primaryCyan,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 if (car['color'] != null || car['year'] != null)
                                   Padding(

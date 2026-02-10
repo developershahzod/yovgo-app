@@ -11,7 +11,7 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from shared.database import get_db, engine
-from shared.models import Visit, Subscription, User, Vehicle, PartnerLocation, PartnerStaff, Base
+from shared.models import Visit, Subscription, User, Vehicle, PartnerLocation, PartnerStaff, Partner, Base
 from shared.schemas import VisitCreate, VisitResponse, QRTokenResponse
 from shared.auth import AuthHandler
 from shared.redis_client import RedisCache
@@ -191,10 +191,11 @@ async def get_visit_history(
     
     visits_data = query.order_by(Visit.check_in_time.desc()).offset(skip).limit(limit).all()
     
-    # Add user info to each visit
+    # Add user info and vehicle info to each visit
     result = []
     for visit in visits_data:
         user = db.query(User).filter(User.id == visit.user_id).first()
+        vehicle = db.query(Vehicle).filter(Vehicle.id == visit.vehicle_id).first() if visit.vehicle_id else None
         visit_dict = {
             "id": visit.id,
             "user_id": visit.user_id,
@@ -209,6 +210,11 @@ async def get_visit_history(
             "user_name": user.full_name if user else None,
             "user_phone": user.phone_number if user else None,
             "user_email": user.email if user else None,
+            "vehicle_plate": vehicle.license_plate if vehicle else None,
+            "vehicle_brand": vehicle.brand if vehicle else None,
+            "vehicle_model": vehicle.model if vehicle else None,
+            "vehicle_type": getattr(vehicle, 'vehicle_type', 'sedan') if vehicle else None,
+            "vehicle_name": f"{vehicle.brand or ''} {vehicle.model or ''}".strip() if vehicle else None,
         }
         result.append(visit_dict)
     
@@ -233,6 +239,7 @@ async def get_today_visits(
     result = []
     for visit in visits:
         user = db.query(User).filter(User.id == visit.user_id).first()
+        vehicle = db.query(Vehicle).filter(Vehicle.id == visit.vehicle_id).first() if visit.vehicle_id else None
         result.append({
             "id": str(visit.id),
             "user_id": str(visit.user_id),
@@ -240,6 +247,11 @@ async def get_today_visits(
             "user_phone": user.phone_number if user else None,
             "check_in_time": visit.check_in_time.isoformat(),
             "status": visit.status,
+            "vehicle_plate": vehicle.license_plate if vehicle else None,
+            "vehicle_brand": vehicle.brand if vehicle else None,
+            "vehicle_model": vehicle.model if vehicle else None,
+            "vehicle_type": getattr(vehicle, 'vehicle_type', 'sedan') if vehicle else None,
+            "vehicle_name": f"{vehicle.brand or ''} {vehicle.model or ''}".strip() if vehicle else None,
         })
     
     return result
