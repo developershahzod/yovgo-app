@@ -20,6 +20,7 @@ try:
         IpakYuliClient, 
         IpakYuliError, 
         IpakYuliWebhookPayload,
+        amount_to_uzs,
         amount_to_tiyin,
         tiyin_to_uzs
     )
@@ -28,6 +29,7 @@ except ImportError:
         IpakYuliClient, 
         IpakYuliError, 
         IpakYuliWebhookPayload,
+        amount_to_uzs,
         amount_to_tiyin,
         tiyin_to_uzs
     )
@@ -197,9 +199,10 @@ async def create_ipakyuli_payment(
     
     try:
         # Create payment link via IpakYuliBank
+        # IMPORTANT: Amount is in UZS (sums), NOT tiyin per API docs
         result = await ipakyuli_client.create_payment_link(
             order_id=order_id,
-            amount=amount_to_tiyin(request.amount),  # Convert to tiyin
+            amount=amount_to_uzs(request.amount),
             description=request.description or f"YuvGO obuna to'lovi - {subscription.id}",
             customer_id=str(user_id),
             customer_phone=user.phone_number if user else None,
@@ -370,7 +373,7 @@ async def pay_with_tokenized_card(
         result = await ipakyuli_client.pay_with_token(
             contract_id=contract_id,
             order_id=order_id,
-            amount=amount_to_tiyin(amount),
+            amount=amount_to_uzs(amount),
             description=f"YuvGO obuna yangilash - {subscription.id}"
         )
         
@@ -431,15 +434,27 @@ async def ipakyuli_webhook(request: Request, db: Session = Depends(get_db)):
     """
     Handle IpakYuliBank payment webhook notifications
     
-    IpakYuliBank will POST to this endpoint when payment status changes.
+    IpakYuliBank sends POST with camelCase fields:
+    - transactionId (transfer_id)
+    - orderId (order_id)
+    - cashboxId
+    - status: success/failed/canceled/expired
+    - amount
+    - sourceAccount (masked card)
+    - details: { description, cardProvider, cardForm }
     """
     data = await request.json()
     
-    transfer_id = data.get("transfer_id")
+    # IpakYuliBank uses camelCase field names
+    transfer_id = data.get("transactionId") or data.get("transfer_id")
     status = data.get("status")
-    order_id = data.get("order_id")
+    order_id = data.get("orderId") or data.get("order_id")
+    amount = data.get("amount")
+    source_account = data.get("sourceAccount")
+    details = data.get("details", {})
     
-    print(f"📥 IpakYuli Webhook: transfer_id={transfer_id}, status={status}")
+    print(f"📥 IpakYuli Webhook: transactionId={transfer_id}, orderId={order_id}, status={status}, amount={amount}, card={source_account}")
+    print(f"📥 Full webhook data: {data}")
     
     # Find payment by transfer_id
     payment = db.query(Payment).filter(
@@ -449,7 +464,8 @@ async def ipakyuli_webhook(request: Request, db: Session = Depends(get_db)):
     if not payment:
         # Try to find by order_id in metadata
         payments = db.query(Payment).filter(
-            Payment.provider.in_(["ipakyuli", "ipakyuli_token"])
+            Payment.provider.in_(["ipakyuli", "ipakyuli_token"]),
+            Payment.status == "pending"
         ).all()
         
         for p in payments:
@@ -457,53 +473,62 @@ async def ipakyuli_webhook(request: Request, db: Session = Depends(get_db)):
                 payment = p
                 break
     
-    if payment:
-        if status == "success":
-            payment.status = "completed"
-            
-            # Activate subscription
-            subscription = db.query(Subscription).filter(
-                Subscription.id == payment.subscription_id
-            ).first()
-            
-            if subscription:
-                subscription.status = "active"
-                # If subscription was pending, set dates
-                if not subscription.start_date:
-                    subscription.start_date = datetime.utcnow()
-                    plan = db.query(SubscriptionPlan).filter(
-                        SubscriptionPlan.id == subscription.plan_id
-                    ).first()
-                    if plan:
-                        subscription.end_date = subscription.start_date + timedelta(days=plan.duration_days)
-                        subscription.visits_remaining = plan.visit_limit or 0
-                        subscription.is_unlimited = plan.is_unlimited
-                
-                # Send success notification
-                try:
-                    from shared.models import Notification
-                    notification = Notification(
-                        user_id=payment.user_id,
-                        title="To'lov muvaffaqiyatli!",
-                        message="Sizning obunangiz faollashtirildi. YuvGO dan foydalanishingiz mumkin!",
-                        type="payment",
-                        channel="push",
-                        sent_at=datetime.utcnow()
-                    )
-                    db.add(notification)
-                except Exception as e:
-                    print(f"Failed to create notification: {e}")
-            
-        elif status in ["failed", "canceled", "expired"]:
-            payment.status = "failed"
-            payment.payment_metadata = {
-                **(payment.payment_metadata or {}),
-                "failure_reason": status,
-                "error_code": data.get("error_code"),
-                "error_message": data.get("error_message")
-            }
+    if not payment:
+        print(f"⚠️ No payment found for transactionId={transfer_id}, orderId={order_id}")
+        return {"code": 0, "message": "OK"}
+    
+    # Update payment with transaction details
+    payment.transaction_id = transfer_id
+    payment.payment_metadata = {
+        **(payment.payment_metadata or {}),
+        "webhook_data": data,
+        "card_provider": details.get("cardProvider"),
+        "source_account": source_account
+    }
+    
+    if status == "success":
+        payment.status = "completed"
         
-        db.commit()
+        # Activate subscription
+        subscription = db.query(Subscription).filter(
+            Subscription.id == payment.subscription_id
+        ).first()
+        
+        if subscription:
+            subscription.status = "active"
+            # If subscription was pending, set dates
+            if not subscription.start_date or subscription.status != "active":
+                subscription.start_date = datetime.utcnow()
+                plan = db.query(SubscriptionPlan).filter(
+                    SubscriptionPlan.id == subscription.plan_id
+                ).first()
+                if plan:
+                    subscription.end_date = subscription.start_date + timedelta(days=plan.duration_days)
+                    subscription.visits_remaining = plan.visit_limit or 0
+                    subscription.is_unlimited = plan.is_unlimited
+            
+            print(f"✅ Subscription {subscription.id} activated until {subscription.end_date}")
+            
+            # Send success notification
+            try:
+                from shared.models import Notification
+                notification = Notification(
+                    user_id=payment.user_id,
+                    title="To'lov muvaffaqiyatli!",
+                    message="Sizning obunangiz faollashtirildi. YuvGO dan foydalanishingiz mumkin!",
+                    type="payment",
+                    channel="push",
+                    sent_at=datetime.utcnow()
+                )
+                db.add(notification)
+            except Exception as e:
+                print(f"Failed to create notification: {e}")
+        
+    elif status in ["failed", "canceled", "expired"]:
+        payment.status = "failed"
+        print(f"❌ Payment {payment.id} failed with status: {status}")
+    
+    db.commit()
     
     # IMPORTANT: Return {"code": 0} to acknowledge webhook
     # Otherwise IpakYuliBank will retry the webhook

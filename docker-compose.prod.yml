@@ -169,7 +169,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=${JWT_SECRET:-your-production-secret-key-change-this}
       # IpakYuliBank E-Comm credentials
-      - IPAKYULI_BASE_URL=https://partner.ecomm.staging.ipakyulibank.uz
+      - IPAKYULI_BASE_URL=https://ecom.ipakyulibank.uz
       - IPAKYULI_ACCESS_TOKEN=${IPAKYULI_ACCESS_TOKEN}
       - IPAKYULI_CASHBOX_ID=${IPAKYULI_CASHBOX_ID}
       - IPAKYULI_MERCHANT_ID=${IPAKYULI_MERCHANT_ID}

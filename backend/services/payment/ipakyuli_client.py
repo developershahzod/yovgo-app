@@ -12,7 +12,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 # Configuration
-IPAKYULI_BASE_URL = os.getenv("IPAKYULI_BASE_URL", "https://partner.ecomm.staging.ipakyulibank.uz")
+IPAKYULI_BASE_URL = os.getenv("IPAKYULI_BASE_URL", "https://ecom.ipakyulibank.uz")
 IPAKYULI_ACCESS_TOKEN = os.getenv("IPAKYULI_ACCESS_TOKEN", "")
 IPAKYULI_CASHBOX_ID = os.getenv("IPAKYULI_CASHBOX_ID", "")
 IPAKYULI_MERCHANT_ID = os.getenv("IPAKYULI_MERCHANT_ID", "")
@@ -54,7 +54,7 @@ class IpakYuliClient:
         """
         Make JSON-RPC 2.0 request to IpakYuliBank API
         """
-        url = f"{self.base_url}/{endpoint}"
+        url = f"{self.base_url}/api/{endpoint}"
         
         payload = {
             "jsonrpc": "2.0",
@@ -72,12 +72,19 @@ class IpakYuliClient:
             response = await client.post(url, json=payload, headers=headers)
             data = response.json()
             
+            print(f"📡 IpakYuli API Response [{response.status_code}]: {data}")
+            
             # Check for JSON-RPC error
             if "error" in data:
                 error = data["error"]
                 raise IpakYuliError(error.get("code", -1), error.get("message", "Unknown error"))
             
-            return data.get("result", {})
+            result = data.get("result", {})
+            # Check for result-level error code
+            if isinstance(result, dict) and result.get("code") == 1:
+                raise IpakYuliError(1, result.get("message", "Request failed"))
+            
+            return result
     
     # ==================== TRANSFER OPERATIONS ====================
     
@@ -345,8 +352,12 @@ class IpakYuliWebhookPayload(BaseModel):
 
 # ==================== HELPER FUNCTIONS ====================
 
+def amount_to_uzs(amount: float) -> int:
+    """Convert amount to integer UZS (API expects amount in sums, not tiyin)"""
+    return int(amount)
+
 def amount_to_tiyin(uzs_amount: float) -> int:
-    """Convert UZS to tiyin (1 UZS = 100 tiyin)"""
+    """Convert UZS to tiyin (1 UZS = 100 tiyin) - NOT used for EPOS API"""
     return int(uzs_amount * 100)
 
 def tiyin_to_uzs(tiyin_amount: int) -> float:
