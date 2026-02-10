@@ -13,7 +13,7 @@ RUN flutter pub get
 COPY . .
 
 # Build for web
-RUN flutter build web --release
+RUN flutter build web --release --pwa-strategy none
 
 # Production stage - Nginx
 FROM nginx:alpine
