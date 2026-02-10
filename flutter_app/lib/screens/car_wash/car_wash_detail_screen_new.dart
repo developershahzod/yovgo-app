@@ -257,7 +257,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // Badges row
-                          _buildBadges(isPremium, isOpen),
+                          _buildBadges(isPremium, isOpen, p),
                           const SizedBox(height: 16),
 
                           // Name
@@ -480,7 +480,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   }
 
   // ─── Badges ───
-  Widget _buildBadges(bool isPremium, bool isOpen) {
+  Widget _buildBadges(bool isPremium, bool isOpen, Map<String, dynamic> p) {
     return Row(
       children: [
         if (isPremium) ...[
