@@ -15,7 +15,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared.database import get_db
-from shared.models import Partner, PartnerLocation, User, Subscription, Visit, SubscriptionPlan, Review
+from shared.models import Partner, PartnerLocation, User, Subscription, Visit, SubscriptionPlan, Review, Payment
 from shared.auth import AuthHandler
 
 # Get current user dependency
@@ -787,6 +787,274 @@ _WEEKDAY_NAMES = {
     "ru": ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
     "en": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
 }
+
+# ==================== PAYMENT ENDPOINTS ====================
+
+class CreatePaymentRequest(BaseModel):
+    subscription_id: str
+    plan_id: Optional[str] = None
+    amount: Optional[float] = None
+
+@router.post("/payments/create")
+async def create_payment_link(
+    request: CreatePaymentRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    """Create IpakYuli payment link for subscription"""
+    import httpx, uuid as _uuid
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+    user = db.query(User).filter(User.id == user_id).first()
+
+    # Get or create subscription
+    subscription = None
+    if request.subscription_id:
+        subscription = db.query(Subscription).filter(Subscription.id == request.subscription_id).first()
+
+    if not subscription and request.plan_id:
+        plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == request.plan_id).first()
+        if not plan:
+            raise HTTPException(status_code=404, detail="Tarif topilmadi")
+        subscription = Subscription(
+            user_id=user_id,
+            plan_id=plan.id,
+            status="pending",
+        )
+        db.add(subscription)
+        db.commit()
+        db.refresh(subscription)
+
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Obuna topilmadi")
+
+    # Determine amount
+    amount = request.amount
+    if not amount:
+        plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == subscription.plan_id).first()
+        amount = float(plan.price) if plan else 0
+
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Noto'g'ri summa")
+
+    order_id = f"YUVGO_{_uuid.uuid4().hex[:12]}"
+
+    # Create payment record
+    payment = Payment(
+        user_id=user_id,
+        subscription_id=subscription.id,
+        amount=amount,
+        provider="ipakyuli",
+        status="pending",
+        payment_metadata={"order_id": order_id},
+    )
+    db.add(payment)
+    db.commit()
+    db.refresh(payment)
+
+    # Call IpakYuli via payment service
+    PAYMENT_SERVICE = os.getenv("PAYMENT_SERVICE_URL", "http://payment_service:8005")
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            # Forward auth header
+            resp = await client.post(
+                f"{PAYMENT_SERVICE}/ipakyuli/create-payment",
+                json={
+                    "subscription_id": str(subscription.id),
+                    "amount": amount,
+                    "description": f"YuvGO obuna to'lovi",
+                    "success_url": "https://app.yuvgo.uz/#/payment-success",
+                    "fail_url": "https://app.yuvgo.uz/#/payment-fail",
+                },
+                headers={"Authorization": f"Bearer {_get_token_from_user(current_user)}"},
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                payment.transaction_id = data.get("transfer_id")
+                db.commit()
+                return {
+                    "success": True,
+                    "payment_id": str(payment.id),
+                    "payment_url": data.get("payment_url"),
+                    "transfer_id": data.get("transfer_id"),
+                    "order_id": order_id,
+                    "amount": amount,
+                }
+            else:
+                # Payment service error — return payment link directly
+                pass
+    except Exception as e:
+        print(f"Payment service error: {e}")
+
+    # Fallback: create payment link directly via IpakYuli API
+    IPAKYULI_BASE_URL = os.getenv("IPAKYULI_BASE_URL", "https://partner.ecomm.staging.ipakyulibank.uz")
+    IPAKYULI_ACCESS_TOKEN = os.getenv("IPAKYULI_ACCESS_TOKEN", "")
+
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            payload = {
+                "jsonrpc": "2.0",
+                "id": str(_uuid.uuid4()),
+                "method": "transfer.create_token",
+                "params": {
+                    "order_id": order_id,
+                    "amount": int(amount * 100),  # tiyin
+                    "details": {"description": f"YuvGO obuna to'lovi"},
+                    "success_url": "https://app.yuvgo.uz/#/payment-success",
+                    "fail_url": "https://app.yuvgo.uz/#/payment-fail",
+                    "customer_id": str(user_id),
+                    "customer_phone": user.phone_number if user else None,
+                },
+            }
+            resp = await client.post(
+                f"{IPAKYULI_BASE_URL}/transfer",
+                json=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {IPAKYULI_ACCESS_TOKEN}",
+                },
+            )
+            data = resp.json()
+            result = data.get("result", {})
+            payment.transaction_id = result.get("transfer_id")
+            db.commit()
+            return {
+                "success": True,
+                "payment_id": str(payment.id),
+                "payment_url": result.get("payment_url"),
+                "transfer_id": result.get("transfer_id"),
+                "order_id": order_id,
+                "amount": amount,
+            }
+    except Exception as e:
+        payment.status = "failed"
+        db.commit()
+        raise HTTPException(status_code=500, detail=f"To'lov yaratishda xatolik: {str(e)}")
+
+
+@router.get("/payments/status/{payment_id}")
+async def get_payment_status(
+    payment_id: str,
+    db: Session = Depends(get_db),
+):
+    """Check payment status"""
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="To'lov topilmadi")
+
+    return {
+        "success": True,
+        "payment_id": str(payment.id),
+        "status": payment.status,
+        "amount": float(payment.amount) if payment.amount else 0,
+        "provider": payment.provider,
+        "transaction_id": payment.transaction_id,
+        "created_at": payment.created_at.isoformat() if payment.created_at else None,
+    }
+
+
+@router.get("/payments/my")
+async def get_my_payments(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    """Get current user's payments"""
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+    payments = (
+        db.query(Payment)
+        .filter(Payment.user_id == user_id)
+        .order_by(Payment.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    return {
+        "success": True,
+        "payments": [
+            {
+                "id": str(p.id),
+                "amount": float(p.amount) if p.amount else 0,
+                "currency": p.currency or "UZS",
+                "status": p.status,
+                "provider": p.provider,
+                "transaction_id": p.transaction_id,
+                "created_at": p.created_at.isoformat() if p.created_at else None,
+            }
+            for p in payments
+        ],
+    }
+
+
+@router.get("/payments/all")
+async def get_all_payments(
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    status: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """Get all payments (admin endpoint)"""
+    from sqlalchemy import func as sqlfunc
+
+    query = db.query(Payment)
+    if status:
+        query = query.filter(Payment.status == status)
+
+    total = query.count()
+    payments = query.order_by(Payment.created_at.desc()).offset(offset).limit(limit).all()
+
+    result = []
+    for p in payments:
+        user = db.query(User).filter(User.id == p.user_id).first()
+        plan_name = ""
+        if p.subscription_id:
+            sub = db.query(Subscription).filter(Subscription.id == p.subscription_id).first()
+            if sub and sub.plan_id:
+                plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == sub.plan_id).first()
+                plan_name = plan.name if plan else ""
+
+        result.append({
+            "id": str(p.id),
+            "user_name": user.full_name if user and user.full_name else (user.phone_number if user else ""),
+            "user_phone": user.phone_number if user else "",
+            "amount": float(p.amount) if p.amount else 0,
+            "currency": p.currency or "UZS",
+            "status": p.status,
+            "provider": p.provider or "ipakyuli",
+            "payment_method": p.payment_method or p.provider or "ipakyuli",
+            "plan_name": plan_name,
+            "transaction_id": p.transaction_id or "",
+            "failure_reason": (p.payment_metadata or {}).get("failure_reason") if p.payment_metadata else None,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+            "updated_at": p.updated_at.isoformat() if p.updated_at else None,
+        })
+
+    # Stats
+    total_revenue = db.query(sqlfunc.sum(Payment.amount)).filter(Payment.status.in_(["completed", "success"])).scalar() or 0
+    total_count = db.query(sqlfunc.count(Payment.id)).scalar() or 0
+    success_count = db.query(sqlfunc.count(Payment.id)).filter(Payment.status.in_(["completed", "success"])).scalar() or 0
+    pending_count = db.query(sqlfunc.count(Payment.id)).filter(Payment.status == "pending").scalar() or 0
+    failed_count = db.query(sqlfunc.count(Payment.id)).filter(Payment.status == "failed").scalar() or 0
+
+    return {
+        "success": True,
+        "payments": result,
+        "total": total,
+        "stats": {
+            "total_revenue": float(total_revenue),
+            "total_count": total_count,
+            "success_count": success_count,
+            "pending_count": pending_count,
+            "failed_count": failed_count,
+        },
+    }
+
+
+def _get_token_from_user(current_user) -> str:
+    """Extract token string for forwarding"""
+    if isinstance(current_user, dict):
+        return current_user.get("token", "")
+    return ""
+
+
+# ==================== WEATHER ENDPOINTS ====================
 
 @router.get("/weather")
 async def get_weather(

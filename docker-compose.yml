@@ -7,7 +7,7 @@ services:
     container_name: yuvgo_postgres
     environment:
       POSTGRES_USER: yuvgo
-      POSTGRES_PASSWORD: yuvgo_password
+      POSTGRES_PASSWORD: yuvgo_secure_password_2024
       POSTGRES_DB: yuvgo_db
     ports:
       - "5433:5432"
@@ -47,7 +47,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_secure_password_2024@postgres:5432/yuvgo_db
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-secret-key-change-in-production
       - ENVIRONMENT=development
@@ -58,6 +58,10 @@ services:
       - PAYMENT_SERVICE_URL=http://payment_service:8005
       - NOTIFICATION_SERVICE_URL=http://notification_service:8006
       - ADMIN_SERVICE_URL=http://admin_service:8007
+      - IPAKYULI_BASE_URL=https://partner.ecomm.staging.ipakyulibank.uz
+      - IPAKYULI_ACCESS_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiI1ODM1YWVkNS05ZjkwLTQ3ZWEtYmVhMS1kNzE5MzI1NGY5N2QiLCJtZXJjaGFudElkIjoiMjE2YjQzNjItOGM4Yi00MjlkLWJlOGItNTJkYmVlZTAzYTNhIiwiaWF0IjoxNzcwMzA5ODQwLCJleHAiOjE4MDE4Njc0NDB9.cH2wXrfc7rmknwO1NqrQIGO4N18vz-CebLsvHRu0Z_Y
+      - IPAKYULI_CASHBOX_ID=5835aed5-9f90-47ea-bea1-d7193254f97d
+      - IPAKYULI_MERCHANT_ID=216b4362-8c8b-429d-be8b-52dbeee03a3a
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,7 +82,7 @@ services:
     ports:
       - "8001:8001"
     environment:
-      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_secure_password_2024@postgres:5432/yuvgo_db
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-secret-key-change-in-production
     depends_on:
@@ -101,7 +105,7 @@ services:
     ports:
       - "8002:8002"
     environment:
-      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_secure_password_2024@postgres:5432/yuvgo_db
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-secret-key-change-in-production
     depends_on:
@@ -122,7 +126,7 @@ services:
     ports:
       - "8003:8003"
     environment:
-      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_secure_password_2024@postgres:5432/yuvgo_db
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-secret-key-change-in-production
     depends_on:
@@ -143,7 +147,7 @@ services:
     ports:
       - "8004:8004"
     environment:
-      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_secure_password_2024@postgres:5432/yuvgo_db
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-secret-key-change-in-production
     depends_on:
@@ -166,7 +170,7 @@ services:
     ports:
       - "8005:8005"
     environment:
-      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_secure_password_2024@postgres:5432/yuvgo_db
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-secret-key-change-in-production
       # IpakYuliBank E-Comm credentials (Staging)
@@ -194,7 +198,7 @@ services:
     ports:
       - "8006:8006"
     environment:
-      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_secure_password_2024@postgres:5432/yuvgo_db
       - REDIS_URL=redis://redis:6379
       - FIREBASE_CREDENTIALS_PATH=/app/firebase-credentials.json
     depends_on:
@@ -215,7 +219,7 @@ services:
     ports:
       - "8007:8007"
     environment:
-      - DATABASE_URL=postgresql://yuvgo:yuvgo_password@postgres:5432/yuvgo_db
+      - DATABASE_URL=postgresql://yuvgo:yuvgo_secure_password_2024@postgres:5432/yuvgo_db
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-secret-key-change-in-production
     depends_on:

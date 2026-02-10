@@ -42,13 +42,16 @@ const Payments = () => {
     try {
       setLoading(true);
       
-      // Fetch real payments from API
+      // Fetch real payments from mobile API
       let realPayments = [];
+      let apiStats = null;
       try {
-        const paymentsRes = await axios.get(`${API_URL}/api/payment/payments`);
-        realPayments = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
+        const paymentsRes = await axios.get(`${API_URL}/api/mobile/payments/all?limit=200`);
+        const data = paymentsRes.data;
+        realPayments = Array.isArray(data.payments) ? data.payments : [];
+        apiStats = data.stats || null;
       } catch (e) {
-        console.log('No payments endpoint or no data');
+        console.log('Payments API error:', e.message);
       }
 
       // Map real payments to display format
@@ -61,7 +64,7 @@ const Payments = () => {
         amount: parseFloat(p.amount) || 0,
         currency: p.currency || 'UZS',
         status: p.status || 'pending',
-        method: p.payment_method || p.provider || 'N/A',
+        method: p.payment_method || p.provider || 'Ipak Yo\'li',
         subscription: p.plan_name || '-',
         date: p.created_at || p.updated_at || new Date().toISOString(),
         transactionId: p.transaction_id || p.id || '-',
@@ -70,18 +73,26 @@ const Payments = () => {
 
       setPayments(mappedPayments);
 
-      // Calculate stats from real data
-      const successful = mappedPayments.filter(p => p.status === 'success' || p.status === 'completed');
-      const pending = mappedPayments.filter(p => p.status === 'pending');
-      const failed = mappedPayments.filter(p => p.status === 'failed');
-      const totalRevenue = successful.reduce((sum, p) => sum + p.amount, 0);
-
-      setStats({
-        totalRevenue,
-        successfulPayments: successful.length,
-        pendingPayments: pending.length,
-        failedPayments: failed.length
-      });
+      // Use API stats if available, otherwise calculate
+      if (apiStats) {
+        setStats({
+          totalRevenue: apiStats.total_revenue || 0,
+          successfulPayments: apiStats.success_count || 0,
+          pendingPayments: apiStats.pending_count || 0,
+          failedPayments: apiStats.failed_count || 0
+        });
+      } else {
+        const successful = mappedPayments.filter(p => p.status === 'success' || p.status === 'completed');
+        const pending = mappedPayments.filter(p => p.status === 'pending');
+        const failed = mappedPayments.filter(p => p.status === 'failed');
+        const totalRevenue = successful.reduce((sum, p) => sum + p.amount, 0);
+        setStats({
+          totalRevenue,
+          successfulPayments: successful.length,
+          pendingPayments: pending.length,
+          failedPayments: failed.length
+        });
+      }
 
     } catch (error) {
       console.error('Error fetching payments:', error);
@@ -351,7 +362,7 @@ const Payments = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {['Click', 'Payme', 'Uzcard'].map((method) => {
+              {['ipakyuli', 'Ipak Yo\'li', 'UzCard', 'Humo'].map((method) => {
                 const count = payments.filter(p => p.method === method && p.status === 'success').length;
                 const total = payments.filter(p => p.status === 'success').length;
                 const percentage = total > 0 ? ((count / total) * 100).toFixed(1) : 0;
