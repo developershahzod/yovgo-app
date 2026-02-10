@@ -40,7 +40,14 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     }
     String? partnerId;
     if (args is String) partnerId = args;
-    if (partnerId != null) {
+
+    // Try to get partner ID from URL query parameter (?id=...)
+    if (partnerId == null) {
+      final uri = Uri.base;
+      partnerId = uri.queryParameters['id'];
+    }
+
+    if (partnerId != null && partnerId.isNotEmpty) {
       try {
         final data = await FullApiService.get('/api/mobile/car-washes/$partnerId');
         if (mounted && data.statusCode == 200) {
@@ -51,6 +58,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
         }
       } catch (_) {}
     }
+    // Fallback: load first nearby partner
     try {
       final data = await FullApiService.get('/api/mobile/car-washes/nearby', queryParameters: {'latitude': 41.311, 'longitude': 69.279});
       if (mounted && data.statusCode == 200) {

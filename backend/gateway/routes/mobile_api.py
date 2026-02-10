@@ -124,7 +124,6 @@ async def get_nearby_car_washes(
 async def get_premium_car_washes(
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
     """Get premium car washes"""
     
@@ -175,11 +174,41 @@ async def get_premium_car_washes(
     }
 
 
+@router.get("/car-washes/search")
+async def search_car_washes(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    """Search car washes by name or address"""
+    
+    partners = db.query(Partner).filter(
+        Partner.is_active == True,
+        (Partner.name.ilike(f"%{q}%") | Partner.address.ilike(f"%{q}%"))
+    ).limit(limit).all()
+    
+    result = []
+    for partner in partners:
+        result.append({
+            "id": str(partner.id),
+            "name": partner.name,
+            "address": partner.address or "",
+            "rating": float(partner.rating) if partner.rating else 0,
+            "is_open": is_currently_open(partner),
+            "image_url": getattr(partner, 'logo_url', None) or '',
+        })
+    
+    return {
+        "success": True,
+        "partners": result,
+        "count": len(result)
+    }
+
+
 @router.get("/car-washes/{partner_id}")
 async def get_car_wash_detail(
-    partner_id: int,
+    partner_id: str,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
     """Get detailed information about a car wash"""
     
@@ -220,38 +249,6 @@ async def get_car_wash_detail(
             "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
             "description": partner.description or "Premium avtomoyka xizmatlari",
         }
-    }
-
-
-@router.get("/car-washes/search")
-async def search_car_washes(
-    q: str = Query(..., min_length=1),
-    limit: int = Query(10, ge=1, le=50),
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """Search car washes by name or address"""
-    
-    partners = db.query(Partner).filter(
-        Partner.is_active == True,
-        (Partner.name.ilike(f"%{q}%") | Partner.address.ilike(f"%{q}%"))
-    ).limit(limit).all()
-    
-    result = []
-    for partner in partners:
-        result.append({
-            "id": str(partner.id),
-            "name": partner.name,
-            "address": partner.address,
-            "rating": 4.5,
-            "distance": 0.0,
-            "is_open": is_currently_open(partner),
-        })
-    
-    return {
-        "success": True,
-        "partners": result,
-        "count": len(result)
     }
 
 
