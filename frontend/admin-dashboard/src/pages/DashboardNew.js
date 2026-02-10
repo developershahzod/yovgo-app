@@ -188,8 +188,9 @@ const DashboardNew = () => {
         allVisits = Array.isArray(visitsRes.data) ? visitsRes.data : [];
       } catch (e) { console.log('No visits data'); }
       try {
-        const paymentsRes = await axios.get(`${API_URL}/api/payment/payments`);
-        allPayments = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
+        const paymentsRes = await axios.get(`${API_URL}/api/mobile/payments/all`);
+        const paymentsData = paymentsRes.data;
+        allPayments = Array.isArray(paymentsData.payments) ? paymentsData.payments : (Array.isArray(paymentsData) ? paymentsData : []);
       } catch (e) { console.log('No payments data'); }
 
       // Fetch real subscriptions

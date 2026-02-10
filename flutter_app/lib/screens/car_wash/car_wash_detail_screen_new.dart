@@ -546,7 +546,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('~${p['wash_time'] ?? 60} min', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                    Text('~${_partner?['wash_time'] ?? 60} min', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                     Text('YUVISH VAQTI', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF8F96A0), letterSpacing: 0.5)),
                   ],
                 ),
