@@ -43,13 +43,23 @@ def _get_partner_rating(db: Session, partner_id) -> dict:
 
 @router.get("/car-washes/nearby")
 async def get_nearby_car_washes(
-    latitude: float = Query(..., description="User latitude"),
-    longitude: float = Query(..., description="User longitude"),
+    latitude: Optional[float] = Query(None, description="User latitude"),
+    longitude: Optional[float] = Query(None, description="User longitude"),
+    lat: Optional[float] = Query(None, description="User latitude (alias)"),
+    lng: Optional[float] = Query(None, description="User longitude (alias)"),
     limit: int = Query(10, ge=1, le=50),
     radius_km: float = Query(10.0, ge=1, le=50),
+    radius: Optional[float] = Query(None, description="Radius alias"),
     db: Session = Depends(get_db),
 ):
     """Get nearby car washes based on user location"""
+    # Support both lat/lng and latitude/longitude params
+    latitude = latitude or lat
+    longitude = longitude or lng
+    if radius is not None:
+        radius_km = radius
+    if latitude is None or longitude is None:
+        raise HTTPException(status_code=400, detail="latitude and longitude are required")
     
     # Get all active partners
     partners = db.query(Partner).filter(Partner.is_active == True).all()
@@ -227,6 +237,58 @@ async def get_car_wash_detail(
     except Exception:
         pass
     rv = _get_partner_rating(db, partner.id)
+    
+    # Get branches/locations for this partner
+    locations = db.query(PartnerLocation).filter(
+        PartnerLocation.partner_id == partner.id,
+        PartnerLocation.is_active == True
+    ).all()
+    
+    locations_data = []
+    for loc in locations:
+        loc_gallery = []
+        try:
+            if loc.gallery_urls:
+                loc_gallery = list(loc.gallery_urls)
+        except Exception:
+            pass
+        loc_prices = []
+        try:
+            if loc.service_prices:
+                loc_prices = list(loc.service_prices)
+        except Exception:
+            pass
+        locations_data.append({
+            "id": str(loc.id),
+            "name": loc.name or "",
+            "address": loc.address or "",
+            "city": loc.city or "",
+            "latitude": float(loc.latitude) if loc.latitude else None,
+            "longitude": float(loc.longitude) if loc.longitude else None,
+            "working_hours": loc.working_hours or {},
+            "phone_number": loc.phone_number or "",
+            "banner_url": loc.banner_url or "",
+            "gallery_urls": loc_gallery,
+            "service_prices": loc_prices,
+        })
+    
+    # Get recent reviews
+    reviews = db.query(Review).filter(
+        Review.partner_id == partner.id,
+        Review.is_visible == True
+    ).order_by(Review.created_at.desc()).limit(10).all()
+    
+    reviews_data = []
+    for review in reviews:
+        user = db.query(User).filter(User.id == review.user_id).first()
+        reviews_data.append({
+            "id": str(review.id),
+            "rating": review.rating,
+            "comment": review.comment or "",
+            "user_name": (user.full_name if user else None) or "Foydalanuvchi",
+            "created_at": review.created_at.isoformat() if review.created_at else "",
+        })
+    
     return {
         "success": True,
         "partner": {
@@ -255,6 +317,8 @@ async def get_car_wash_detail(
             "description": partner.description or "Premium avtomoyka xizmatlari",
             "wash_time": getattr(partner, 'wash_time', 60) or 60,
             "services": partner.additional_services if partner.additional_services else [],
+            "locations": locations_data,
+            "reviews": reviews_data,
         }
     }
 
