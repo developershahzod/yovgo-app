@@ -32,6 +32,9 @@ const Branches = () => {
   const [branchStaff, setBranchStaff] = useState([]);
   const [activeTab, setActiveTab] = useState('info');
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const bannerInputRef = useRef(null);
+  const galleryInputRef = useRef(null);
 
   const emptyBranch = {
     name: '',
@@ -223,10 +226,49 @@ const Branches = () => {
     });
   };
 
-  const addGalleryUrl = () => {
-    const url = prompt('Rasm URL manzilini kiriting:');
-    if (url) {
-      setFormData({ ...formData, gallery_urls: [...formData.gallery_urls, url] });
+  const uploadImage = async (file) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('category', 'gallery');
+    const response = await axios.post(`${API_URL}/api/upload/image`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data.full_url || response.data.url;
+  };
+
+  const handleBannerUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setUploading(true);
+      const url = await uploadImage(file);
+      setFormData(prev => ({ ...prev, banner_url: url }));
+    } catch (error) {
+      console.error('Banner upload failed:', error);
+      alert('Rasm yuklashda xatolik');
+    } finally {
+      setUploading(false);
+      if (bannerInputRef.current) bannerInputRef.current.value = '';
+    }
+  };
+
+  const handleGalleryUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+    try {
+      setUploading(true);
+      const urls = [];
+      for (const file of files) {
+        const url = await uploadImage(file);
+        urls.push(url);
+      }
+      setFormData(prev => ({ ...prev, gallery_urls: [...prev.gallery_urls, ...urls] }));
+    } catch (error) {
+      console.error('Gallery upload failed:', error);
+      alert('Rasmlar yuklashda xatolik');
+    } finally {
+      setUploading(false);
+      if (galleryInputRef.current) galleryInputRef.current.value = '';
     }
   };
 
@@ -570,19 +612,51 @@ const Branches = () => {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Banner rasm (URL)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Banner rasm</label>
                     <input
-                      type="url"
-                      value={formData.banner_url}
-                      onChange={(e) => setFormData({...formData, banner_url: e.target.value})}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
-                      placeholder="https://example.com/banner.jpg"
+                      type="file"
+                      ref={bannerInputRef}
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={handleBannerUpload}
+                      className="hidden"
                     />
-                    {formData.banner_url && (
-                      <div className="mt-2 rounded-xl overflow-hidden h-32 bg-gray-100">
-                        <img src={formData.banner_url} alt="Banner" className="w-full h-full object-cover" 
-                          onError={(e) => { e.target.style.display = 'none'; }} />
+                    {formData.banner_url ? (
+                      <div className="relative mt-1 rounded-xl overflow-hidden h-36 bg-gray-100 group">
+                        <img src={formData.banner_url} alt="Banner" className="w-full h-full object-cover" />
+                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => bannerInputRef.current?.click()}
+                            className="px-3 py-1.5 bg-white text-gray-800 rounded-lg text-sm font-medium hover:bg-gray-100"
+                          >
+                            <Camera size={14} className="inline mr-1" />
+                            Almashtirish
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormData({...formData, banner_url: ''})}
+                            className="px-3 py-1.5 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600"
+                          >
+                            <Trash2 size={14} className="inline mr-1" />
+                            O'chirish
+                          </button>
+                        </div>
                       </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => bannerInputRef.current?.click()}
+                        disabled={uploading}
+                        className="w-full mt-1 flex flex-col items-center justify-center py-8 border-2 border-dashed border-gray-200 rounded-xl hover:border-emerald-400 hover:bg-emerald-50/50 transition-colors cursor-pointer"
+                      >
+                        {uploading ? (
+                          <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mb-2" />
+                        ) : (
+                          <Upload size={28} className="text-gray-400 mb-2" />
+                        )}
+                        <span className="text-sm font-medium text-gray-600">Banner rasm yuklash</span>
+                        <span className="text-xs text-gray-400 mt-1">JPG, PNG, WebP — max 5MB</span>
+                      </button>
                     )}
                   </div>
                 </div>
@@ -681,17 +755,30 @@ const Branches = () => {
               {/* GALLERY TAB */}
               {activeTab === 'gallery' && (
                 <div className="space-y-4">
+                  <input
+                    type="file"
+                    ref={galleryInputRef}
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    multiple
+                    onChange={handleGalleryUpload}
+                    className="hidden"
+                  />
                   <div className="flex items-center justify-between">
                     <div>
                       <h3 className="font-semibold text-gray-900">Galereya</h3>
-                      <p className="text-sm text-gray-500">Filial rasmlarini qo'shing</p>
+                      <p className="text-sm text-gray-500">Filial rasmlarini yuklang</p>
                     </div>
                     <button
-                      onClick={addGalleryUrl}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 text-sm font-medium transition-colors"
+                      onClick={() => galleryInputRef.current?.click()}
+                      disabled={uploading}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 text-sm font-medium transition-colors disabled:opacity-50"
                     >
-                      <Plus size={16} />
-                      Rasm qo'shish
+                      {uploading ? (
+                        <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Upload size={16} />
+                      )}
+                      Rasm yuklash
                     </button>
                   </div>
 
@@ -711,19 +798,35 @@ const Branches = () => {
                           </div>
                         </div>
                       ))}
+                      {/* Add more button */}
+                      <button
+                        onClick={() => galleryInputRef.current?.click()}
+                        disabled={uploading}
+                        className="aspect-square rounded-xl border-2 border-dashed border-gray-200 hover:border-emerald-400 hover:bg-emerald-50/50 flex flex-col items-center justify-center transition-colors cursor-pointer"
+                      >
+                        {uploading ? (
+                          <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <>
+                            <Plus size={24} className="text-gray-400 mb-1" />
+                            <span className="text-xs text-gray-400">Qo'shish</span>
+                          </>
+                        )}
+                      </button>
                     </div>
                   ) : (
-                    <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
-                      <Camera size={40} className="mx-auto text-gray-300 mb-3" />
+                    <div 
+                      onClick={() => !uploading && galleryInputRef.current?.click()}
+                      className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 hover:border-emerald-400 hover:bg-emerald-50/30 transition-colors cursor-pointer"
+                    >
+                      {uploading ? (
+                        <div className="w-10 h-10 border-3 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                      ) : (
+                        <Camera size={40} className="mx-auto text-gray-300 mb-3" />
+                      )}
                       <p className="text-gray-500 font-medium">Rasmlar qo'shilmagan</p>
-                      <p className="text-sm text-gray-400 mt-1">Filial rasmlarini URL orqali qo'shing</p>
-                      <button
-                        onClick={addGalleryUrl}
-                        className="mt-4 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium"
-                      >
-                        <Upload size={16} className="inline mr-1.5" />
-                        Rasm qo'shish
-                      </button>
+                      <p className="text-sm text-gray-400 mt-1">Bosing yoki rasmlarni tanlang</p>
+                      <p className="text-xs text-gray-300 mt-2">JPG, PNG, WebP — max 5MB har biri</p>
                     </div>
                   )}
                 </div>
