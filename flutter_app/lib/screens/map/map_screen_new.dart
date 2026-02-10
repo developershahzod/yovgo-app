@@ -20,6 +20,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
   final DraggableScrollableController _sheetController = DraggableScrollableController();
+  final FocusNode _searchFocusNode = FocusNode();
   GoogleMapController? _mapController;
   LatLng _currentPosition = const LatLng(41.2995, 69.2401);
   Set<Marker> _markers = {};
@@ -29,6 +30,19 @@ class _MapScreenNewState extends State<MapScreenNew> {
     super.initState();
     _getCurrentLocation();
     _loadCarWashes();
+    _searchFocusNode.addListener(() {
+      if (_searchFocusNode.hasFocus) {
+        _expandToHalf();
+      }
+    });
+  }
+
+  void _expandToHalf() {
+    _sheetController.animateTo(
+      0.50,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 
   Future<void> _getCurrentLocation() async {
@@ -170,7 +184,9 @@ class _MapScreenNewState extends State<MapScreenNew> {
                             Expanded(
                               child: TextField(
                                 controller: _searchController,
+                                focusNode: _searchFocusNode,
                                 onChanged: _onSearch,
+                                onTap: _expandToHalf,
                                 decoration: InputDecoration(
                                   hintText: context.tr('map_search'),
                                   hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 15, fontFamily: 'Mulish'),
@@ -476,6 +492,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     _sheetController.dispose();
     super.dispose();
   }
