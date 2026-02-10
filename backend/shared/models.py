@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Boolean, Integer, DECIMAL, TIMESTAMP, ForeignKey, Text, JSON
+from sqlalchemy import Column, String, Boolean, Integer, DECIMAL, TIMESTAMP, ForeignKey, Text, JSON, ARRAY
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.sql import func
 import uuid
@@ -69,6 +69,20 @@ class Partner(Base):
     description = Column(Text)
     email = Column(String(255))
     phone_number = Column(String(20))
+    address = Column(Text)
+    city = Column(String(100))
+    latitude = Column(DECIMAL(10, 8))
+    longitude = Column(DECIMAL(11, 8))
+    is_premium = Column(Boolean, default=False)
+    rating = Column(DECIMAL(3, 2), default=0)
+    working_hours = Column(JSON)
+    logo_url = Column(Text)
+    gallery_urls = Column(ARRAY(Text))
+    service_type = Column(String(50), default='full_service')
+    is_24_hours = Column(Boolean, default=False)
+    amenities = Column(JSON, default=[])
+    additional_services = Column(JSON, default=[])
+    phone = Column(String(50))
     status = Column(String(20), default="pending")
     is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
@@ -85,6 +99,10 @@ class PartnerLocation(Base):
     latitude = Column(DECIMAL(10, 8))
     longitude = Column(DECIMAL(11, 8))
     working_hours = Column(JSON)
+    phone_number = Column(String(20))
+    banner_url = Column(Text)
+    gallery_urls = Column(JSON, default=[])
+    service_prices = Column(JSON, default=[])
     is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())

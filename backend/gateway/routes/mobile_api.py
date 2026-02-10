@@ -2,8 +2,9 @@
 Mobile API Routes for Flutter App
 New endpoints specifically designed for the redesigned mobile app
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timedelta
 import math
@@ -14,7 +15,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared.database import get_db
-from shared.models import Partner, User, Subscription, Visit, Plan
+from shared.models import Partner, PartnerLocation, User, Subscription, Visit, SubscriptionPlan
 from shared.auth import AuthHandler
 
 # Get current user dependency
@@ -32,7 +33,6 @@ async def get_nearby_car_washes(
     limit: int = Query(10, ge=1, le=50),
     radius_km: float = Query(10.0, ge=1, le=50),
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
     """Get nearby car washes based on user location"""
     
@@ -42,31 +42,56 @@ async def get_nearby_car_washes(
     # Calculate distance and filter
     nearby_partners = []
     for partner in partners:
-        if partner.latitude and partner.longitude:
-            # Calculate distance using Haversine formula
-            distance = calculate_distance(
-                latitude, longitude,
-                partner.latitude, partner.longitude
-            )
+        # Use partner's own lat/lng or fall back to first location
+        p_lat = float(partner.latitude) if partner.latitude else None
+        p_lng = float(partner.longitude) if partner.longitude else None
+        p_addr = partner.address or ""
+        
+        if not p_lat or not p_lng:
+            # Try to get from first location
+            loc = db.query(PartnerLocation).filter(
+                PartnerLocation.partner_id == partner.id,
+                PartnerLocation.is_active == True
+            ).first()
+            if loc:
+                p_lat = float(loc.latitude) if loc.latitude else None
+                p_lng = float(loc.longitude) if loc.longitude else None
+                p_addr = p_addr or loc.address or ""
+        
+        if p_lat and p_lng:
+            distance = calculate_distance(latitude, longitude, p_lat, p_lng)
             
             if distance <= radius_km:
+                gallery = []
+                try:
+                    if partner.gallery_urls:
+                        gallery = list(partner.gallery_urls)
+                except Exception:
+                    pass
                 nearby_partners.append({
                     "id": str(partner.id),
                     "name": partner.name,
-                    "address": partner.address,
-                    "latitude": partner.latitude,
-                    "longitude": partner.longitude,
+                    "address": p_addr,
+                    "latitude": p_lat,
+                    "longitude": p_lng,
                     "distance": round(distance, 1),
-                    "rating": 4.5,  # TODO: Calculate from reviews
-                    "review_count": 0,  # TODO: Count reviews
+                    "rating": float(partner.rating) if partner.rating else 4.5,
+                    "review_count": 0,
                     "is_open": is_currently_open(partner),
                     "status": get_status_text(partner),
-                    "images": [],  # TODO: Add partner images
-                    "amenities": ["Kutish zali", "WiFi"],
+                    "images": gallery,
+                    "image_url": getattr(partner, 'logo_url', None) or '',
+                    "logo_url": getattr(partner, 'logo_url', None) or '',
+                    "gallery_urls": gallery,
+                    "amenities": partner.amenities if partner.amenities else [],
+                    "additional_services": partner.additional_services if partner.additional_services else [],
                     "phone_number": partner.phone_number or "",
-                    "opening_hours": "08:00 - 22:00",  # TODO: Add to model
+                    "opening_hours": get_working_hours_str(partner),
+                    "working_hours": partner.working_hours,
                     "is_premium": partner.is_premium or False,
-                    "is_24_hours": False,  # TODO: Add to model
+                    "is_24_hours": getattr(partner, 'is_24_hours', False) or False,
+                    "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
+                    "description": partner.description or "",
                 })
     
     # Sort by distance
@@ -94,23 +119,36 @@ async def get_premium_car_washes(
     
     result = []
     for partner in partners:
+        gallery = []
+        try:
+            if partner.gallery_urls:
+                gallery = list(partner.gallery_urls)
+        except Exception:
+            pass
         result.append({
             "id": str(partner.id),
             "name": partner.name,
-            "address": partner.address,
-            "latitude": partner.latitude,
-            "longitude": partner.longitude,
-            "distance": 0.0,  # TODO: Calculate if user location available
-            "rating": 4.5,
+            "address": partner.address or "",
+            "latitude": float(partner.latitude) if partner.latitude else None,
+            "longitude": float(partner.longitude) if partner.longitude else None,
+            "distance": 0.0,
+            "rating": float(partner.rating) if partner.rating else 4.5,
             "review_count": 0,
             "is_open": is_currently_open(partner),
             "status": get_status_text(partner),
-            "images": [],
-            "amenities": ["Kutish zali", "Ko'ngilochar o'yinlar", "Do'kon"],
+            "images": gallery,
+            "image_url": getattr(partner, 'logo_url', None) or '',
+            "logo_url": getattr(partner, 'logo_url', None) or '',
+            "gallery_urls": gallery,
+            "amenities": partner.amenities if partner.amenities else [],
+            "additional_services": partner.additional_services if partner.additional_services else [],
             "phone_number": partner.phone_number or "",
-            "opening_hours": "08:00 - 22:00",
+            "opening_hours": get_working_hours_str(partner),
+            "working_hours": partner.working_hours,
             "is_premium": True,
-            "is_24_hours": False,
+            "is_24_hours": getattr(partner, 'is_24_hours', False) or False,
+            "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
+            "description": partner.description or "",
         })
     
     return {
@@ -132,25 +170,37 @@ async def get_car_wash_detail(
     if not partner:
         raise HTTPException(status_code=404, detail="Car wash not found")
     
+    gallery = []
+    try:
+        if partner.gallery_urls:
+            gallery = list(partner.gallery_urls)
+    except Exception:
+        pass
     return {
         "success": True,
         "partner": {
             "id": str(partner.id),
             "name": partner.name,
-            "address": partner.address,
-            "latitude": partner.latitude,
-            "longitude": partner.longitude,
-            "rating": 4.5,
+            "address": partner.address or "",
+            "latitude": float(partner.latitude) if partner.latitude else None,
+            "longitude": float(partner.longitude) if partner.longitude else None,
+            "rating": float(partner.rating) if partner.rating else 4.5,
             "review_count": 0,
             "is_open": is_currently_open(partner),
             "status": get_status_text(partner),
-            "images": [],
-            "amenities": ["Kutish zali", "Ko'ngilochar o'yinlar", "Do'kon"],
+            "images": gallery,
+            "image_url": getattr(partner, 'logo_url', None) or '',
+            "logo_url": getattr(partner, 'logo_url', None) or '',
+            "gallery_urls": gallery,
+            "amenities": partner.amenities if partner.amenities else [],
+            "additional_services": partner.additional_services if partner.additional_services else [],
             "phone_number": partner.phone_number or "",
-            "opening_hours": "08:00 - 22:00",
+            "opening_hours": get_working_hours_str(partner),
+            "working_hours": partner.working_hours,
             "is_premium": partner.is_premium or False,
-            "is_24_hours": False,
-            "description": "Premium avtomoyka xizmatlari",
+            "is_24_hours": getattr(partner, 'is_24_hours', False) or False,
+            "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
+            "description": partner.description or "Premium avtomoyka xizmatlari",
         }
     }
 
@@ -192,11 +242,10 @@ async def search_car_washes(
 @router.get("/subscriptions/plans")
 async def get_subscription_plans(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
 ):
     """Get all available subscription plans"""
     
-    plans = db.query(Plan).filter(Plan.is_active == True).all()
+    plans = db.query(SubscriptionPlan).filter(SubscriptionPlan.is_active == True).all()
     
     result = []
     for plan in plans:
@@ -208,12 +257,12 @@ async def get_subscription_plans(
             "duration_days": plan.duration_days,
             "visit_limit": plan.visit_limit,
             "features": [
-                f"{plan.visit_limit} ta tashrif",
+                f"{plan.visit_limit} ta tashrif" if plan.visit_limit else "Cheksiz tashrif",
                 "Barcha hamkor avtomoykalar",
                 "24/7 qo'llab-quvvatlash",
                 "Chegirmalar va bonuslar"
             ],
-            "is_popular": plan.name.lower().find("90") >= 0,  # 90-day plan is popular
+            "is_popular": "premium" in plan.name.lower() or "90" in str(plan.duration_days),
             "discount": None,
         })
     
@@ -231,9 +280,11 @@ async def get_active_subscription(
 ):
     """Get user's active subscription"""
     
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+    
     subscription = db.query(Subscription).filter(
-        Subscription.user_id == current_user.id,
-        Subscription.is_active == True,
+        Subscription.user_id == user_id,
+        Subscription.status == "active",
         Subscription.end_date > datetime.utcnow()
     ).first()
     
@@ -243,13 +294,7 @@ async def get_active_subscription(
             "subscription": None
         }
     
-    plan = db.query(Plan).filter(Plan.id == subscription.plan_id).first()
-    
-    # Count used visits
-    used_visits = db.query(Visit).filter(
-        Visit.user_id == current_user.id,
-        Visit.subscription_id == subscription.id
-    ).count()
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == subscription.plan_id).first()
     
     return {
         "success": True,
@@ -259,10 +304,12 @@ async def get_active_subscription(
             "plan_name": plan.name if plan else "Unknown",
             "start_date": subscription.start_date.isoformat(),
             "end_date": subscription.end_date.isoformat(),
-            "total_visits": subscription.visit_limit,
-            "used_visits": used_visits,
-            "is_active": subscription.is_active,
-            "status": "active" if subscription.is_active else "inactive",
+            "total_visits": plan.visit_limit if plan else 0,
+            "used_visits": subscription.visits_used or 0,
+            "remaining_visits": subscription.visits_remaining or 0,
+            "is_unlimited": subscription.is_unlimited or False,
+            "is_active": subscription.status == "active",
+            "status": subscription.status,
         }
     }
 
@@ -274,17 +321,15 @@ async def get_my_subscriptions(
 ):
     """Get all user subscriptions"""
     
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+    
     subscriptions = db.query(Subscription).filter(
-        Subscription.user_id == current_user.id
+        Subscription.user_id == user_id
     ).order_by(Subscription.created_at.desc()).all()
     
     result = []
     for subscription in subscriptions:
-        plan = db.query(Plan).filter(Plan.id == subscription.plan_id).first()
-        used_visits = db.query(Visit).filter(
-            Visit.user_id == current_user.id,
-            Visit.subscription_id == subscription.id
-        ).count()
+        plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == subscription.plan_id).first()
         
         result.append({
             "id": str(subscription.id),
@@ -292,10 +337,12 @@ async def get_my_subscriptions(
             "plan_name": plan.name if plan else "Unknown",
             "start_date": subscription.start_date.isoformat(),
             "end_date": subscription.end_date.isoformat(),
-            "total_visits": subscription.visit_limit,
-            "used_visits": used_visits,
-            "is_active": subscription.is_active,
-            "status": "active" if subscription.is_active else "inactive",
+            "total_visits": plan.visit_limit if plan else 0,
+            "used_visits": subscription.visits_used or 0,
+            "remaining_visits": subscription.visits_remaining or 0,
+            "is_unlimited": subscription.is_unlimited or False,
+            "is_active": subscription.status == "active",
+            "status": subscription.status,
         })
     
     return {
@@ -305,22 +352,29 @@ async def get_my_subscriptions(
     }
 
 
+class CreateSubscriptionRequest(BaseModel):
+    plan_id: str
+    auto_renew: bool = False
+
 @router.post("/subscriptions/create")
 async def create_subscription(
-    plan_id: int,
+    request: CreateSubscriptionRequest,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Create a new subscription"""
+    plan_id = request.plan_id
     
-    plan = db.query(Plan).filter(Plan.id == plan_id).first()
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == plan_id).first()
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
     
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+    
     # Check if user already has active subscription
     existing = db.query(Subscription).filter(
-        Subscription.user_id == current_user.id,
-        Subscription.is_active == True,
+        Subscription.user_id == user_id,
+        Subscription.status == "active",
         Subscription.end_date > datetime.utcnow()
     ).first()
     
@@ -329,12 +383,15 @@ async def create_subscription(
     
     # Create new subscription
     subscription = Subscription(
-        user_id=current_user.id,
+        user_id=user_id,
         plan_id=plan_id,
         start_date=datetime.utcnow(),
         end_date=datetime.utcnow() + timedelta(days=plan.duration_days),
-        visit_limit=plan.visit_limit,
-        is_active=True
+        status="pending",
+        visits_used=0,
+        visits_remaining=plan.visit_limit or 0,
+        is_unlimited=plan.is_unlimited if hasattr(plan, 'is_unlimited') else False,
+        auto_renew=False
     )
     
     db.add(subscription)
@@ -361,10 +418,12 @@ async def qr_checkin(
     # TODO: Validate QR token and get partner_id
     # For now, extract partner_id from token format: MERCHANT_{partner_id}_{timestamp}
     
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+    
     try:
         parts = qr_token.split("_")
         if len(parts) >= 2 and parts[0] == "MERCHANT":
-            partner_id = int(parts[1])
+            partner_id = parts[1]  # UUID string, not int
         else:
             raise ValueError("Invalid QR format")
     except:
@@ -377,8 +436,8 @@ async def qr_checkin(
     
     # Get active subscription
     subscription = db.query(Subscription).filter(
-        Subscription.user_id == current_user.id,
-        Subscription.is_active == True,
+        Subscription.user_id == user_id,
+        Subscription.status == "active",
         Subscription.end_date > datetime.utcnow()
     ).first()
     
@@ -386,33 +445,36 @@ async def qr_checkin(
         raise HTTPException(status_code=400, detail="No active subscription")
     
     # Check visit limit
-    used_visits = db.query(Visit).filter(
-        Visit.user_id == current_user.id,
-        Visit.subscription_id == subscription.id
-    ).count()
-    
-    if used_visits >= subscription.visit_limit:
+    if not subscription.is_unlimited and subscription.visits_remaining is not None and subscription.visits_remaining <= 0:
         raise HTTPException(status_code=400, detail="Visit limit reached")
     
     # Create visit
     visit = Visit(
-        user_id=current_user.id,
+        user_id=user_id,
         partner_id=partner_id,
         subscription_id=subscription.id,
-        visit_date=datetime.utcnow(),
+        check_in_time=datetime.utcnow(),
         status="completed"
     )
     
     db.add(visit)
+    
+    # Update subscription counters
+    subscription.visits_used = (subscription.visits_used or 0) + 1
+    if not subscription.is_unlimited and subscription.visits_remaining is not None:
+        subscription.visits_remaining -= 1
+    
     db.commit()
     db.refresh(visit)
+    
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == subscription.plan_id).first()
     
     return {
         "success": True,
         "message": "Tashrif muvaffaqiyatli ro'yxatdan o'tkazildi!",
         "partner_name": partner.name,
         "visit_id": str(visit.id),
-        "remaining_visits": subscription.visit_limit - used_visits - 1
+        "remaining_visits": subscription.visits_remaining if not subscription.is_unlimited else "unlimited"
     }
 
 
@@ -420,17 +482,22 @@ async def qr_checkin(
 
 @router.get("/users/me")
 async def get_my_profile(
-    current_user: User = Depends(get_current_user)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
 ):
     """Get current user profile"""
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
     
     return {
         "success": True,
         "user": {
-            "id": str(current_user.id),
-            "full_name": current_user.full_name,
-            "phone_number": current_user.phone_number,
-            "email": current_user.email,
+            "id": str(user.id),
+            "full_name": user.full_name,
+            "phone_number": user.phone_number,
+            "email": user.email,
             "avatar_url": None,
         }
     }
@@ -443,24 +510,245 @@ async def get_user_stats(
 ):
     """Get user statistics"""
     
+    from sqlalchemy import func as sqlfunc
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+    
     # Count total visits
-    total_visits = db.query(Visit).filter(Visit.user_id == current_user.id).count()
+    total_visits = db.query(Visit).filter(Visit.user_id == user_id).count()
+    
+    # Count unique car washes visited
+    unique_partners = db.query(sqlfunc.count(sqlfunc.distinct(Visit.partner_id))).filter(
+        Visit.user_id == user_id
+    ).scalar() or 0
     
     # Count active subscription
     active_subscription = db.query(Subscription).filter(
-        Subscription.user_id == current_user.id,
-        Subscription.is_active == True,
+        Subscription.user_id == user_id,
+        Subscription.status == "active",
         Subscription.end_date > datetime.utcnow()
     ).first()
+    
+    # Calculate savings (avg car wash = 50,000 UZS, subscription gives discount)
+    total_savings = total_visits * 15000  # ~15,000 UZS saved per visit vs pay-per-wash
     
     return {
         "success": True,
         "stats": {
-            "total_car_washes": 1,  # TODO: Count unique partners
+            "total_car_washes": unique_partners,
             "total_visits": total_visits,
-            "total_savings": 0,  # TODO: Calculate savings
+            "total_savings": total_savings,
             "active_subscription": active_subscription is not None,
         }
+    }
+
+
+# ==================== WEATHER ENDPOINT ====================
+
+import httpx
+
+# WMO Weather interpretation codes -> our weather types
+def _wmo_to_weather_type(code: int) -> str:
+    """Convert WMO weather code to our weather type string"""
+    if code <= 1:
+        return "sunny"
+    if code <= 3:
+        return "cloudy"
+    if code in (45, 48):
+        return "fog"
+    if code in (51, 53, 55, 56, 57):
+        return "drizzle"
+    if code in (61, 63, 65, 66, 67, 80, 81, 82):
+        return "rain"
+    if code in (71, 73, 75, 77, 85, 86):
+        return "snow"
+    if code in (95, 96, 99):
+        return "thunderstorm"
+    return "cloudy"
+
+def _calc_wash_rating(precip_prob: int, wmo_code: int) -> int:
+    """Calculate wash rating 0-100. Higher = better time to wash car.
+    Based on precipitation probability and weather condition."""
+    base = max(0, 100 - precip_prob)
+    # Penalize bad conditions even if probability is low
+    if wmo_code in (95, 96, 99):  # thunderstorm
+        base = min(base, 15)
+    elif wmo_code in (61, 63, 65, 66, 67, 80, 81, 82):  # rain
+        base = min(base, 25)
+    elif wmo_code in (71, 73, 75, 77, 85, 86):  # snow
+        base = min(base, 20)
+    elif wmo_code in (51, 53, 55, 56, 57):  # drizzle
+        base = min(base, 40)
+    elif wmo_code in (45, 48):  # fog
+        base = max(base - 15, 10)
+    return max(0, min(100, base))
+
+def _wash_recommendation(rating: int, lang: str = "uz") -> str:
+    if lang == "ru":
+        if rating >= 80: return "Отличная погода для мойки автомобиля!"
+        if rating >= 50: return "Хорошая погода, можно помыть машину."
+        if rating >= 30: return "Возможен дождь, лучше подождать."
+        return "Плохая погода для мойки. Ожидаются осадки."
+    elif lang == "en":
+        if rating >= 80: return "Perfect weather to wash your car!"
+        if rating >= 50: return "Good weather, you can wash your car."
+        if rating >= 30: return "Rain possible, better to wait."
+        return "Bad weather for washing. Precipitation expected."
+    else:
+        if rating >= 80: return "Avtomobil yuvish uchun ajoyib ob-havo!"
+        if rating >= 50: return "Yaxshi ob-havo, mashinani yuvish mumkin."
+        if rating >= 30: return "Yomg'ir yog'ishi mumkin, kutgan ma'qul."
+        return "Yuvish uchun yomon ob-havo. Yog'ingarchilik kutilmoqda."
+
+_WEEKDAY_NAMES = {
+    "uz": ["Du", "Se", "Cho", "Pa", "Ju", "Sha", "Ya"],
+    "ru": ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
+    "en": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+}
+
+@router.get("/weather")
+async def get_weather(
+    latitude: float = Query(41.311, description="Latitude"),
+    longitude: float = Query(69.279, description="Longitude"),
+    lang: str = Query("uz", description="Language: uz, ru, en"),
+):
+    """Get real weather data + wash rating from Open-Meteo (free, no API key)"""
+    
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://api.open-meteo.com/v1/forecast",
+                params={
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "current": "temperature_2m,weather_code,relative_humidity_2m,wind_speed_10m",
+                    "daily": "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max",
+                    "timezone": "Asia/Tashkent",
+                    "forecast_days": 7,
+                },
+            )
+        
+        if resp.status_code != 200:
+            return _fallback_weather(lang)
+        
+        data = resp.json()
+        
+        # Current weather
+        cur = data.get("current", {})
+        cur_temp = round(cur.get("temperature_2m", 0))
+        cur_wmo = cur.get("weather_code", 0)
+        cur_humidity = cur.get("relative_humidity_2m", 0)
+        cur_wind = round(cur.get("wind_speed_10m", 0), 1)
+        cur_type = _wmo_to_weather_type(cur_wmo)
+        
+        # Daily forecast
+        daily = data.get("daily", {})
+        times = daily.get("time", [])
+        codes = daily.get("weather_code", [])
+        t_max = daily.get("temperature_2m_max", [])
+        t_min = daily.get("temperature_2m_min", [])
+        precip_probs = daily.get("precipitation_probability_max", [])
+        
+        weekday_names = _WEEKDAY_NAMES.get(lang, _WEEKDAY_NAMES["uz"])
+        
+        forecast_days = []
+        rain_free_days = 0
+        checked_rain = True
+        
+        for i in range(min(len(times), 6)):
+            dt = datetime.strptime(times[i], "%Y-%m-%d")
+            wmo = codes[i] if i < len(codes) else 0
+            prob = precip_probs[i] if i < len(precip_probs) else 0
+            temp_hi = round(t_max[i]) if i < len(t_max) else 0
+            temp_lo = round(t_min[i]) if i < len(t_min) else 0
+            
+            weather_type = _wmo_to_weather_type(wmo)
+            day_rating = _calc_wash_rating(prob, wmo)
+            
+            if checked_rain and day_rating >= 60:
+                rain_free_days += 1
+            else:
+                checked_rain = False
+            
+            weekday = weekday_names[dt.weekday()]
+            temp_str = f"+{temp_hi}°" if temp_hi >= 0 else f"{temp_hi}°"
+            
+            forecast_days.append({
+                "day": str(dt.day),
+                "weekday": weekday,
+                "weather": weather_type,
+                "temp": temp_str,
+                "temp_min": f"+{temp_lo}°" if temp_lo >= 0 else f"{temp_lo}°",
+                "wash_rating": day_rating,
+                "precip_prob": prob,
+            })
+        
+        # Today's wash rating
+        today_prob = precip_probs[0] if precip_probs else 0
+        today_wmo = codes[0] if codes else 0
+        today_rating = _calc_wash_rating(today_prob, today_wmo)
+        
+        # Recommendation
+        recommendation = _wash_recommendation(today_rating, lang)
+        if rain_free_days >= 3 and today_rating >= 70:
+            if lang == "ru":
+                recommendation = f"{rain_free_days} дней без дождя. Отличное время для мойки!"
+            elif lang == "en":
+                recommendation = f"{rain_free_days} rain-free days ahead. Great time to wash!"
+            else:
+                recommendation = f"{rain_free_days} kun davomida yog'ingarchilik kutilmaydi. Yuvish uchun ajoyib vaqt!"
+        
+        return {
+            "success": True,
+            "wash_rating": today_rating,
+            "recommendation": recommendation,
+            "current": {
+                "temperature": cur_temp,
+                "weather_type": cur_type,
+                "humidity": cur_humidity,
+                "wind_speed": cur_wind,
+                "city": "Toshkent",
+            },
+            "forecast": forecast_days,
+        }
+        
+    except Exception as e:
+        print(f"Weather API error: {e}")
+        return _fallback_weather(lang)
+
+
+def _fallback_weather(lang: str = "uz"):
+    """Fallback weather data when API is unavailable"""
+    now = datetime.now()
+    weekday_names = _WEEKDAY_NAMES.get(lang, _WEEKDAY_NAMES["uz"])
+    days = []
+    for i in range(6):
+        d = now + timedelta(days=i)
+        days.append({
+            "day": str(d.day),
+            "weekday": weekday_names[d.weekday()],
+            "weather": "sunny" if i < 3 else ("cloudy" if i < 5 else "rain"),
+            "temp": f"+{12 + i}°",
+            "temp_min": f"+{5 + i}°",
+            "wash_rating": max(10, 90 - i * 15),
+            "precip_prob": min(90, i * 18),
+        })
+    
+    rec = "Ob-havo ma'lumotlari vaqtincha mavjud emas."
+    if lang == "ru": rec = "Данные о погоде временно недоступны."
+    if lang == "en": rec = "Weather data temporarily unavailable."
+    
+    return {
+        "success": True,
+        "wash_rating": 75,
+        "recommendation": rec,
+        "current": {
+            "temperature": 14,
+            "weather_type": "sunny",
+            "humidity": 45,
+            "wind_speed": 3.5,
+            "city": "Toshkent",
+        },
+        "forecast": days,
     }
 
 
@@ -486,6 +774,18 @@ def is_currently_open(partner: Partner) -> bool:
     # TODO: Implement based on opening hours
     current_hour = datetime.now().hour
     return 8 <= current_hour <= 22
+
+
+def get_working_hours_str(partner: Partner) -> str:
+    """Get working hours string from partner"""
+    wh = partner.working_hours
+    if isinstance(wh, dict):
+        open_time = wh.get('open', '08:00')
+        close_time = wh.get('close', '22:00')
+        return f"{open_time} - {close_time}"
+    if isinstance(wh, str) and wh:
+        return wh
+    return "08:00 - 22:00"
 
 
 def get_status_text(partner: Partner) -> str:

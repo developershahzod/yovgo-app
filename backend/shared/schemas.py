@@ -93,6 +93,18 @@ class PartnerBase(BaseModel):
     description: Optional[str] = None
     email: Optional[EmailStr] = None
     phone_number: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    is_premium: Optional[bool] = False
+    working_hours: Optional[Dict[str, Any]] = None
+    logo_url: Optional[str] = None
+    gallery_urls: Optional[List[str]] = None
+    service_type: Optional[str] = 'full_service'
+    is_24_hours: Optional[bool] = False
+    amenities: Optional[List[str]] = []
+    additional_services: Optional[List[str]] = []
 
 class PartnerCreate(PartnerBase):
     pass
@@ -102,12 +114,26 @@ class PartnerUpdate(BaseModel):
     description: Optional[str] = None
     email: Optional[EmailStr] = None
     phone_number: Optional[str] = None
+    address: Optional[str] = None
+    city: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    is_premium: Optional[bool] = None
+    rating: Optional[float] = None
+    working_hours: Optional[Dict[str, Any]] = None
+    logo_url: Optional[str] = None
+    gallery_urls: Optional[List[str]] = None
+    service_type: Optional[str] = None
+    is_24_hours: Optional[bool] = None
+    amenities: Optional[List[str]] = None
+    additional_services: Optional[List[str]] = None
     status: Optional[str] = None
 
 class PartnerResponse(PartnerBase):
     id: UUID
     status: str
     is_active: bool
+    rating: Optional[float] = None
     created_at: datetime
     
     class Config:

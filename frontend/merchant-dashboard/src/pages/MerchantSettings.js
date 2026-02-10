@@ -1,10 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import { useMerchantAuth } from '../context/MerchantAuthContext';
 import { 
   Settings, Save, Bell, User, Building2, Clock, 
-  CheckCircle, Camera, Phone, Mail, MapPin
+  CheckCircle, Camera, Phone, Mail, MapPin, Sparkles, Wrench, Plus, X
 } from 'lucide-react';
 
 const MerchantSettings = () => {
+  const { merchant, API_URL } = useMerchantAuth();
   const [profile, setProfile] = useState({
     businessName: 'Black Star Car Wash',
     ownerName: 'Merchant Admin',
@@ -15,6 +18,20 @@ const MerchantSettings = () => {
     workingHours: '08:00 - 22:00',
     description: 'Premium avtomoyка xizmati',
   });
+
+  const AMENITY_OPTIONS = [
+    'Kutish zali', 'WiFi', 'Ko\'ngilochar o\'yinlar', 'Do\'kon', 'Cafe',
+    'Tualet', 'Parking', 'Bolalar xonasi', 'Namozxona'
+  ];
+  const SERVICE_OPTIONS = [
+    'Detailing', 'Ustaxona', 'Moy almashtirish', 'Yoqilg\'i quyish shahobchasi',
+    'Elektr zaryadlash stansiyasi', 'Polish / Sayqallash', 'Shina almashtirish', 'Tonirovka'
+  ];
+
+  const [amenities, setAmenities] = useState([]);
+  const [additionalServices, setAdditionalServices] = useState([]);
+  const [newAmenity, setNewAmenity] = useState('');
+  const [newService, setNewService] = useState('');
 
   const [notifications, setNotifications] = useState({
     newVisit: true,
@@ -37,12 +54,61 @@ const MerchantSettings = () => {
     setSaved(false);
   };
 
+  useEffect(() => {
+    fetchProfile();
+  }, []);
+
+  const fetchProfile = async () => {
+    try {
+      const partnerId = merchant?.partner?.id || merchant?.partner_id;
+      if (!partnerId) return;
+      const response = await axios.get(`${API_URL}/api/partner/partners/${partnerId}`);
+      const data = response.data;
+      if (data) {
+        setProfile(prev => ({
+          ...prev,
+          businessName: data.name || prev.businessName,
+          ownerName: data.owner_name || merchant?.name || prev.ownerName,
+          email: data.email || merchant?.email || prev.email,
+          phone: data.phone || merchant?.phone || prev.phone,
+          address: data.address || prev.address,
+          city: data.city || prev.city,
+          workingHours: data.working_hours || prev.workingHours,
+          description: data.description || prev.description,
+        }));
+        setAmenities(data.amenities || []);
+        setAdditionalServices(data.additional_services || []);
+      }
+    } catch (err) {
+      console.log('Using default settings');
+    }
+  };
+
   const handleSave = async () => {
     setSaving(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    try {
+      const partnerId = merchant?.partner?.id || merchant?.partner_id;
+      if (partnerId) {
+        await axios.put(`${API_URL}/api/partner/partners/${partnerId}`, {
+          name: profile.businessName,
+          owner_name: profile.ownerName,
+          email: profile.email,
+          phone: profile.phone,
+          address: profile.address,
+          city: profile.city,
+          working_hours: profile.workingHours,
+          description: profile.description,
+          amenities: amenities,
+          additional_services: additionalServices,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+    } finally {
+      setSaving(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    }
   };
 
   return (
@@ -182,6 +248,129 @@ const MerchantSettings = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Amenities */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-amber-100 rounded-lg">
+              <Sparkles className="text-amber-600" size={24} />
+            </div>
+            <h2 className="text-lg font-semibold">Qulayliklar</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+            {AMENITY_OPTIONS.map((item) => (
+              <label key={item} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                <input
+                  type="checkbox"
+                  checked={amenities.includes(item)}
+                  onChange={(e) => {
+                    if (e.target.checked) setAmenities(prev => [...prev, item]);
+                    else setAmenities(prev => prev.filter(a => a !== item));
+                    setSaved(false);
+                  }}
+                  className="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500"
+                />
+                <span className="text-sm font-medium text-gray-900">{item}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newAmenity}
+              onChange={(e) => setNewAmenity(e.target.value)}
+              placeholder="Boshqa qulaylik qo'shish..."
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newAmenity.trim()) {
+                  setAmenities(prev => [...prev, newAmenity.trim()]);
+                  setNewAmenity('');
+                  setSaved(false);
+                }
+              }}
+            />
+            <button
+              onClick={() => { if (newAmenity.trim()) { setAmenities(prev => [...prev, newAmenity.trim()]); setNewAmenity(''); setSaved(false); } }}
+              className="px-3 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
+            >
+              <Plus size={18} />
+            </button>
+          </div>
+          {amenities.filter(a => !AMENITY_OPTIONS.includes(a)).length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {amenities.filter(a => !AMENITY_OPTIONS.includes(a)).map((item, i) => (
+                <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-sm">
+                  {item}
+                  <button onClick={() => { setAmenities(prev => prev.filter(a => a !== item)); setSaved(false); }}>
+                    <X size={14} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Additional Services */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-indigo-100 rounded-lg">
+              <Wrench className="text-indigo-600" size={24} />
+            </div>
+            <h2 className="text-lg font-semibold">Qo'shimcha servislar</h2>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+            {SERVICE_OPTIONS.map((item) => (
+              <label key={item} className="flex items-center gap-3 p-3 border border-gray-200 rounded-lg cursor-pointer hover:bg-gray-50">
+                <input
+                  type="checkbox"
+                  checked={additionalServices.includes(item)}
+                  onChange={(e) => {
+                    if (e.target.checked) setAdditionalServices(prev => [...prev, item]);
+                    else setAdditionalServices(prev => prev.filter(s => s !== item));
+                    setSaved(false);
+                  }}
+                  className="w-5 h-5 text-emerald-600 rounded focus:ring-emerald-500"
+                />
+                <span className="text-sm font-medium text-gray-900">{item}</span>
+              </label>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={newService}
+              onChange={(e) => setNewService(e.target.value)}
+              placeholder="Boshqa servis qo'shish..."
+              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newService.trim()) {
+                  setAdditionalServices(prev => [...prev, newService.trim()]);
+                  setNewService('');
+                  setSaved(false);
+                }
+              }}
+            />
+            <button
+              onClick={() => { if (newService.trim()) { setAdditionalServices(prev => [...prev, newService.trim()]); setNewService(''); setSaved(false); } }}
+              className="px-3 py-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200"
+            >
+              <Plus size={18} />
+            </button>
+          </div>
+          {additionalServices.filter(s => !SERVICE_OPTIONS.includes(s)).length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              {additionalServices.filter(s => !SERVICE_OPTIONS.includes(s)).map((item, i) => (
+                <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm">
+                  {item}
+                  <button onClick={() => { setAdditionalServices(prev => prev.filter(s => s !== item)); setSaved(false); }}>
+                    <X size={14} />
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-gray-500 mt-3">Qo'shimcha servislar obuna tarifiga kirmaydi va alohida to'lov talab qilinadi</p>
         </div>
 
         {/* Notifications */}
