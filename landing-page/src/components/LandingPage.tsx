@@ -658,39 +658,78 @@ export default function LandingPage() {
             {/* Cyan glow behind phone */}
             <div className="absolute w-[350px] h-[350px] bg-[#00bffe] blur-[180px] opacity-30 rounded-full z-0" />
             {/* Single iPhone mockup with floating badges */}
-            <div className="relative z-10 flex items-center justify-center" style={{ minHeight: '520px', overflow: 'visible' }}>
-              {/* Phone */}
-              <div className="relative" style={{ width: '280px', zIndex: 20 }}>
-                <img src={imgIPhoneFrame} alt="" style={{ width: '100%', height: 'auto', display: 'block', position: 'relative', zIndex: 10 }} />
-                <div style={{ position: 'absolute', top: '2.8%', left: '5.8%', right: '5.8%', bottom: '2.8%', borderRadius: '32px', overflow: 'hidden', zIndex: 5 }}>
-                  <img src={imgPasteYourContent6} alt="YuvGO App" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <div className="relative z-10 flex items-center justify-center" style={{ minHeight: '560px', overflow: 'visible' }}>
+              {/* CSS iPhone mockup */}
+              <div style={{
+                width: '270px',
+                height: '550px',
+                background: '#1a1a1a',
+                borderRadius: '44px',
+                padding: '12px',
+                boxShadow: '0 25px 80px rgba(0,0,0,0.15), inset 0 0 0 2px rgba(255,255,255,0.1)',
+                position: 'relative',
+                zIndex: 20,
+              }}>
+                {/* Dynamic Island */}
+                <div style={{
+                  position: 'absolute',
+                  top: '16px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '90px',
+                  height: '28px',
+                  background: '#000',
+                  borderRadius: '20px',
+                  zIndex: 30,
+                }} />
+                {/* Screen */}
+                <div style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '34px',
+                  overflow: 'hidden',
+                  background: '#000',
+                }}>
+                  <img src={imgPasteYourContent6} alt="YuvGO App" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                 </div>
+                {/* Bottom bar */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: '8px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  width: '120px',
+                  height: '4px',
+                  background: 'rgba(255,255,255,0.3)',
+                  borderRadius: '2px',
+                  zIndex: 30,
+                }} />
               </div>
 
               {/* Floating badge: Car washes - top right */}
               <div className="hidden md:flex absolute items-center gap-2 bg-white rounded-full shadow-lg px-4 py-2.5 z-30"
-                style={{ top: '20px', right: '0px' }}>
+                style={{ top: '10px', right: '10px' }}>
                 <span className="text-[18px]">🚗</span>
                 <span className="text-[13px] font-bold text-[#0a0c13] whitespace-nowrap">{t.stats.carWashes}</span>
               </div>
 
               {/* Floating badge: Wash rating - left middle */}
               <div className="hidden md:flex absolute items-center gap-2 bg-white rounded-full shadow-lg px-4 py-2.5 z-30"
-                style={{ top: '42%', left: '-60px' }}>
+                style={{ top: '42%', left: '-50px' }}>
                 <span className="text-[18px]">✨</span>
                 <span className="text-[13px] font-bold text-[#0a0c13] whitespace-nowrap">{t.stats.washRating}</span>
               </div>
 
               {/* Floating badge: Premium washes - bottom left */}
               <div className="hidden md:flex absolute items-center gap-2 bg-white rounded-full shadow-lg px-4 py-2.5 z-30"
-                style={{ bottom: '60px', left: '-30px' }}>
+                style={{ bottom: '60px', left: '-20px' }}>
                 <span className="text-[18px]">🏆</span>
                 <span className="text-[13px] font-bold text-[#0a0c13] whitespace-nowrap">{t.stats.premiumWashes}</span>
               </div>
 
               {/* Floating badge: Subscribers - bottom right */}
               <div className="hidden md:flex absolute items-center gap-2 bg-white rounded-full shadow-lg px-4 py-2.5 z-30"
-                style={{ bottom: '30px', right: '-20px' }}>
+                style={{ bottom: '30px', right: '-10px' }}>
                 <span className="text-[18px]">👥</span>
                 <span className="text-[13px] font-bold text-[#0a0c13] whitespace-nowrap">{t.stats.subscribers}</span>
               </div>
@@ -705,52 +744,37 @@ export default function LandingPage() {
         className="border-t border-b border-[#d9dde3] overflow-hidden"
       >
         <div className="max-w-[1440px] mx-auto px-6 md:px-16 py-6">
-          <div className="flex items-center justify-center gap-8 md:gap-16 flex-wrap">
+          <div className="flex items-center justify-center gap-10 md:gap-14 flex-wrap">
             {/* Uzcard */}
-            <div className="flex items-center gap-2 flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
-              <svg className="h-8" viewBox="0 0 22 32" fill="none">
-                <path clipRule="evenodd" d="M20.6044 10.0184H13.9044V0.574703C13.9044 0.259317 14.1572 0 14.4646 0H15.4679C15.4702 1.54736 16.0697 3.03147 17.1372 4.12721C18.2075 5.22226 19.6541 5.83747 21.1646 5.83747V10.0184H20.6044ZM21.1646 13.3519C21.1646 17.2904 20.2877 20.2254 18.5331 22.1383C16.7792 24.0511 14.0702 25.0051 10.4172 25.0051C7.00277 25.0051 4.41309 24.0511 2.64732 22.1383C0.881713 20.2254 0 17.3422 0 13.4857V0.548732C0 0.247189 0.238589 0 0.534823 0H6.72469C7.0186 0.0024 7.26018 0.247189 7.26018 0.548732V13.7686C7.26018 15.342 7.54476 16.5553 8.12074 17.408C9.01412 18.6213 10.6123 19.0266 11.9507 18.3806C12.3821 18.1714 12.7613 17.8651 13.0598 17.4858C13.6247 16.6825 13.9044 15.5023 13.9044 13.938V11.465H21.1646V13.3519Z" fillRule="evenodd" fill="#0F3560"/>
-                <path clipRule="evenodd" d="M16.8963 0H20.6044C20.9142 0 21.1646 0.259317 21.1646 0.574703V4.38413C18.8088 4.38413 16.8963 2.42412 16.8963 0.0047869V0Z" fillRule="evenodd" fill="#F4821F"/>
-              </svg>
-              <span className="text-[14px] font-bold text-[#0a0c13]">UZCARD</span>
-            </div>
-            {/* Visa */}
-            <div className="flex items-center flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
-              <svg className="h-7" viewBox="0 0 50 32" fill="none">
-                <rect width="50" height="32" rx="3" fill="#00579F"/>
-                <path d="M22.467 21.235H19.388L21.314 10.2H24.392L22.467 21.235Z" fill="white"/>
-                <path d="M33.626 10.47C33.018 10.247 32.055 10 30.865 10C27.825 10 25.684 11.503 25.671 13.651C25.646 15.236 27.204 16.116 28.369 16.645C29.56 17.185 29.965 17.537 29.965 18.019C29.953 18.758 29.002 19.099 28.116 19.099C26.887 19.099 26.229 18.923 25.228 18.512L24.822 18.335L24.392 20.813C25.114 21.118 26.444 21.388 27.825 21.4C31.055 21.4 33.158 19.921 33.182 17.631C33.195 16.375 32.372 15.412 30.599 14.626C29.522 14.121 28.863 13.78 28.863 13.264C28.875 12.794 29.42 12.313 30.636 12.313C31.636 12.29 32.372 12.512 32.929 12.736L33.207 12.853L33.626 10.47Z" fill="white"/>
-                <path d="M37.717 17.326C37.97 16.692 38.946 14.238 38.946 14.238C38.933 14.262 39.199 13.593 39.351 13.182L39.566 14.133C39.566 14.133 40.149 16.774 40.276 17.326C39.794 17.326 38.325 17.326 37.717 17.326ZM41.517 10.2H39.136C38.401 10.2 37.844 10.399 37.527 11.116L32.954 21.235H36.184C36.184 21.235 36.716 19.873 36.83 19.58C37.185 19.58 40.327 19.58 40.783 19.58C40.871 19.967 41.15 21.235 41.15 21.235H44L41.517 10.2Z" fill="white"/>
-                <path d="M16.817 10.2H13.803L13.473 16.199C12.916 14.438 11.168 12.525 9.217 11.573L11.979 21.224H15.234L20.072 10.2H16.817Z" fill="white"/>
-                <path d="M11.003 10.2H6.051L6 10.423C9.863 11.339 12.422 13.546 13.473 16.199L12.397 11.128C12.219 10.423 11.675 10.223 11.003 10.2Z" fill="#FAA61A"/>
-              </svg>
-            </div>
-            {/* MasterCard */}
-            <div className="flex items-center flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
-              <svg className="h-7" viewBox="0 0 50 32" fill="none">
-                <rect width="50" height="32" rx="3" fill="#0F3560"/>
-                <circle cx="20" cy="16" r="8" fill="#EB001B"/>
-                <circle cx="30" cy="16" r="8" fill="#F79E1B"/>
-                <path d="M25 10.072A7.97 7.97 0 0 1 28 16a7.97 7.97 0 0 1-3 5.928A7.97 7.97 0 0 1 22 16a7.97 7.97 0 0 1 3-5.928Z" fill="#FF5F00"/>
-              </svg>
+            <div className="flex items-center gap-2.5 flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Uzcard_logo.png/240px-Uzcard_logo.png" alt="Uzcard" className="h-8 object-contain" />
             </div>
             {/* Humo */}
-            <div className="flex items-center flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
-              <div className="bg-[#003B73] rounded-md px-3 py-1.5">
-                <span className="text-white text-[14px] font-black tracking-wide">HUMO</span>
-              </div>
+            <div className="flex items-center flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Humo_logo.png/240px-Humo_logo.png" alt="Humo" className="h-8 object-contain" />
+            </div>
+            {/* Visa */}
+            <div className="flex items-center flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity">
+              <svg className="h-7" viewBox="0 0 1000 324" fill="none">
+                <path d="M433.35 4.46l-103.38 310h-67.56L198.97 68.26c-3.89-15.24-7.26-20.85-19.05-27.27-19.27-10.44-51.12-20.25-79.14-26.33l1.9-10.2h108.78c13.86 0 26.34 9.24 29.49 25.2L268.67 185l65.95-180.54h67.56zm267.24 208.62c.27-81.63-112.89-86.1-112.11-122.49.24-11.1 10.8-22.89 33.9-25.92 11.46-1.5 43.05-2.67 78.87 13.89l14.04-65.49c-19.26-7-44.04-13.71-74.88-13.71-79.14 0-134.82 42.06-135.27 102.3-.48 44.55 39.78 69.39 70.11 84.18 31.17 15.15 41.64 24.87 41.52 38.43-.21 20.76-24.87 29.94-47.88 30.3-40.2.6-63.54-10.86-82.11-19.53l-14.49 67.68c18.69 8.58 53.16 16.08 88.92 16.44 84.12 0 139.14-41.55 139.38-105.97zm208.83 101.38h74.1L915.87 4.46h-54.66c-12.3 0-22.68 7.17-27.27 18.18l-96.03 226.82 67.56 0 13.41-37.11h82.53l7.78 37.11zm-71.76-87.99l33.87-93.42 19.5 93.42h-53.37zM401.1 4.46l-53.25 310h-64.32l53.28-310h64.29z" fill="#1A1F71"/>
+              </svg>
+            </div>
+            {/* Mastercard */}
+            <div className="flex items-center flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity">
+              <svg className="h-8" viewBox="0 0 152.407 108" fill="none">
+                <rect fill="none" width="152.407" height="108"/>
+                <circle cx="60.412" cy="54" r="38.318" fill="#EB001B"/>
+                <circle cx="91.995" cy="54" r="38.318" fill="#F79E1B"/>
+                <path d="M76.204 23.484A38.269 38.269 0 0 0 60.412 54a38.269 38.269 0 0 0 15.792 30.516A38.269 38.269 0 0 0 91.996 54a38.269 38.269 0 0 0-15.792-30.516z" fill="#FF5F00"/>
+              </svg>
             </div>
             {/* Payme */}
-            <div className="flex items-center flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
-              <div className="bg-[#33CCCC] rounded-md px-3 py-1.5">
-                <span className="text-white text-[14px] font-black">Payme</span>
-              </div>
+            <div className="flex items-center flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity">
+              <img src="https://cdn.payme.uz/logo/payme_color.svg" alt="Payme" className="h-7 object-contain" />
             </div>
             {/* Click */}
-            <div className="flex items-center flex-shrink-0 opacity-60 hover:opacity-100 transition-opacity">
-              <div className="bg-[#00B4E6] rounded-md px-3 py-1.5">
-                <span className="text-white text-[14px] font-black">Click</span>
-              </div>
+            <div className="flex items-center flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity">
+              <img src="https://click.uz/click/images/logo-click.svg" alt="Click" className="h-7 object-contain" />
             </div>
           </div>
         </div>
