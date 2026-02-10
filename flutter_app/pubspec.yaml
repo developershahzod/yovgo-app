@@ -38,6 +38,9 @@ dependencies:
   google_maps_flutter: ^2.5.0
   geolocator: ^10.1.0
   
+  # Image picker (profile photo)
+  image_picker: ^1.0.7
+  
   # Utils
   intl: ^0.20.2
   url_launcher: ^6.2.2

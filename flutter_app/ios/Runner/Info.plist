@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>yuvgo_app</string>
+	<string>YuvGO</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -35,8 +35,6 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
@@ -45,5 +43,56 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+
+	<!-- Camera permission (QR scanner) -->
+	<key>NSCameraUsageDescription</key>
+	<string>YuvGO ilovasi QR kodni skanerlash uchun kameradan foydalanadi</string>
+
+	<!-- Location permissions (Google Maps, nearby car washes) -->
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>YuvGO ilovasi yaqin atrofdagi avtomoykalarni ko'rsatish uchun joylashuvingizdan foydalanadi</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>YuvGO ilovasi yaqin atrofdagi avtomoykalarni ko'rsatish uchun joylashuvingizdan foydalanadi</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>YuvGO ilovasi yaqin atrofdagi avtomoykalarni ko'rsatish uchun joylashuvingizdan foydalanadi</string>
+
+	<!-- Photo library permission (profile photo) -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>YuvGO ilovasi profil rasmingizni o'rnatish uchun foto kutubxonangizdan foydalanadi</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>YuvGO ilovasi rasmlarni saqlash uchun foto kutubxonangizdan foydalanadi</string>
+
+	<!-- Microphone (may be needed by camera plugins) -->
+	<key>NSMicrophoneUsageDescription</key>
+	<string>YuvGO ilovasi video yozish uchun mikrofondan foydalanishi mumkin</string>
+
+	<!-- URL schemes for url_launcher -->
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>https</string>
+		<string>http</string>
+		<string>tel</string>
+		<string>mailto</string>
+		<string>yandexmaps</string>
+		<string>yandexnavi</string>
+		<string>comgooglemaps</string>
+		<string>dgis</string>
+		<string>tg</string>
+	</array>
+
+	<!-- Allow arbitrary loads for API calls -->
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+	</dict>
+
+	<!-- Face ID (for flutter_secure_storage) -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>YuvGO ilovasi xavfsiz kirish uchun Face ID dan foydalanadi</string>
+
+	<!-- ITSAppUsesNonExemptEncryption - required for TestFlight -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>

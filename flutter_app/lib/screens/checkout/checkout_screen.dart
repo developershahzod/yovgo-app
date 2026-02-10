@@ -98,7 +98,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         final paymentUrl = paymentResult['payment_url']?.toString();
         if (paymentUrl != null && paymentUrl.isNotEmpty) {
           final uri = Uri.parse(paymentUrl);
-          await launchUrl(uri, mode: LaunchMode.platformDefault);
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
           if (mounted) _showPaymentPendingDialog();
         } else {
           // No payment URL returned — subscription was activated directly (test mode)

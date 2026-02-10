@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useMerchantAuth } from '../context/MerchantAuthContext';
 import { 
-  BarChart3, TrendingUp, TrendingDown, Users, Car, 
-  Calendar, DollarSign, Clock, ArrowUp, ArrowDown, RefreshCw
+  BarChart3, Users, Car, 
+  DollarSign, Clock
 } from 'lucide-react';
 
 const MerchantAnalytics = () => {
@@ -26,29 +26,28 @@ const MerchantAnalytics = () => {
       setAnalyticsData(response.data);
     } catch (error) {
       console.error('Failed to fetch analytics:', error);
-      // Use realistic mock data
       setAnalyticsData({
-        total_visits: 156,
-        unique_clients: 89,
-        avg_daily: 22.3,
-        avg_time: '25 min',
+        total_visits: 0,
+        unique_clients: 0,
+        avg_daily: 0,
+        avg_time: '0 min',
         weekly_data: [
-          { day: 'Dush', visits: 28 },
-          { day: 'Sesh', visits: 32 },
-          { day: 'Chor', visits: 25 },
-          { day: 'Pay', visits: 35 },
-          { day: 'Jum', visits: 42 },
-          { day: 'Shan', visits: 48 },
-          { day: 'Yak', visits: 38 },
+          { day: 'Dush', visits: 0 },
+          { day: 'Sesh', visits: 0 },
+          { day: 'Chor', visits: 0 },
+          { day: 'Pay', visits: 0 },
+          { day: 'Jum', visits: 0 },
+          { day: 'Shan', visits: 0 },
+          { day: 'Yak', visits: 0 },
         ],
         peak_hours: [
-          { hour: '08:00', percentage: 30 },
-          { hour: '10:00', percentage: 65 },
-          { hour: '12:00', percentage: 85 },
-          { hour: '14:00', percentage: 70 },
-          { hour: '16:00', percentage: 90 },
-          { hour: '18:00', percentage: 100 },
-          { hour: '20:00', percentage: 55 },
+          { hour: '08:00', percentage: 0 },
+          { hour: '10:00', percentage: 0 },
+          { hour: '12:00', percentage: 0 },
+          { hour: '14:00', percentage: 0 },
+          { hour: '16:00', percentage: 0 },
+          { hour: '18:00', percentage: 0 },
+          { hour: '20:00', percentage: 0 },
         ]
       });
     } finally {
@@ -60,32 +59,24 @@ const MerchantAnalytics = () => {
     { 
       label: 'Jami tashriflar', 
       value: analyticsData?.total_visits || 0, 
-      change: '+12%', 
-      trend: 'up',
       icon: Car,
       color: 'emerald'
     },
     { 
       label: 'Noyob mijozlar', 
       value: analyticsData?.unique_clients || 0, 
-      change: '+8%', 
-      trend: 'up',
       icon: Users,
       color: 'blue'
     },
     { 
       label: "O'rtacha kunlik", 
       value: analyticsData?.avg_daily || 0, 
-      change: '-3%', 
-      trend: 'down',
       icon: BarChart3,
       color: 'purple'
     },
     { 
       label: "O'rtacha vaqt", 
-      value: analyticsData?.avg_time || '25 min', 
-      change: '+5%', 
-      trend: 'up',
+      value: analyticsData?.avg_time || '0 min', 
       icon: Clock,
       color: 'orange'
     },
@@ -94,13 +85,7 @@ const MerchantAnalytics = () => {
   const weeklyData = analyticsData?.weekly_data || [];
   const peakHours = analyticsData?.peak_hours || [];
 
-  const topClients = [
-    { name: 'Alisher Karimov', visits: 12, lastVisit: '2 soat oldin' },
-    { name: 'Dilshod Rahimov', visits: 10, lastVisit: '1 kun oldin' },
-    { name: 'Nodira Saidova', visits: 8, lastVisit: '3 kun oldin' },
-    { name: 'Jasur Toshmatov', visits: 7, lastVisit: '1 hafta oldin' },
-    { name: 'Malika Umarova', visits: 6, lastVisit: '2 hafta oldin' },
-  ];
+  const topClients = analyticsData?.top_clients || [];
 
   const maxVisits = Math.max(...weeklyData.map(d => d.visits), 1);
 
@@ -144,12 +129,6 @@ const MerchantAnalytics = () => {
             <div className="flex items-center justify-between mb-3">
               <div className={`p-2 bg-${stat.color}-100 rounded-lg`}>
                 <stat.icon className={`text-${stat.color}-600`} size={20} />
-              </div>
-              <div className={`flex items-center gap-1 text-sm font-medium ${
-                stat.trend === 'up' ? 'text-green-600' : 'text-red-600'
-              }`}>
-                {stat.trend === 'up' ? <ArrowUp size={14} /> : <ArrowDown size={14} />}
-                {stat.change}
               </div>
             </div>
             <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
