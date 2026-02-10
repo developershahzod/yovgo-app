@@ -18,6 +18,13 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   bool _descExpanded = false;
   Map<String, dynamic>? _partner;
 
+  // Reviews
+  List<Map<String, dynamic>> _reviews = [];
+  double _avgRating = 0;
+  int _reviewCount = 0;
+  Map<String, int> _ratingDist = {};
+  bool _reviewsLoading = false;
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -28,6 +35,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map<String, dynamic>) {
       setState(() { _partner = args; _isLoading = false; });
+      _fetchReviews(args['id']);
       return;
     }
     String? partnerId;
@@ -36,7 +44,9 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
       try {
         final data = await FullApiService.get('/api/mobile/car-washes/$partnerId');
         if (mounted && data.statusCode == 200) {
-          setState(() { _partner = data.data is Map ? data.data['partner'] ?? data.data : null; _isLoading = false; });
+          final pd = data.data is Map ? data.data['partner'] ?? data.data : null;
+          setState(() { _partner = pd; _isLoading = false; });
+          if (pd != null) _fetchReviews(pd['id']);
           return;
         }
       } catch (_) {}
@@ -47,11 +57,137 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
         final partners = data.data['partners'] as List?;
         if (partners != null && partners.isNotEmpty) {
           setState(() { _partner = partners.first; _isLoading = false; });
+          _fetchReviews(partners.first['id']);
           return;
         }
       }
     } catch (_) {}
     if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _fetchReviews(String? partnerId) async {
+    if (partnerId == null) return;
+    setState(() => _reviewsLoading = true);
+    try {
+      final resp = await FullApiService.get('/api/mobile/reviews/partner/$partnerId');
+      if (mounted && resp.statusCode == 200) {
+        final data = resp.data;
+        setState(() {
+          _reviews = (data['reviews'] as List?)?.map((e) => Map<String, dynamic>.from(e)).toList() ?? [];
+          _avgRating = (data['average_rating'] ?? 0).toDouble();
+          _reviewCount = data['total'] ?? 0;
+          final dist = data['distribution'];
+          if (dist is Map) {
+            _ratingDist = dist.map((k, v) => MapEntry(k.toString(), (v as num).toInt()));
+          }
+        });
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _reviewsLoading = false);
+  }
+
+  void _showWriteReviewSheet() {
+    int selectedRating = 5;
+    final commentController = TextEditingController();
+    bool submitting = false;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => Container(
+          padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(width: 40, height: 4, decoration: BoxDecoration(color: const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(2))),
+                  const SizedBox(height: 20),
+                  const Text('Baholash', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, fontFamily: 'Mulish')),
+                  const SizedBox(height: 4),
+                  Text(_partner?['name'] ?? '', style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
+                  const SizedBox(height: 20),
+                  // Star selector
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (i) => GestureDetector(
+                      onTap: () => setSheetState(() => selectedRating = i + 1),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Icon(
+                          i < selectedRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                          size: 44,
+                          color: i < selectedRating ? const Color(0xFFFFB800) : const Color(0xFFD0D0D0),
+                        ),
+                      ),
+                    )),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: commentController,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      hintText: 'Izoh qoldiring (ixtiyoriy)',
+                      hintStyle: const TextStyle(color: Color(0xFFB0B0B0), fontSize: 14),
+                      filled: true,
+                      fillColor: const Color(0xFFF5F7FA),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: ElevatedButton(
+                      onPressed: submitting ? null : () async {
+                        setSheetState(() => submitting = true);
+                        try {
+                          await FullApiService.post('/api/mobile/reviews', data: {
+                            'partner_id': _partner?['id'],
+                            'rating': selectedRating,
+                            'comment': commentController.text.trim().isEmpty ? null : commentController.text.trim(),
+                          });
+                          if (mounted) {
+                            Navigator.pop(ctx);
+                            _fetchReviews(_partner?['id']);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Bahoingiz qabul qilindi!'), duration: Duration(seconds: 2)),
+                            );
+                          }
+                        } catch (e) {
+                          setSheetState(() => submitting = false);
+                          if (mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Xatolik yuz berdi. Avval tizimga kiring.'), duration: Duration(seconds: 2)),
+                            );
+                          }
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFFFD600),
+                        foregroundColor: const Color(0xFF0A0C13),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        elevation: 0,
+                      ),
+                      child: submitting
+                          ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                          : const Text('Yuborish', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -197,6 +333,14 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                           _buildWorkingHoursRow('Dushanba - Juma', _getHours(workingHours, 'weekday')),
                           _buildWorkingHoursRow('Shanba', _getHours(workingHours, 'saturday')),
                           _buildWorkingHoursRow('Yakshanba', _getHours(workingHours, 'sunday')),
+
+                          // Divider
+                          const SizedBox(height: 24),
+                          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+                          const SizedBox(height: 24),
+
+                          // Reviews section
+                          _buildReviewsSection(),
                           const SizedBox(height: 24),
                         ],
                       ),
@@ -423,12 +567,18 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                   children: [
                     Row(
                       children: [
-                        Text(rating.toStringAsFixed(1), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                        Text(
+                          _reviewCount > 0 ? _avgRating.toStringAsFixed(1) : rating.toStringAsFixed(1),
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
+                        ),
                         const SizedBox(width: 4),
                         Icon(Icons.info_outline, size: 14, color: const Color(0xFF8F96A0)),
                       ],
                     ),
-                    Text('REYTING', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF8F96A0), letterSpacing: 0.5)),
+                    Text(
+                      _reviewCount > 0 ? '$_reviewCount TA BAHO' : 'REYTING',
+                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF8F96A0), letterSpacing: 0.5),
+                    ),
                   ],
                 ),
               ],
@@ -670,6 +820,205 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   void _makePhoneCall(String phoneNumber) async {
     final Uri url = Uri.parse('tel:$phoneNumber');
     try { await launchUrl(url); } catch (_) {}
+  }
+
+  // ─── Reviews Section ───
+  Widget _buildReviewsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Baholar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+            GestureDetector(
+              onTap: _showWriteReviewSheet,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD600),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.edit, size: 16, color: Color(0xFF0A0C13)),
+                    SizedBox(width: 6),
+                    Text('Baholash', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Rating summary card
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F7FA),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            children: [
+              // Big number
+              Column(
+                children: [
+                  Text(
+                    _reviewCount > 0 ? _avgRating.toStringAsFixed(1) : '—',
+                    style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13), height: 1),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: List.generate(5, (i) => Icon(
+                      i < _avgRating.round() ? Icons.star_rounded : Icons.star_outline_rounded,
+                      size: 16,
+                      color: i < _avgRating.round() ? const Color(0xFFFFB800) : const Color(0xFFD0D0D0),
+                    )),
+                  ),
+                  const SizedBox(height: 4),
+                  Text('$_reviewCount ta baho', style: const TextStyle(fontSize: 12, color: Color(0xFF8F96A0))),
+                ],
+              ),
+              const SizedBox(width: 24),
+              // Distribution bars
+              Expanded(
+                child: Column(
+                  children: List.generate(5, (i) {
+                    final star = 5 - i;
+                    final count = _ratingDist[star.toString()] ?? 0;
+                    final pct = _reviewCount > 0 ? count.toDouble() / _reviewCount.toDouble() : 0.0;
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        children: [
+                          Text('$star', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF8F96A0))),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.star_rounded, size: 12, color: Color(0xFFFFB800)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: LinearProgressIndicator(
+                                value: pct,
+                                minHeight: 6,
+                                backgroundColor: const Color(0xFFE8E8E8),
+                                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFFB800)),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          SizedBox(width: 20, child: Text('$count', style: const TextStyle(fontSize: 11, color: Color(0xFF8F96A0)))),
+                        ],
+                      ),
+                    );
+                  }),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        // Reviews list
+        if (_reviewsLoading)
+          const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator(strokeWidth: 2)))
+        else if (_reviews.isEmpty)
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20),
+              child: Column(
+                children: [
+                  const Icon(Icons.rate_review_outlined, size: 40, color: Color(0xFFD0D0D0)),
+                  const SizedBox(height: 8),
+                  const Text('Hali baholar yo\'q', style: TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: _showWriteReviewSheet,
+                    child: const Text('Birinchi bo\'lib baholang!', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF00BCD4))),
+                  ),
+                ],
+              ),
+            ),
+          )
+        else
+          ...(_reviews.take(5).map((r) => _buildReviewCard(r)).toList()),
+
+        if (_reviews.length > 5) ...[
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton(
+              onPressed: () {}, // TODO: show all reviews
+              child: Text('Barcha ${_reviewCount} ta bahoni ko\'rish', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF00BCD4))),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildReviewCard(Map<String, dynamic> review) {
+    final rating = review['rating'] ?? 5;
+    final comment = review['comment'] ?? '';
+    final userName = review['user_name'] ?? 'Foydalanuvchi';
+    final createdAt = review['created_at'];
+    String dateStr = '';
+    if (createdAt != null) {
+      try {
+        final dt = DateTime.parse(createdAt);
+        dateStr = '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
+      } catch (_) {}
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F7FA),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF00BCD4).withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(child: Text(userName.isNotEmpty ? userName[0].toUpperCase() : 'F', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Color(0xFF00BCD4)))),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(userName, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF0A0C13))),
+                    if (dateStr.isNotEmpty)
+                      Text(dateStr, style: const TextStyle(fontSize: 11, color: Color(0xFF8F96A0))),
+                  ],
+                ),
+              ),
+              Row(
+                children: List.generate(5, (i) => Icon(
+                  i < rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                  size: 16,
+                  color: i < rating ? const Color(0xFFFFB800) : const Color(0xFFD0D0D0),
+                )),
+              ),
+            ],
+          ),
+          if (comment.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(comment, style: const TextStyle(fontSize: 13, color: Color(0xFF4A4A4A), height: 1.4)),
+          ],
+        ],
+      ),
+    );
   }
 
   // ─── Amenities & Services helpers ───

@@ -15,13 +15,28 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared.database import get_db
-from shared.models import Partner, PartnerLocation, User, Subscription, Visit, SubscriptionPlan
+from shared.models import Partner, PartnerLocation, User, Subscription, Visit, SubscriptionPlan, Review
 from shared.auth import AuthHandler
 
 # Get current user dependency
 get_current_user = AuthHandler.get_current_user
 
 router = APIRouter(prefix="/api/mobile", tags=["Mobile App"])
+
+
+def _get_partner_rating(db: Session, partner_id) -> dict:
+    """Get real average rating and review count from reviews table"""
+    from sqlalchemy import func as sqlfunc
+    avg = db.query(sqlfunc.avg(Review.rating)).filter(
+        Review.partner_id == partner_id, Review.is_visible == True
+    ).scalar()
+    count = db.query(sqlfunc.count(Review.id)).filter(
+        Review.partner_id == partner_id, Review.is_visible == True
+    ).scalar() or 0
+    return {
+        "rating": round(float(avg), 1) if avg else 0,
+        "review_count": count,
+    }
 
 
 # ==================== CAR WASH ENDPOINTS ====================
@@ -68,6 +83,7 @@ async def get_nearby_car_washes(
                         gallery = list(partner.gallery_urls)
                 except Exception:
                     pass
+                rv = _get_partner_rating(db, partner.id)
                 nearby_partners.append({
                     "id": str(partner.id),
                     "name": partner.name,
@@ -75,8 +91,8 @@ async def get_nearby_car_washes(
                     "latitude": p_lat,
                     "longitude": p_lng,
                     "distance": round(distance, 1),
-                    "rating": float(partner.rating) if partner.rating else 4.5,
-                    "review_count": 0,
+                    "rating": rv["rating"] if rv["review_count"] > 0 else (float(partner.rating) if partner.rating else 0),
+                    "review_count": rv["review_count"],
                     "is_open": is_currently_open(partner),
                     "status": get_status_text(partner),
                     "images": gallery,
@@ -125,6 +141,7 @@ async def get_premium_car_washes(
                 gallery = list(partner.gallery_urls)
         except Exception:
             pass
+        rv = _get_partner_rating(db, partner.id)
         result.append({
             "id": str(partner.id),
             "name": partner.name,
@@ -132,8 +149,8 @@ async def get_premium_car_washes(
             "latitude": float(partner.latitude) if partner.latitude else None,
             "longitude": float(partner.longitude) if partner.longitude else None,
             "distance": 0.0,
-            "rating": float(partner.rating) if partner.rating else 4.5,
-            "review_count": 0,
+            "rating": rv["rating"] if rv["review_count"] > 0 else (float(partner.rating) if partner.rating else 0),
+            "review_count": rv["review_count"],
             "is_open": is_currently_open(partner),
             "status": get_status_text(partner),
             "images": gallery,
@@ -176,6 +193,7 @@ async def get_car_wash_detail(
             gallery = list(partner.gallery_urls)
     except Exception:
         pass
+    rv = _get_partner_rating(db, partner.id)
     return {
         "success": True,
         "partner": {
@@ -184,8 +202,8 @@ async def get_car_wash_detail(
             "address": partner.address or "",
             "latitude": float(partner.latitude) if partner.latitude else None,
             "longitude": float(partner.longitude) if partner.longitude else None,
-            "rating": float(partner.rating) if partner.rating else 4.5,
-            "review_count": 0,
+            "rating": rv["rating"] if rv["review_count"] > 0 else (float(partner.rating) if partner.rating else 0),
+            "review_count": rv["review_count"],
             "is_open": is_currently_open(partner),
             "status": get_status_text(partner),
             "images": gallery,
@@ -540,6 +558,171 @@ async def get_user_stats(
             "active_subscription": active_subscription is not None,
         }
     }
+
+
+# ==================== REVIEW ENDPOINTS ====================
+
+class CreateReviewRequest(BaseModel):
+    partner_id: str
+    rating: int  # 1-5
+    comment: Optional[str] = None
+    visit_id: Optional[str] = None
+
+@router.post("/reviews")
+async def create_review(
+    request: CreateReviewRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    """Submit a review for a car wash"""
+    from sqlalchemy import func as sqlfunc
+
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+
+    if request.rating < 1 or request.rating > 5:
+        raise HTTPException(status_code=400, detail="Reyting 1 dan 5 gacha bo'lishi kerak")
+
+    # Check partner exists
+    partner = db.query(Partner).filter(Partner.id == request.partner_id).first()
+    if not partner:
+        raise HTTPException(status_code=404, detail="Avtomoyka topilmadi")
+
+    # Check if user already reviewed this partner (allow one review per partner, update if exists)
+    existing = db.query(Review).filter(
+        Review.user_id == user_id,
+        Review.partner_id == request.partner_id,
+    ).first()
+
+    if existing:
+        existing.rating = request.rating
+        existing.comment = request.comment or existing.comment
+        if request.visit_id:
+            existing.visit_id = request.visit_id
+        db.commit()
+        db.refresh(existing)
+        review_id = str(existing.id)
+    else:
+        review = Review(
+            user_id=user_id,
+            partner_id=request.partner_id,
+            visit_id=request.visit_id if request.visit_id else None,
+            rating=request.rating,
+            comment=request.comment,
+        )
+        db.add(review)
+        db.commit()
+        db.refresh(review)
+        review_id = str(review.id)
+
+    # Update partner average rating
+    avg = db.query(sqlfunc.avg(Review.rating)).filter(
+        Review.partner_id == request.partner_id,
+        Review.is_visible == True,
+    ).scalar()
+    if avg is not None:
+        partner.rating = round(float(avg), 2)
+        db.commit()
+
+    return {
+        "success": True,
+        "message": "Bahoingiz qabul qilindi!",
+        "review_id": review_id,
+    }
+
+
+@router.get("/reviews/partner/{partner_id}")
+async def get_partner_reviews(
+    partner_id: str,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    """Get reviews for a car wash"""
+    from sqlalchemy import func as sqlfunc
+
+    reviews = (
+        db.query(Review)
+        .filter(Review.partner_id == partner_id, Review.is_visible == True)
+        .order_by(Review.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+
+    total = db.query(sqlfunc.count(Review.id)).filter(
+        Review.partner_id == partner_id, Review.is_visible == True
+    ).scalar() or 0
+
+    avg_rating = db.query(sqlfunc.avg(Review.rating)).filter(
+        Review.partner_id == partner_id, Review.is_visible == True
+    ).scalar()
+
+    # Rating distribution
+    dist = {}
+    for star in range(1, 6):
+        cnt = db.query(sqlfunc.count(Review.id)).filter(
+            Review.partner_id == partner_id,
+            Review.is_visible == True,
+            Review.rating == star,
+        ).scalar() or 0
+        dist[str(star)] = cnt
+
+    result = []
+    for r in reviews:
+        user = db.query(User).filter(User.id == r.user_id).first()
+        result.append({
+            "id": str(r.id),
+            "rating": r.rating,
+            "comment": r.comment or "",
+            "user_name": user.full_name if user and user.full_name else "Foydalanuvchi",
+            "user_phone": _mask_phone(user.phone_number) if user else "",
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        })
+
+    return {
+        "success": True,
+        "reviews": result,
+        "total": total,
+        "average_rating": round(float(avg_rating), 1) if avg_rating else 0,
+        "distribution": dist,
+    }
+
+
+@router.get("/reviews/my")
+async def get_my_reviews(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    """Get current user's reviews"""
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+
+    reviews = (
+        db.query(Review)
+        .filter(Review.user_id == user_id)
+        .order_by(Review.created_at.desc())
+        .all()
+    )
+
+    result = []
+    for r in reviews:
+        partner = db.query(Partner).filter(Partner.id == r.partner_id).first()
+        result.append({
+            "id": str(r.id),
+            "partner_id": str(r.partner_id),
+            "partner_name": partner.name if partner else "",
+            "rating": r.rating,
+            "comment": r.comment or "",
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        })
+
+    return {"success": True, "reviews": result}
+
+
+def _mask_phone(phone: str) -> str:
+    """Mask phone number: +998 90 *** ** 61"""
+    if not phone or len(phone) < 9:
+        return ""
+    return phone[:7] + " *** ** " + phone[-2:]
 
 
 # ==================== WEATHER ENDPOINT ====================
