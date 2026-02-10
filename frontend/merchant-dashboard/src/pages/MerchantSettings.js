@@ -90,27 +90,33 @@ const MerchantSettings = () => {
     setSaving(true);
     try {
       const partnerId = merchant?.partner?.id || merchant?.partner_id;
-      if (partnerId) {
-        await axios.put(`${API_URL}/api/partner/partners/${partnerId}`, {
-          name: profile.businessName,
-          owner_name: profile.ownerName,
-          email: profile.email,
-          phone_number: profile.phone,
-          address: profile.address,
-          city: profile.city,
-          working_hours: profile.workingHours,
-          description: profile.description,
-          wash_time: parseInt(profile.washTime) || 60,
-          amenities: amenities,
-          additional_services: additionalServices,
-        });
+      if (!partnerId) {
+        alert('Xatolik: Partner ID topilmadi. Qayta login qiling.');
+        return;
       }
-    } catch (err) {
-      console.error('Failed to save settings:', err);
-    } finally {
-      setSaving(false);
+      await axios.put(`${API_URL}/api/partner/partners/${partnerId}`, {
+        name: profile.businessName,
+        owner_name: profile.ownerName,
+        email: profile.email,
+        phone_number: profile.phone,
+        address: profile.address,
+        city: profile.city,
+        working_hours: profile.workingHours,
+        description: profile.description,
+        wash_time: parseInt(profile.washTime) || 60,
+        amenities: amenities,
+        additional_services: additionalServices,
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+      // Re-fetch to confirm changes persisted
+      await fetchProfile();
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+      const msg = err.response?.data?.detail || err.message || 'Sozlamalarni saqlashda xatolik';
+      alert(typeof msg === 'string' ? msg : JSON.stringify(msg));
+    } finally {
+      setSaving(false);
     }
   };
 
