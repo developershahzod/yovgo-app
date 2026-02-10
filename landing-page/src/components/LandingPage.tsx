@@ -654,11 +654,11 @@ export default function LandingPage() {
             </div>
           </div>
 
-          <div className="flex-1 relative max-w-[600px] w-full flex items-center justify-center">
+          <div className="flex-1 relative max-w-[600px] w-full flex items-center justify-center" style={{ overflow: 'visible' }}>
             {/* Cyan glow behind phone */}
             <div className="absolute w-[350px] h-[350px] bg-[#00bffe] blur-[180px] opacity-30 rounded-full z-0" />
             {/* Single iPhone mockup with floating badges */}
-            <div className="relative z-10 flex items-center justify-center" style={{ minHeight: '520px' }}>
+            <div className="relative z-10 flex items-center justify-center" style={{ minHeight: '520px', overflow: 'visible' }}>
               {/* Phone */}
               <div className="relative" style={{ width: '280px', zIndex: 20 }}>
                 <img src={imgIPhoneFrame} alt="" style={{ width: '100%', height: 'auto', display: 'block', position: 'relative', zIndex: 10 }} />
@@ -669,28 +669,28 @@ export default function LandingPage() {
 
               {/* Floating badge: Car washes - top right */}
               <div className="hidden md:flex absolute items-center gap-2 bg-white rounded-full shadow-lg px-4 py-2.5 z-30"
-                style={{ top: '20px', right: '-40px' }}>
+                style={{ top: '20px', right: '0px' }}>
                 <span className="text-[18px]">🚗</span>
                 <span className="text-[13px] font-bold text-[#0a0c13] whitespace-nowrap">{t.stats.carWashes}</span>
               </div>
 
               {/* Floating badge: Wash rating - left middle */}
               <div className="hidden md:flex absolute items-center gap-2 bg-white rounded-full shadow-lg px-4 py-2.5 z-30"
-                style={{ top: '42%', left: '-80px' }}>
+                style={{ top: '42%', left: '-60px' }}>
                 <span className="text-[18px]">✨</span>
                 <span className="text-[13px] font-bold text-[#0a0c13] whitespace-nowrap">{t.stats.washRating}</span>
               </div>
 
-              {/* Floating badge: Premium washes - bottom center */}
+              {/* Floating badge: Premium washes - bottom left */}
               <div className="hidden md:flex absolute items-center gap-2 bg-white rounded-full shadow-lg px-4 py-2.5 z-30"
-                style={{ bottom: '60px', left: '-50px' }}>
+                style={{ bottom: '60px', left: '-30px' }}>
                 <span className="text-[18px]">🏆</span>
                 <span className="text-[13px] font-bold text-[#0a0c13] whitespace-nowrap">{t.stats.premiumWashes}</span>
               </div>
 
               {/* Floating badge: Subscribers - bottom right */}
               <div className="hidden md:flex absolute items-center gap-2 bg-white rounded-full shadow-lg px-4 py-2.5 z-30"
-                style={{ bottom: '30px', right: '-60px' }}>
+                style={{ bottom: '30px', right: '-20px' }}>
                 <span className="text-[18px]">👥</span>
                 <span className="text-[13px] font-bold text-[#0a0c13] whitespace-nowrap">{t.stats.subscribers}</span>
               </div>
@@ -762,20 +762,20 @@ export default function LandingPage() {
           {t.features.items.map((item, i) => (
             <div
               key={i}
-              className="bg-white rounded-[40px] md:rounded-[56px] p-8 relative overflow-hidden min-h-[220px] border border-gray-100 shadow-sm hover:shadow-md transition-shadow"
+              className="bg-white rounded-[40px] md:rounded-[56px] p-8 relative overflow-hidden min-h-[280px] md:min-h-[320px] border border-gray-100 shadow-sm hover:shadow-md transition-shadow flex flex-col justify-end"
             >
-              <div className="absolute top-[60px] right-[-16px] w-[160px] h-[160px] md:w-[200px] md:h-[200px] rounded-lg overflow-hidden">
+              <div className="absolute top-[20px] right-[-10px] w-[140px] h-[140px] md:w-[170px] md:h-[170px] rounded-2xl overflow-hidden opacity-90">
                 <img
                   src={featureImages[i]}
                   alt=""
                   className="w-full h-full object-cover"
                 />
               </div>
-              <div className="relative z-10 mt-auto pt-[100px] md:pt-[120px]">
+              <div className="relative z-10">
                 <h3 className="text-[22px] md:text-[26px] font-black text-[#0a0c13] leading-[1.2]">
                   {item.title}
                 </h3>
-                <p className="mt-3 text-[14px] md:text-[16px] text-[#8f96a0] leading-[1.4] max-w-[256px]">
+                <p className="mt-3 text-[14px] md:text-[16px] text-[#8f96a0] leading-[1.5] max-w-[220px]">
                   {item.desc}
                 </p>
               </div>
