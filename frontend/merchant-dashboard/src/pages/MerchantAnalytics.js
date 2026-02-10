@@ -182,48 +182,56 @@ const MerchantAnalytics = () => {
         {/* Top Clients */}
         <div className="bg-white rounded-xl border border-gray-200 p-6 lg:col-span-2">
           <h2 className="text-lg font-semibold mb-4">Top mijozlar</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">#</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Mijoz</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Tashriflar</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-600">Oxirgi tashrif</th>
-                </tr>
-              </thead>
-              <tbody>
-                {topClients.map((client, index) => (
-                  <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
-                    <td className="py-3 px-4">
-                      <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                        index === 0 ? 'bg-yellow-100 text-yellow-700' :
-                        index === 1 ? 'bg-gray-100 text-gray-700' :
-                        index === 2 ? 'bg-orange-100 text-orange-700' :
-                        'bg-gray-50 text-gray-500'
-                      }`}>
-                        {index + 1}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-medium">
-                          {client.name.charAt(0)}
-                        </div>
-                        <span className="font-medium">{client.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
-                        {client.visits} ta
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-gray-500">{client.lastVisit}</td>
+          {topClients.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-gray-200">
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">#</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Mijoz</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Tashriflar</th>
+                    <th className="text-left py-3 px-4 font-medium text-gray-600">Oxirgi tashrif</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {topClients.map((client, index) => (
+                    <tr key={index} className="border-b border-gray-100 hover:bg-gray-50">
+                      <td className="py-3 px-4">
+                        <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                          index === 0 ? 'bg-yellow-100 text-yellow-700' :
+                          index === 1 ? 'bg-gray-100 text-gray-700' :
+                          index === 2 ? 'bg-orange-100 text-orange-700' :
+                          'bg-gray-50 text-gray-500'
+                        }`}>
+                          {index + 1}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 font-medium">
+                            {client.name.charAt(0)}
+                          </div>
+                          <span className="font-medium">{client.name}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4">
+                        <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
+                          {client.visits} ta
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-gray-500">{client.lastVisit}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <Users size={32} className="mx-auto text-gray-300 mb-2" />
+              <p className="text-gray-500">Hozircha mijozlar yo'q</p>
+              <p className="text-sm text-gray-400 mt-1">Tashriflar paydo bo'lganda bu yerda ko'rinadi</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

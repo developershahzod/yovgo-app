@@ -12,7 +12,7 @@ import uuid
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from shared.database import get_db, engine
-from shared.models import Partner, PartnerLocation, PartnerStaff, MerchantUser, Visit, Base
+from shared.models import Partner, PartnerLocation, PartnerStaff, MerchantUser, Visit, User, Base
 from shared.schemas import (
     PartnerCreate, PartnerUpdate, PartnerResponse,
     PartnerLocationCreate, PartnerLocationResponse,
@@ -811,6 +811,41 @@ async def get_merchant_analytics(partner_id: str, period: str = "week", db: Sess
             "visits": day_visits
         })
     
+    # Top clients - group visits by user, get names
+    from sqlalchemy import func as sqlfunc
+    top_users_q = db.query(
+        Visit.user_id,
+        sqlfunc.count(Visit.id).label("visit_count"),
+        sqlfunc.max(Visit.check_in_time).label("last_visit")
+    ).filter(
+        Visit.partner_id == partner_id,
+        Visit.user_id.isnot(None)
+    ).group_by(Visit.user_id).order_by(sqlfunc.count(Visit.id).desc()).limit(10).all()
+    
+    top_clients = []
+    for row in top_users_q:
+        user = db.query(User).filter(User.id == row.user_id).first()
+        if user:
+            last_visit_str = ""
+            if row.last_visit:
+                diff = now - row.last_visit
+                if diff.days == 0:
+                    hours = diff.seconds // 3600
+                    last_visit_str = f"{hours} soat oldin" if hours > 0 else "Hozirgina"
+                elif diff.days == 1:
+                    last_visit_str = "1 kun oldin"
+                elif diff.days < 7:
+                    last_visit_str = f"{diff.days} kun oldin"
+                elif diff.days < 30:
+                    last_visit_str = f"{diff.days // 7} hafta oldin"
+                else:
+                    last_visit_str = f"{diff.days // 30} oy oldin"
+            top_clients.append({
+                "name": user.full_name or user.phone_number or "Noma'lum",
+                "visits": row.visit_count,
+                "lastVisit": last_visit_str
+            })
+    
     return {
         "total_visits": total_visits,
         "unique_clients": unique_users,
@@ -818,6 +853,7 @@ async def get_merchant_analytics(partner_id: str, period: str = "week", db: Sess
         "avg_time": "25 min",
         "weekly_data": daily_data,
         "peak_hours": peak_hours,
+        "top_clients": top_clients,
         "period": period
     }
 
