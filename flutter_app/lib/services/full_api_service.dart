@@ -70,7 +70,41 @@ class FullApiService {
 
   // ==================== USER SERVICE ====================
   
-  /// Login with phone number
+  /// Send SMS verification code to phone number
+  static Future<Map<String, dynamic>> sendCode(String phoneNumber) async {
+    try {
+      final response = await _dio.post('/api/user/auth/send-code', data: {
+        'phone_number': phoneNumber,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Verify SMS code and login/register
+  /// If user exists — logs in. If not — auto-registers.
+  static Future<Map<String, dynamic>> verifyCode({
+    required String phoneNumber,
+    required String code,
+    String? fullName,
+  }) async {
+    try {
+      final response = await _dio.post('/api/user/auth/verify-code', data: {
+        'phone_number': phoneNumber,
+        'code': code,
+        if (fullName != null) 'full_name': fullName,
+      });
+      if (response.data['access_token'] != null) {
+        await saveToken(response.data['access_token']);
+      }
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Login with phone number (legacy, kept for compatibility)
   static Future<Map<String, dynamic>> login(String phoneNumber) async {
     try {
       final response = await _dio.post('/api/user/auth/login', data: {
@@ -87,7 +121,7 @@ class FullApiService {
     }
   }
 
-  /// Register new user
+  /// Register new user (legacy, kept for compatibility)
   static Future<Map<String, dynamic>> register({
     required String phoneNumber,
     required String fullName,

@@ -14,6 +14,10 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
   String _planName = '';
   int _daysLeft = 0;
   String _endDate = '';
+  int _visitsUsed = 0;
+  int _visitsLimit = 0;
+  bool _isUnlimited = false;
+  int _savedAmount = 0;
   bool _isLoading = true;
 
   @override
@@ -33,13 +37,28 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
             _planName = sub['plan_name'] ?? '${sub['duration_days'] ?? 90} kunlik obuna';
             _daysLeft = sub['days_remaining'] ?? 0;
             _endDate = sub['end_date'] ?? '';
-            _isLoading = false;
+            _visitsUsed = sub['visits_used'] ?? 0;
+            _visitsLimit = sub['visit_limit'] ?? 0;
+            _isUnlimited = sub['is_unlimited'] == true || _visitsLimit == 0;
+            _savedAmount = sub['saved_amount'] ?? 0;
           });
-          return;
         }
       }
     } catch (_) {}
-    setState(() { _status = null; _isLoading = false; });
+
+    // Load visit stats
+    try {
+      final statsRes = await FullApiService.get('/api/visit/visits/stats');
+      if (statsRes.statusCode == 200 && statsRes.data != null) {
+        final stats = statsRes.data is Map ? statsRes.data : {};
+        setState(() {
+          if (_visitsUsed == 0) _visitsUsed = stats['total_visits'] ?? stats['this_month'] ?? 0;
+          if (_savedAmount == 0) _savedAmount = stats['saved_amount'] ?? 0;
+        });
+      }
+    } catch (_) {}
+
+    setState(() => _isLoading = false);
   }
 
   @override
@@ -236,9 +255,9 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                Expanded(child: _buildStatCard(Icons.attach_money, 'Tejalgan pul', '120 000 so\'m')),
+                Expanded(child: _buildStatCard(Icons.attach_money, 'Tejalgan pul', '${_formatPrice(_savedAmount)} so\'m')),
                 const SizedBox(width: 8),
-                Expanded(child: _buildStatCard(Icons.access_time, 'Shu oy tashriflari', '${isExpired ? "12" : "8"}/12')),
+                Expanded(child: _buildStatCard(Icons.access_time, 'Tashriflar', _isUnlimited ? '$_visitsUsed / ∞' : '$_visitsUsed / $_visitsLimit')),
               ],
             ),
           ),
@@ -282,6 +301,18 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
         ],
       ),
     );
+  }
+
+  String _formatPrice(int price) {
+    final str = price.toString();
+    final buf = StringBuffer();
+    int c = 0;
+    for (int i = str.length - 1; i >= 0; i--) {
+      buf.write(str[i]);
+      c++;
+      if (c % 3 == 0 && i > 0) buf.write(' ');
+    }
+    return buf.toString().split('').reversed.join();
   }
 
   Widget _buildActionRow(IconData icon, String text, Color color, VoidCallback onTap) {
