@@ -58,73 +58,155 @@ const Analytics = () => {
     fetchAnalyticsData();
   }, [timeRange]);
 
+  const [partnerPerformance, setPartnerPerformance] = useState([]);
+
   const fetchAnalyticsData = async () => {
     setLoading(true);
     try {
-      // Fetch users
-      const usersRes = await axios.get(`${API_URL}/api/user/users`);
-      const users = usersRes.data;
+      // Fetch all real data
+      const [usersRes, plansRes, partnersRes] = await Promise.allSettled([
+        axios.get(`${API_URL}/api/user/users`),
+        axios.get(`${API_URL}/api/subscription/plans`),
+        axios.get(`${API_URL}/api/partner/partners`),
+      ]);
 
-      // Fetch subscription plans
-      const plansRes = await axios.get(`${API_URL}/api/subscription/plans`);
-      const plans = plansRes.data;
+      const users = usersRes.status === 'fulfilled' ? usersRes.value.data : [];
+      const plans = plansRes.status === 'fulfilled' ? plansRes.value.data : [];
+      const partners = partnersRes.status === 'fulfilled' ? partnersRes.value.data : [];
 
-      // Fetch partners
-      const partnersRes = await axios.get(`${API_URL}/api/partner/partners`);
-      const partners = partnersRes.data;
+      // Fetch real visits, payments, subscriptions
+      let allVisits = [];
+      let allPayments = [];
+      let allSubscriptions = [];
+      try {
+        const visitsRes = await axios.get(`${API_URL}/api/visit/visits`);
+        allVisits = Array.isArray(visitsRes.data) ? visitsRes.data : [];
+      } catch (e) {}
+      try {
+        const paymentsRes = await axios.get(`${API_URL}/api/payment/payments`);
+        allPayments = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
+      } catch (e) {}
+      try {
+        const subsRes = await axios.get(`${API_URL}/api/subscription/subscriptions`);
+        allSubscriptions = Array.isArray(subsRes.data) ? subsRes.data : [];
+      } catch (e) {}
 
-      // Calculate stats
+      // Calculate real stats
       const totalUsers = users.length;
-      const activeSubscriptions = Math.floor(totalUsers * 0.65); // Estimate 65% have subscriptions
-      const totalRevenue = plans.reduce((sum, plan) => sum + plan.price, 0) * activeSubscriptions;
-      const totalVisits = Math.floor(totalUsers * 3.5); // Estimate 3.5 visits per user
+      const activeSubscriptions = allSubscriptions.filter(s => s.status === 'active').length;
+      const successPayments = allPayments.filter(p => p.status === 'success' || p.status === 'completed');
+      const totalRevenue = successPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
+      const totalVisits = allVisits.length;
 
       setStats({
         totalRevenue,
         totalUsers,
         activeSubscriptions,
         totalVisits,
-        revenueGrowth: 15.3,
-        userGrowth: 12.8
+        revenueGrowth: 0,
+        userGrowth: 0
       });
 
-      // Generate revenue data (last 7 days)
+      // Revenue data from real payments (last 7 days)
       const revData = Array.from({ length: 7 }, (_, i) => {
         const date = new Date();
         date.setDate(date.getDate() - (6 - i));
+        const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(date); dayEnd.setHours(23, 59, 59, 999);
+        const dayPayments = successPayments.filter(p => {
+          const pd = new Date(p.created_at);
+          return pd >= dayStart && pd <= dayEnd;
+        });
+        const daySubs = allSubscriptions.filter(s => {
+          const sd = new Date(s.created_at);
+          return sd >= dayStart && sd <= dayEnd;
+        });
         return {
           date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-          revenue: Math.floor(totalRevenue / 7 * (0.8 + Math.random() * 0.4)),
-          subscriptions: Math.floor(activeSubscriptions / 7 * (0.8 + Math.random() * 0.4))
+          revenue: dayPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0),
+          subscriptions: daySubs.length
         };
       });
       setRevenueData(revData);
 
-      // Generate user growth data (last 6 months)
-      const months = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const userGrowth = months.map((month, i) => ({
-        month,
-        users: Math.floor(totalUsers * (0.2 + (i * 0.15))),
-        active: Math.floor(activeSubscriptions * (0.2 + (i * 0.15)))
-      }));
+      // User growth data from real users (last 6 months)
+      const now = new Date();
+      const monthNames = [];
+      const userGrowth = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0, 23, 59, 59);
+        const monthLabel = d.toLocaleDateString('en-US', { month: 'short' });
+        const usersUpToMonth = users.filter(u => new Date(u.created_at) <= monthEnd).length;
+        const activeSubs = allSubscriptions.filter(s => {
+          const sd = new Date(s.start_date || s.created_at);
+          const ed = s.end_date ? new Date(s.end_date) : new Date('2099-01-01');
+          return sd <= monthEnd && ed >= d && s.status === 'active';
+        }).length;
+        userGrowth.push({
+          month: monthLabel,
+          users: usersUpToMonth,
+          active: activeSubs
+        });
+      }
       setUserGrowthData(userGrowth);
 
-      // Generate subscription distribution from real plans
+      // Subscription distribution from real subscriptions per plan
+      const planCounts = {};
+      allSubscriptions.filter(s => s.status === 'active').forEach(s => {
+        const planId = s.plan_id;
+        planCounts[planId] = (planCounts[planId] || 0) + 1;
+      });
+      const colors = ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'];
       const distribution = plans.map((plan, i) => ({
         name: plan.name,
-        value: Math.floor(activeSubscriptions / plans.length * (0.8 + Math.random() * 0.4)),
-        color: ['#3B82F6', '#8B5CF6', '#10B981', '#F59E0B', '#EF4444'][i % 5]
+        value: planCounts[plan.id] || 0,
+        color: colors[i % colors.length]
       }));
       setSubscriptionDistribution(distribution);
 
-      // Generate visit statistics (last 7 days)
-      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-      const visits = days.map(day => ({
-        day,
-        visits: Math.floor(totalVisits / 7 * (0.8 + Math.random() * 0.4)),
-        completed: Math.floor(totalVisits / 7 * (0.75 + Math.random() * 0.2))
-      }));
-      setVisitStats(visits);
+      // Visit statistics from real visits (last 7 days)
+      const dayNames = ['Yak', 'Dush', 'Sesh', 'Chor', 'Pay', 'Jum', 'Shan'];
+      const visitsByDay = Array.from({ length: 7 }, (_, i) => {
+        const date = new Date();
+        date.setDate(date.getDate() - (6 - i));
+        const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0);
+        const dayEnd = new Date(date); dayEnd.setHours(23, 59, 59, 999);
+        const dayVisits = allVisits.filter(v => {
+          const vd = new Date(v.check_in_time || v.created_at);
+          return vd >= dayStart && vd <= dayEnd;
+        });
+        const completedVisits = dayVisits.filter(v => v.status === 'completed');
+        return {
+          day: dayNames[date.getDay()],
+          visits: dayVisits.length,
+          completed: completedVisits.length
+        };
+      });
+      setVisitStats(visitsByDay);
+
+      // Partner performance from real data
+      const partnerVisits = {};
+      const partnerRevenue = {};
+      allVisits.forEach(v => {
+        if (v.partner_id) {
+          partnerVisits[v.partner_id] = (partnerVisits[v.partner_id] || 0) + 1;
+        }
+      });
+      allPayments.filter(p => p.status === 'success' || p.status === 'completed').forEach(p => {
+        if (p.partner_id) {
+          partnerRevenue[p.partner_id] = (partnerRevenue[p.partner_id] || 0) + (parseFloat(p.amount) || 0);
+        }
+      });
+      const perfData = partners
+        .map(p => ({
+          name: p.name,
+          visits: partnerVisits[p.id] || 0,
+          revenue: partnerRevenue[p.id] || 0
+        }))
+        .sort((a, b) => b.visits - a.visits)
+        .slice(0, 5);
+      setPartnerPerformance(perfData);
 
     } catch (error) {
       console.error('Failed to fetch analytics data:', error);
@@ -132,14 +214,6 @@ const Analytics = () => {
       setLoading(false);
     }
   };
-
-  // Mock data for partner performance
-  const partnerPerformance = [
-    { name: 'Premium Car Wash', visits: 145, revenue: 2890000 },
-    { name: 'Quick Clean Mobile', visits: 128, revenue: 2560000 },
-    { name: 'Standard Auto Wash', visits: 98, revenue: 1960000 },
-    { name: 'Express Wash', visits: 84, revenue: 1680000 }
-  ];
 
   return (
     <div className="space-y-6">
@@ -191,70 +265,45 @@ const Analytics = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">Jami daromad</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalRevenue.toLocaleString()} UZS</div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-              {stats.revenueGrowth > 0 ? (
-                <>
-                  <ArrowUpRight className="h-3 w-3 text-green-600" />
-                  <span className="text-green-600">+{stats.revenueGrowth}%</span>
-                </>
-              ) : (
-                <>
-                  <ArrowDownRight className="h-3 w-3 text-red-600" />
-                  <span className="text-red-600">{stats.revenueGrowth}%</span>
-                </>
-              )}
-              from last period
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">To'lovlardan</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+            <CardTitle className="text-sm font-medium">Jami foydalanuvchilar</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalUsers}</div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-              <ArrowUpRight className="h-3 w-3 text-green-600" />
-              <span className="text-green-600">+{stats.userGrowth}%</span>
-              from last period
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Ro'yxatdan o'tgan</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Subscriptions</CardTitle>
+            <CardTitle className="text-sm font-medium">Faol obunalar</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.activeSubscriptions}</div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-              <ArrowUpRight className="h-3 w-3 text-green-600" />
-              <span className="text-green-600">+{stats.subscriptionGrowth}%</span>
-              from last period
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Hozirda faol</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Visits</CardTitle>
+            <CardTitle className="text-sm font-medium">Jami tashriflar</CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalVisits}</div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-              <ArrowDownRight className="h-3 w-3 text-red-600" />
-              <span className="text-red-600">{stats.visitGrowth}%</span>
-              from last period
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Barcha vaqt uchun</p>
           </CardContent>
         </Card>
       </div>
@@ -425,7 +474,7 @@ const Analytics = () => {
                       <div className="w-full bg-gray-200 rounded-full h-2">
                         <div
                           className="bg-primary h-2 rounded-full"
-                          style={{ width: `${(partner.visits / 145) * 100}%` }}
+                          style={{ width: `${partnerPerformance.length > 0 && partnerPerformance[0].visits > 0 ? (partner.visits / partnerPerformance[0].visits) * 100 : 0}%` }}
                         ></div>
                       </div>
                     </div>

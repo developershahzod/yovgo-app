@@ -3,7 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useMerchantAuth } from '../context/MerchantAuthContext';
 import {
   LayoutDashboard, QrCode, Users, DollarSign, Activity,
-  LogOut, Menu, X, Building2, ChevronDown, Settings, BarChart3
+  LogOut, Menu, X, Building2, ChevronDown, Settings, BarChart3, Bell
 } from 'lucide-react';
 
 const LayoutClean = () => {
@@ -13,14 +13,15 @@ const LayoutClean = () => {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const navigation = [
-    { name: 'Панель управления', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Сканер QR', href: '/qr-scanner', icon: QrCode },
-    { name: 'История визитов', href: '/visits', icon: Activity },
-    { name: 'Доходы', href: '/earnings', icon: DollarSign },
-    { name: 'Клиенты', href: '/clients', icon: Users },
-    { name: 'Аналитика', href: '/analytics', icon: BarChart3 },
-    { name: 'Филиалы', href: '/branches', icon: Building2 },
-    { name: 'Настройки', href: '/settings', icon: Settings },
+    { name: 'Boshqaruv paneli', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'QR skaner', href: '/qr-scanner', icon: QrCode },
+    { name: 'Tashriflar tarixi', href: '/visits', icon: Activity },
+    { name: 'Daromadlar', href: '/earnings', icon: DollarSign },
+    { name: 'Mijozlar', href: '/clients', icon: Users },
+    { name: 'Analitika', href: '/analytics', icon: BarChart3 },
+    { name: 'Filiallar', href: '/branches', icon: Building2 },
+    { name: 'Bildirishnomalar', href: '/notifications', icon: Bell },
+    { name: 'Sozlamalar', href: '/settings', icon: Settings },
   ];
 
   return (
@@ -84,7 +85,7 @@ const LayoutClean = () => {
         <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
           {/* Partner Info */}
           <div className="mb-3 p-3 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-500 mb-1">Партнер</p>
+            <p className="text-xs text-gray-500 mb-1">Hamkor</p>
             <p className="text-sm font-semibold text-gray-900">{merchant?.partner?.name || 'Partner'}</p>
             {merchant?.location && (
               <p className="text-xs text-gray-600 mt-1">{merchant.location.name}</p>
@@ -116,14 +117,14 @@ const LayoutClean = () => {
                   className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 transition-colors"
                 >
                   <Settings size={16} className="text-gray-400" />
-                  <span className="text-sm font-medium text-gray-700">Настройки</span>
+                  <span className="text-sm font-medium text-gray-700">Sozlamalar</span>
                 </Link>
                 <button
                   onClick={logout}
                   className="w-full flex items-center gap-3 px-4 py-3 hover:bg-red-50 transition-colors text-left"
                 >
                   <LogOut size={16} className="text-red-500" />
-                  <span className="text-sm font-medium text-red-600">Выйти</span>
+                  <span className="text-sm font-medium text-red-600">Chiqish</span>
                 </button>
               </div>
             )}

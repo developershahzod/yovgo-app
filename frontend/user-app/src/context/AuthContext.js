@@ -59,9 +59,52 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const sendSmsCode = async (phoneNumber) => {
+    try {
+      const response = await axios.post(`${API_URL}/api/user/auth/send-code`, {
+        phone_number: phoneNumber,
+      });
+      return { success: true, phone: response.data.phone };
+    } catch (error) {
+      let errorMessage = 'SMS yuborishda xatolik';
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        errorMessage = typeof detail === 'string' ? detail : JSON.stringify(detail);
+      }
+      return { success: false, error: errorMessage };
+    }
+  };
+
+  const verifySmsCode = async (phoneNumber, code, fullName) => {
+    try {
+      const response = await axios.post(`${API_URL}/api/user/auth/verify-code`, {
+        phone_number: phoneNumber,
+        code: code,
+        full_name: fullName || undefined,
+      });
+
+      const { access_token, user: userData } = response.data;
+
+      localStorage.setItem('user_token', access_token);
+      localStorage.setItem('user_data', JSON.stringify(userData));
+      
+      axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
+      
+      setUser(userData);
+      
+      return { success: true, isNewUser: response.data.is_new_user, token: access_token };
+    } catch (error) {
+      let errorMessage = 'Tasdiqlashda xatolik';
+      if (error.response?.data?.detail) {
+        const detail = error.response.data.detail;
+        errorMessage = typeof detail === 'string' ? detail : JSON.stringify(detail);
+      }
+      return { success: false, error: errorMessage };
+    }
+  };
+
   const login = async (phoneNumber) => {
     try {
-      // Use proper authentication endpoint
       const response = await axios.post(`${API_URL}/api/user/auth/login`, {
         phone_number: phoneNumber,
       });
@@ -75,7 +118,7 @@ export const AuthProvider = ({ children }) => {
       
       setUser(userData);
       
-      return { success: true };
+      return { success: true, token: access_token };
     } catch (error) {
       let errorMessage = 'Login failed';
       
@@ -110,6 +153,8 @@ export const AuthProvider = ({ children }) => {
     register,
     login,
     logout,
+    sendSmsCode,
+    verifySmsCode,
     API_URL,
   };
 

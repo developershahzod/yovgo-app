@@ -42,70 +42,38 @@ const Payments = () => {
     try {
       setLoading(true);
       
-      // Fetch real data from APIs
-      const [usersRes, plansRes] = await Promise.all([
-        axios.get(`${API_URL}/api/user/users`),
-        axios.get(`${API_URL}/api/subscription/plans`)
-      ]);
+      // Fetch real payments from API
+      let realPayments = [];
+      try {
+        const paymentsRes = await axios.get(`${API_URL}/api/payment/payments`);
+        realPayments = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
+      } catch (e) {
+        console.log('No payments endpoint or no data');
+      }
 
-      const users = usersRes.data;
-      const plans = plansRes.data;
-
-      // Generate payment data based on real users and plans
-      const generatedPayments = users.slice(0, 10).map((user, index) => {
-        const plan = plans[index % plans.length];
-        const statuses = ['success', 'success', 'success', 'pending', 'failed'];
-        const methods = ['Click', 'Payme', 'Uzcard', 'Humo'];
-        const status = statuses[index % statuses.length];
-        
-        return {
-          id: `PAY-${String(index + 1).padStart(3, '0')}`,
-          user: { 
-            name: user.full_name || 'User ' + (index + 1), 
-            phone: user.phone_number 
-          },
-          amount: plan.price,
-          currency: plan.currency,
-          status: status,
-          method: methods[index % methods.length],
-          subscription: plan.name,
-          date: new Date(Date.now() - (index * 3600000)).toISOString(),
-          transactionId: `TXN-${Math.random().toString(36).substr(2, 9).toUpperCase()}`
-        };
-      });
-
-      const mockPayments = generatedPayments.length > 0 ? generatedPayments : [
-        {
-          id: 'PAY-004',
-          user: { name: 'Test User 4', phone: '+998904444444' },
-          amount: 279000,
-          currency: 'UZS',
-          status: 'failed',
-          method: 'Click',
-          subscription: 'Basic Quarterly',
-          date: '2024-12-13T07:20:00',
-          transactionId: 'TXN-789123456',
-          failureReason: 'Insufficient funds'
+      // Map real payments to display format
+      const mappedPayments = realPayments.map((p, index) => ({
+        id: p.id || `PAY-${index + 1}`,
+        user: { 
+          name: p.user_name || p.user_phone || 'Foydalanuvchi', 
+          phone: p.user_phone || '' 
         },
-        {
-          id: 'PAY-005',
-          user: { name: 'Test User 5', phone: '+998905555555' },
-          amount: 199000,
-          currency: 'UZS',
-          status: 'success',
-          method: 'Payme',
-          subscription: 'Premium Monthly',
-          date: '2024-12-12T16:30:00',
-          transactionId: 'TXN-321654987'
-        }
-      ];
+        amount: parseFloat(p.amount) || 0,
+        currency: p.currency || 'UZS',
+        status: p.status || 'pending',
+        method: p.payment_method || p.provider || 'N/A',
+        subscription: p.plan_name || '-',
+        date: p.created_at || p.updated_at || new Date().toISOString(),
+        transactionId: p.transaction_id || p.id || '-',
+        failureReason: p.failure_reason || null
+      }));
 
-      setPayments(mockPayments);
+      setPayments(mappedPayments);
 
-      // Calculate stats
-      const successful = mockPayments.filter(p => p.status === 'success');
-      const pending = mockPayments.filter(p => p.status === 'pending');
-      const failed = mockPayments.filter(p => p.status === 'failed');
+      // Calculate stats from real data
+      const successful = mappedPayments.filter(p => p.status === 'success' || p.status === 'completed');
+      const pending = mappedPayments.filter(p => p.status === 'pending');
+      const failed = mappedPayments.filter(p => p.status === 'failed');
       const totalRevenue = successful.reduce((sum, p) => sum + p.amount, 0);
 
       setStats({
@@ -195,10 +163,7 @@ const Payments = () => {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalRevenue.toLocaleString()} UZS</div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">
-              <ArrowUpRight className="h-3 w-3 text-green-600" />
-              <span className="text-green-600">+12.5%</span> from last month
-            </p>
+            <p className="text-xs text-muted-foreground mt-1">Muvaffaqiyatli to'lovlardan</p>
           </CardContent>
         </Card>
 

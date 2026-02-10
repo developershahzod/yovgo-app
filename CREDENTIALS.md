@@ -1,24 +1,28 @@
 # YuvGO Login Credentials
 
 ## Admin Dashboard
-**URL**: https://admin.yuvgo.uz (or http://localhost:3000)
+**URL**: https://admin.yuvgo.uz
 
 | Email | Password | Role |
 |-------|----------|------|
-| admin@yuvgo.uz | Admin@123 | Super Admin |
-| manager@yuvgo.uz | Admin@123 | Manager |
-| support@yuvgo.uz | Admin@123 | Support |
+| admin@yuvgo.uz | admin123 | Super Admin |
 
 ## Merchant Dashboard
-**URL**: https://merchant.yuvgo.uz (or http://localhost:3001)
+**URL**: https://merchant.yuvgo.uz
 
 | Email | Password | Partner |
 |-------|----------|---------|
-| merchant@yuvgo.uz | Merchant@123 | Black Star Car Wash |
-| crystal@yuvgo.uz | Merchant@123 | Crystal Clean |
-| aqua@yuvgo.uz | Merchant@123 | Aqua Shine |
+| blackstar@test.com | merchant123 | Black Star Car Wash |
+| crystal@test.com | merchant123 | Crystal Clean |
+| aqua@test.com | merchant123 | Aqua Shine |
+| speed@test.com | merchant123 | Speed Wash |
+| diamond@test.com | merchant123 | Diamond Car Care |
+| testmerchant@yuvgo.uz | merchant123 | Test Avtomoyka |
+| abozor@yuvgo.uz | merchant123 | Abozor |
 
 ## Test Users (Flutter App)
+**URL**: https://app.yuvgo.uz
+
 | Phone Number | Name | Email |
 |--------------|------|-------|
 | +998901234567 | Alisher Karimov | user1@test.com |
@@ -27,27 +31,27 @@
 | +998901234570 | Jasur Toshmatov | user4@test.com |
 | +998901234571 | Malika Umarova | user5@test.com |
 | +998901111111 | Demo User | demo@yuvgo.uz |
-| +998900000000 | Test User | test@yuvgo.uz |
-| +998909999999 | Admin User | admin@yuvgo.uz |
+| +998901112233 | Flutter Test User | flutter_test@yuvgo.uz |
 
-**Note**: Login with phone number only (no password required for demo)
+**Note**: Login with phone number only (no password required)
 
 ## Test Partners (Car Washes)
-| Name | Status | Email |
-|------|--------|-------|
-| Black Star Car Wash | Approved | blackstar@test.com |
-| Crystal Clean | Approved | crystal@test.com |
-| Aqua Shine | Approved | aqua@test.com |
-| Speed Wash | Approved | speed@test.com |
-| Diamond Car Care | Pending | diamond@test.com |
+| Name | Status | Email | Has Images |
+|------|--------|-------|------------|
+| Black Star Car Wash | Approved | blackstar@test.com | ✅ 3 photos |
+| Crystal Clean | Approved | crystal@test.com | ✅ 3 photos |
+| Aqua Shine | Approved | aqua@test.com | ✅ 2 photos |
+| Speed Wash | Approved | speed@test.com | ✅ 2 photos |
+| Diamond Car Care | Approved | diamond@test.com | ✅ 3 photos |
+| Test Avtomoyka | Approved | test_wash@yuvgo.uz | — |
 
 ## Subscription Plans
 | Name | Price (UZS) | Duration | Visits |
 |------|-------------|----------|--------|
-| Basic Monthly | 99,000 | 30 days | 12 |
-| Premium Monthly | 199,000 | 30 days | Unlimited |
-| Basic Quarterly | 279,000 | 90 days | 36 |
-| Premium Quarterly | 549,000 | 90 days | Unlimited |
+| Basic Monthly | 1,500,000 | 30 days | 12 |
+| Premium Monthly | 3,150,000 | 30 days | Cheksiz (Unlimited) |
+| Basic Quarterly | 4,050,000 | 90 days | 36 |
+| Premium Quarterly | 8,505,000 | 90 days | Cheksiz (Unlimited) |
 
 ## Production Server
 - **IP**: 207.180.198.10
@@ -61,11 +65,13 @@
 - **Password**: YUVGO_111111
 - **Merchant**: yuv go mchj
 - **Cashbox ID**: 5835aed5-9f90-47ea-bea1-d7193254f97d
+- **Merchant ID**: 216b4362-8c8b-429d-be8b-52dbeee03a3a
 
-## URLs After Deployment
+## URLs
 | Service | URL |
 |---------|-----|
 | Landing Page | https://yuvgo.uz |
 | Admin Dashboard | https://admin.yuvgo.uz |
 | Merchant Dashboard | https://merchant.yuvgo.uz |
-| Flutter App API | https://app.yuvgo.uz |
+| Flutter Web App | https://app.yuvgo.uz |
+| API Gateway | https://app.yuvgo.uz/api/ |

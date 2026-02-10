@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../i18n';
 import { usersAPI, partnersAPI, subscriptionsAPI, paymentsAPI } from '../services/api';
@@ -140,7 +141,7 @@ const PartnerRow = ({ partner, rank }) => {
 };
 
 const DashboardNew = () => {
-  const { user } = useAuth();
+  const { user, API_URL } = useAuth();
   const { t } = useLanguage();
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -178,13 +179,30 @@ const DashboardNew = () => {
       const totalUsers = users.length;
       const totalPartners = partners.filter(p => p.status === 'approved').length;
       const pendingPartners = partners.filter(p => p.status === 'pending').length;
-      
-      const activeSubscriptions = Math.floor(totalUsers * 0.6);
-      const totalVisits = Math.floor(totalUsers * 8);
-      const avgPlanPrice = plans.length > 0 
-        ? plans.reduce((sum, plan) => sum + (plan.price || 0), 0) / plans.length 
-        : 500000;
-      const revenue = activeSubscriptions * avgPlanPrice;
+
+      // Fetch real visits and payments
+      let allVisits = [];
+      let allPayments = [];
+      try {
+        const visitsRes = await axios.get(`${API_URL}/api/visit/visits`);
+        allVisits = Array.isArray(visitsRes.data) ? visitsRes.data : [];
+      } catch (e) { console.log('No visits data'); }
+      try {
+        const paymentsRes = await axios.get(`${API_URL}/api/payment/payments`);
+        allPayments = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
+      } catch (e) { console.log('No payments data'); }
+
+      // Fetch real subscriptions
+      let allSubscriptions = [];
+      try {
+        const subsRes = await axios.get(`${API_URL}/api/subscription/subscriptions`);
+        allSubscriptions = Array.isArray(subsRes.data) ? subsRes.data : [];
+      } catch (e) { console.log('No subscriptions data'); }
+
+      const activeSubscriptions = allSubscriptions.filter(s => s.status === 'active').length;
+      const totalVisits = allVisits.length;
+      const successfulPayments = allPayments.filter(p => p.status === 'success' || p.status === 'completed');
+      const revenue = successfulPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -205,24 +223,32 @@ const DashboardNew = () => {
         pendingPartners,
       });
 
-      // Recent activity
-      const activities = users.slice(0, 6).map((user, i) => ({
+      // Recent activity from real users (sorted by newest)
+      const sortedUsers = [...users].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+      const activities = sortedUsers.slice(0, 6).map((user) => ({
         id: user.id,
-        type: i % 3 === 0 ? 'user' : i % 3 === 1 ? 'subscription' : 'payment',
-        title: i % 3 === 0 ? 'New user registered' : i % 3 === 1 ? 'New subscription' : 'Payment received',
+        type: 'user',
+        title: 'Yangi foydalanuvchi',
         description: user.full_name || user.phone_number,
         time: formatTimeAgo(user.created_at),
-        status: i % 4 === 0 ? 'pending' : 'success',
+        status: 'success',
       }));
       setRecentActivity(activities);
 
-      // Top partners
-      setTopPartners(partners.slice(0, 5).map(p => ({
+      // Top partners with real visit counts
+      const partnerVisitCounts = {};
+      allVisits.forEach(v => {
+        if (v.partner_id) {
+          partnerVisitCounts[v.partner_id] = (partnerVisitCounts[v.partner_id] || 0) + 1;
+        }
+      });
+      const partnersWithVisits = partners.map(p => ({
         id: p.id,
         name: p.name,
         status: p.status,
-        visits: Math.floor(Math.random() * 500) + 100,
-      })));
+        visits: partnerVisitCounts[p.id] || 0,
+      })).sort((a, b) => b.visits - a.visits);
+      setTopPartners(partnersWithVisits.slice(0, 5));
 
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
@@ -301,37 +327,29 @@ const DashboardNew = () => {
           title={t('dashboard.totalUsers')}
           value={stats.totalUsers.toLocaleString()}
           icon={Users}
-          trend="up"
-          trendValue="+12.5%"
           color="blue"
-          subtitle={`+${stats.newUsersToday} today`}
+          subtitle={`+${stats.newUsersToday} bugun`}
         />
         <StatCard
           title={t('dashboard.activeSubscriptions')}
           value={stats.activeSubscriptions.toLocaleString()}
           icon={CreditCard}
-          trend="up"
-          trendValue="+8.2%"
           color="green"
-          subtitle="Active plans"
+          subtitle="Faol obunalar"
         />
         <StatCard
           title={t('dashboard.totalVisits')}
           value={stats.totalVisits.toLocaleString()}
           icon={Activity}
-          trend="up"
-          trendValue="+23.1%"
           color="purple"
-          subtitle="This month"
+          subtitle="Jami tashriflar"
         />
         <StatCard
           title={t('dashboard.revenue')}
           value={formatCurrency(stats.revenue)}
           icon={DollarSign}
-          trend="up"
-          trendValue="+15.3%"
           color="orange"
-          subtitle="Total revenue"
+          subtitle="Jami daromad"
         />
       </div>
 
@@ -342,22 +360,21 @@ const DashboardNew = () => {
           value={stats.totalPartners}
           icon={Building2}
           color="cyan"
-          subtitle={`${stats.pendingPartners} pending approval`}
+          subtitle={`${stats.pendingPartners} kutilmoqda`}
         />
         <StatCard
           title={t('dashboard.newUsersToday')}
           value={stats.newUsersToday}
           icon={UserPlus}
-          trend="up"
-          trendValue="+5"
           color="pink"
+          subtitle="Bugun ro'yxatdan o'tgan"
         />
         <StatCard
           title={t('dashboard.newThisWeek')}
           value={stats.newUsersThisWeek}
           icon={TrendingUp}
           color="blue"
-          subtitle="New registrations"
+          subtitle="Shu hafta ro'yxatdan o'tgan"
         />
       </div>
 
@@ -483,16 +500,16 @@ const DashboardNew = () => {
         {/* Summary Stats */}
         <div className="grid grid-cols-3 gap-6 mt-6 pt-6 border-t border-gray-100">
           <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.revenue * 0.7)}</p>
+            <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.revenue)}</p>
             <p className="text-sm text-gray-500">{t('dashboard.subscriptionRevenue')}</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.revenue * 0.3)}</p>
-            <p className="text-sm text-gray-500">{t('dashboard.partnerFees')}</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.totalVisits}</p>
+            <p className="text-sm text-gray-500">Jami tashriflar</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold text-emerald-600">+15.3%</p>
-            <p className="text-sm text-gray-500">{t('dashboard.monthlyRevenue')}</p>
+            <p className="text-2xl font-bold text-gray-900">{stats.totalPartners}</p>
+            <p className="text-sm text-gray-500">Faol hamkorlar</p>
           </div>
         </div>
       </div>
