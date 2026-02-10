@@ -21,7 +21,15 @@ import Vehicles from './pages/Vehicles';
 import Layout from './components/LayoutNew';
 
 const ProtectedRoute = ({ children, requiredPermission }) => {
-  const { user, hasPermission } = useAuth();
+  const { user, loading, hasPermission } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="w-10 h-10 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   if (!user) {
     return <Navigate to="/login" />;
