@@ -101,7 +101,8 @@ async def get_nearby_car_washes(
                     "gallery_urls": gallery,
                     "amenities": partner.amenities if partner.amenities else [],
                     "additional_services": partner.additional_services if partner.additional_services else [],
-                    "phone_number": partner.phone_number or "",
+                    "phone_number": partner.phone or partner.phone_number or "",
+                    "phone": partner.phone or partner.phone_number or "",
                     "opening_hours": get_working_hours_str(partner),
                     "working_hours": partner.working_hours,
                     "is_premium": partner.is_premium or False,
@@ -109,6 +110,7 @@ async def get_nearby_car_washes(
                     "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
                     "description": partner.description or "",
                     "wash_time": getattr(partner, 'wash_time', 60) or 60,
+                    "services": partner.additional_services if partner.additional_services else [],
                 })
     
     # Sort by distance
@@ -243,7 +245,8 @@ async def get_car_wash_detail(
             "gallery_urls": gallery,
             "amenities": partner.amenities if partner.amenities else [],
             "additional_services": partner.additional_services if partner.additional_services else [],
-            "phone_number": partner.phone_number or "",
+            "phone_number": partner.phone or partner.phone_number or "",
+            "phone": partner.phone or partner.phone_number or "",
             "opening_hours": get_working_hours_str(partner),
             "working_hours": partner.working_hours,
             "is_premium": partner.is_premium or False,
@@ -251,6 +254,7 @@ async def get_car_wash_detail(
             "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
             "description": partner.description or "Premium avtomoyka xizmatlari",
             "wash_time": getattr(partner, 'wash_time', 60) or 60,
+            "services": partner.additional_services if partner.additional_services else [],
         }
     }
 
@@ -1220,11 +1224,33 @@ def calculate_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> fl
     return R * c
 
 
+def _get_partner_hours(partner: Partner):
+    """Parse partner working hours, returns (open_hour, open_min, close_hour, close_min)"""
+    wh = partner.working_hours
+    open_h, open_m, close_h, close_m = 8, 0, 22, 0
+    if isinstance(wh, dict):
+        try:
+            parts = wh.get('open', '08:00').split(':')
+            open_h, open_m = int(parts[0]), int(parts[1]) if len(parts) > 1 else 0
+        except: pass
+        try:
+            parts = wh.get('close', '22:00').split(':')
+            close_h, close_m = int(parts[0]), int(parts[1]) if len(parts) > 1 else 0
+        except: pass
+    return open_h, open_m, close_h, close_m
+
+
 def is_currently_open(partner: Partner) -> bool:
-    """Check if partner is currently open"""
-    # TODO: Implement based on opening hours
-    current_hour = datetime.now().hour
-    return 8 <= current_hour <= 22
+    """Check if partner is currently open based on working_hours"""
+    if getattr(partner, 'is_24_hours', False):
+        return True
+    # Tashkent is UTC+5
+    now = datetime.utcnow() + timedelta(hours=5)
+    current_minutes = now.hour * 60 + now.minute
+    open_h, open_m, close_h, close_m = _get_partner_hours(partner)
+    open_minutes = open_h * 60 + open_m
+    close_minutes = close_h * 60 + close_m
+    return open_minutes <= current_minutes < close_minutes
 
 
 def get_working_hours_str(partner: Partner) -> str:
@@ -1241,10 +1267,13 @@ def get_working_hours_str(partner: Partner) -> str:
 
 def get_status_text(partner: Partner) -> str:
     """Get status text for partner"""
+    open_h, open_m, close_h, close_m = _get_partner_hours(partner)
+    open_str = f"{open_h:02d}:{open_m:02d}"
+    close_str = f"{close_h:02d}:{close_m:02d}"
     if is_currently_open(partner):
-        return "22:00 GACHA OCHIQ"
+        return f"{close_str} GACHA OCHIQ"
     else:
-        return "YOPIQ 8:00 GACHA"
+        return f"YOPIQ {open_str} GACHA"
 
 
 # ==================== VEHICLES ====================

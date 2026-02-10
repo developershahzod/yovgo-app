@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/full_api_service.dart';
@@ -10,26 +11,60 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _fadeAnimation;
+    with TickerProviderStateMixin {
+  late AnimationController _waveController;
+  late AnimationController _logoController;
+  late AnimationController _shimmerController;
+
+  late Animation<double> _logoScale;
+  late Animation<double> _logoFade;
+  late Animation<Offset> _logoSlide;
+  late Animation<double> _waveSlide;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: 800),
+
+    // Wave animation — continuous flowing motion
+    _waveController = AnimationController(
+      duration: const Duration(seconds: 3),
+      vsync: this,
+    )..repeat();
+    _waveSlide = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _waveController, curve: Curves.linear),
+    );
+
+    // Logo entrance animation
+    _logoController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _logoController, curve: const Interval(0.0, 0.6, curve: Curves.easeOut)),
     );
-    _controller.forward();
+    _logoScale = Tween<double>(begin: 0.5, end: 1.0).animate(
+      CurvedAnimation(parent: _logoController, curve: const Interval(0.0, 0.7, curve: Curves.elasticOut)),
+    );
+    _logoSlide = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero).animate(
+      CurvedAnimation(parent: _logoController, curve: const Interval(0.0, 0.6, curve: Curves.easeOutCubic)),
+    );
+
+    // Shimmer glow animation
+    _shimmerController = AnimationController(
+      duration: const Duration(milliseconds: 1800),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    // Start logo animation after a short delay
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (mounted) _logoController.forward();
+    });
+
     _checkAuthAndNavigate();
   }
 
   Future<void> _checkAuthAndNavigate() async {
-    await Future.delayed(const Duration(seconds: 2));
+    await Future.delayed(const Duration(seconds: 3));
     if (!mounted) return;
     final prefs = await SharedPreferences.getInstance();
     final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
@@ -45,7 +80,9 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   void dispose() {
-    _controller.dispose();
+    _waveController.dispose();
+    _logoController.dispose();
+    _shimmerController.dispose();
     super.dispose();
   }
 
@@ -57,58 +94,85 @@ class _SplashScreenState extends State<SplashScreen>
       body: Stack(
         children: [
           // Cyan background
-          Container(color: const Color(0xFF00BFFE)),
-
-          // Top waves (dark navy)
-          Positioned(
-            top: -20,
-            left: -40,
-            right: -40,
-            child: CustomPaint(
-              size: Size(size.width + 80, 220),
-              painter: _SplashWavePainter(isTop: true),
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF00BFFE), Color(0xFF00A8E8)],
+              ),
             ),
           ),
 
-          // Bottom waves (dark navy)
-          Positioned(
-            bottom: -20,
-            left: -40,
-            right: -40,
-            child: CustomPaint(
-              size: Size(size.width + 80, 220),
-              painter: _SplashWavePainter(isTop: false),
-            ),
+          // Animated top waves (dark navy)
+          AnimatedBuilder(
+            animation: _waveSlide,
+            builder: (context, child) {
+              return Positioned(
+                top: -20,
+                left: -40,
+                right: -40,
+                child: CustomPaint(
+                  size: Size(size.width + 80, 240),
+                  painter: _AnimatedWavePainter(
+                    isTop: true,
+                    animValue: _waveSlide.value,
+                  ),
+                ),
+              );
+            },
           ),
 
-          // YUVGO logo centered
+          // Animated bottom waves (dark navy)
+          AnimatedBuilder(
+            animation: _waveSlide,
+            builder: (context, child) {
+              return Positioned(
+                bottom: -20,
+                left: -40,
+                right: -40,
+                child: CustomPaint(
+                  size: Size(size.width + 80, 240),
+                  painter: _AnimatedWavePainter(
+                    isTop: false,
+                    animValue: _waveSlide.value,
+                  ),
+                ),
+              );
+            },
+          ),
+
+          // Logo centered — animated entrance
           Center(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'YUV',
-                    style: TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
-                      fontFamily: 'Mulish',
-                      letterSpacing: 1,
+            child: SlideTransition(
+              position: _logoSlide,
+              child: FadeTransition(
+                opacity: _logoFade,
+                child: ScaleTransition(
+                  scale: _logoScale,
+                  child: AnimatedBuilder(
+                    animation: _shimmerController,
+                    builder: (context, child) {
+                      return Container(
+                        decoration: BoxDecoration(
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.white.withOpacity(0.15 + 0.1 * _shimmerController.value),
+                              blurRadius: 30 + 15 * _shimmerController.value,
+                              spreadRadius: 5 + 5 * _shimmerController.value,
+                            ),
+                          ],
+                        ),
+                        child: child,
+                      );
+                    },
+                    child: Image.asset(
+                      'assets/images/Logo.png',
+                      width: 220,
+                      fit: BoxFit.contain,
                     ),
                   ),
-                  Text(
-                    'GO',
-                    style: TextStyle(
-                      fontSize: 42,
-                      fontWeight: FontWeight.w900,
-                      color: const Color(0xFF0A0C13),
-                      fontFamily: 'Mulish',
-                      letterSpacing: 1,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -118,9 +182,11 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-class _SplashWavePainter extends CustomPainter {
+class _AnimatedWavePainter extends CustomPainter {
   final bool isTop;
-  _SplashWavePainter({required this.isTop});
+  final double animValue;
+
+  _AnimatedWavePainter({required this.isTop, required this.animValue});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -130,38 +196,42 @@ class _SplashWavePainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
+    // Animated horizontal offset for flowing wave effect
+    final shift = sin(animValue * 2 * pi) * w * 0.06;
+    final shift2 = sin((animValue + 0.3) * 2 * pi) * w * 0.05;
+
     if (isTop) {
-      // Wave band 1 — flows from top-left down then up to top-right
+      // Wave band 1
       final p1 = Path();
       p1.moveTo(-40, 0);
       p1.lineTo(w + 40, 0);
       p1.lineTo(w + 40, h * 0.32);
-      p1.cubicTo(w * 0.75, h * 0.05, w * 0.25, h * 0.55, -40, h * 0.18);
+      p1.cubicTo(w * 0.75 + shift, h * 0.05, w * 0.25 + shift, h * 0.55, -40, h * 0.18);
       p1.close();
       canvas.drawPath(p1, paint);
 
-      // Wave band 2 — parallel S-curve below
+      // Wave band 2
       final p2 = Path();
       p2.moveTo(-40, h * 0.38);
-      p2.cubicTo(w * 0.25, h * 0.75, w * 0.75, h * 0.22, w + 40, h * 0.55);
+      p2.cubicTo(w * 0.25 + shift2, h * 0.75, w * 0.75 + shift2, h * 0.22, w + 40, h * 0.55);
       p2.lineTo(w + 40, h * 0.75);
-      p2.cubicTo(w * 0.75, h * 0.42, w * 0.25, h * 0.95, -40, h * 0.58);
+      p2.cubicTo(w * 0.75 + shift2, h * 0.42, w * 0.25 + shift2, h * 0.95, -40, h * 0.58);
       p2.close();
       canvas.drawPath(p2, paint);
     } else {
-      // Wave band 1 — mirror of top band 2
+      // Wave band 1
       final p1 = Path();
       p1.moveTo(-40, h * 0.25);
-      p1.cubicTo(w * 0.25, h * 0.58, w * 0.75, h * 0.05, w + 40, h * 0.42);
+      p1.cubicTo(w * 0.25 - shift, h * 0.58, w * 0.75 - shift, h * 0.05, w + 40, h * 0.42);
       p1.lineTo(w + 40, h * 0.62);
-      p1.cubicTo(w * 0.75, h * 0.25, w * 0.25, h * 0.78, -40, h * 0.45);
+      p1.cubicTo(w * 0.75 - shift, h * 0.25, w * 0.25 - shift, h * 0.78, -40, h * 0.45);
       p1.close();
       canvas.drawPath(p1, paint);
 
-      // Wave band 2 — flows to bottom edge
+      // Wave band 2
       final p2 = Path();
       p2.moveTo(-40, h * 0.68);
-      p2.cubicTo(w * 0.25, h * 0.95, w * 0.75, h * 0.55, w + 40, h * 0.82);
+      p2.cubicTo(w * 0.25 - shift2, h * 0.95, w * 0.75 - shift2, h * 0.55, w + 40, h * 0.82);
       p2.lineTo(w + 40, h + 20);
       p2.lineTo(-40, h + 20);
       p2.close();
@@ -170,5 +240,5 @@ class _SplashWavePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_SplashWavePainter oldDelegate) => false;
+  bool shouldRepaint(_AnimatedWavePainter oldDelegate) => oldDelegate.animValue != animValue;
 }

@@ -211,7 +211,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     final name = p['name'] ?? 'Car Wash';
     final description = (p['description'] ?? '') as String;
     final address = p['address'] ?? '';
-    final phone = p['phone_number'] ?? '+998 93 956 6961';
+    final phone = p['phone'] ?? p['phone_number'] ?? '';
     final rating = (p['rating'] ?? 5.0).toDouble();
     final isPremium = p['is_premium'] == true;
     final isOpen = p['is_open'] != false;
@@ -283,6 +283,16 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                           const Divider(height: 1, color: Color(0xFFF0F0F0)),
                           const SizedBox(height: 24),
 
+                          // Narxlar (Prices)
+                          if (_getServices(p).isNotEmpty) ...[
+                            const Text('Moyka narxlari', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                            const SizedBox(height: 12),
+                            ..._getServices(p).map((s) => _buildPriceRow(s)),
+                            const SizedBox(height: 24),
+                            const Divider(height: 1, color: Color(0xFFF0F0F0)),
+                            const SizedBox(height: 24),
+                          ],
+
                           // Qulayliklari
                           if (_getAmenities(p).isNotEmpty) ...[
                             const Text('Qulayliklari', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
@@ -337,10 +347,28 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
 
                           // Ish vaqti
                           const Text('Ish vaqti', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
-                          const SizedBox(height: 12),
-                          _buildWorkingHoursRow('Dushanba - Juma', _getHours(workingHours, 'weekday')),
-                          _buildWorkingHoursRow('Shanba', _getHours(workingHours, 'saturday')),
-                          _buildWorkingHoursRow('Yakshanba', _getHours(workingHours, 'sunday')),
+                          const SizedBox(height: 4),
+                          // Current status
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: isOpen ? const Color(0xFF5CCC27).withOpacity(0.1) : const Color(0xFFFC3E3E).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.access_time, size: 16, color: isOpen ? const Color(0xFF5CCC27) : const Color(0xFFFC3E3E)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  isOpen ? 'Hozir ochiq' : 'Yopiq — ertaga ${_getOpenTime(workingHours)} da ochiladi',
+                                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isOpen ? const Color(0xFF5CCC27) : const Color(0xFFFC3E3E), fontFamily: 'Mulish'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ..._buildWeeklySchedule(workingHours),
 
                           // Divider
                           const SizedBox(height: 24),
@@ -485,7 +513,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
               Icon(Icons.access_time, size: 14, color: isOpen ? const Color(0xFF5CCC27) : const Color(0xFFFC3E3E)),
               const SizedBox(width: 4),
               Text(
-                isOpen ? '24/7 OCHIQ' : 'YOPIQ',
+                _getStatusText(p),
                 style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: isOpen ? const Color(0xFF5CCC27) : const Color(0xFFFC3E3E), fontFamily: 'Mulish'),
               ),
             ],
@@ -737,11 +765,85 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   }
 
   // ─── Working Hours ───
-  String _getHours(dynamic workingHours, String type) {
+  String _getOpenTime(dynamic workingHours) {
     if (workingHours is Map) {
-      return workingHours[type] ?? '08:00 - 02:00';
+      return workingHours['open'] ?? '08:00';
     }
-    return '08:00 - 02:00';
+    return '08:00';
+  }
+
+  String _getStatusText(Map<String, dynamic> p) {
+    final status = p['status'] ?? '';
+    if (status.isNotEmpty) return status;
+    final isOpen = p['is_open'] != false;
+    if (isOpen) {
+      final wh = p['working_hours'];
+      final close = (wh is Map) ? (wh['close'] ?? '22:00') : '22:00';
+      return '$close GACHA OCHIQ';
+    } else {
+      final wh = p['working_hours'];
+      final open = (wh is Map) ? (wh['open'] ?? '08:00') : '08:00';
+      return 'YOPIQ $open GACHA';
+    }
+  }
+
+  List<Widget> _buildWeeklySchedule(dynamic workingHours) {
+    final days = ['Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba', 'Yakshanba'];
+    String hours = '08:00 - 22:00';
+    if (workingHours is Map) {
+      final open = workingHours['open'] ?? '08:00';
+      final close = workingHours['close'] ?? '22:00';
+      hours = '$open - $close';
+    }
+    return days.map((day) => _buildWorkingHoursRow(day, hours)).toList();
+  }
+
+  List<Map<String, dynamic>> _getServices(Map<String, dynamic> p) {
+    final services = p['services'] ?? p['additional_services'] ?? [];
+    if (services is List) {
+      return services.where((s) => s is Map && s['price'] != null).map((s) => Map<String, dynamic>.from(s)).toList();
+    }
+    return [];
+  }
+
+  Widget _buildPriceRow(Map<String, dynamic> service) {
+    final name = service['name'] ?? '';
+    final price = service['price'] ?? 0;
+    final priceStr = _formatPrice(price);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFFF0F0F0)),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.local_car_wash, size: 20, color: Color(0xFF00BFFE)),
+              const SizedBox(width: 12),
+              Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+            ],
+          ),
+          Text('$priceStr so\'m', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Color(0xFF00BFFE))),
+        ],
+      ),
+    );
+  }
+
+  String _formatPrice(dynamic price) {
+    final p = (price is int) ? price : (price as num).toInt();
+    final str = p.toString();
+    final buf = StringBuffer();
+    int c = 0;
+    for (int i = str.length - 1; i >= 0; i--) {
+      buf.write(str[i]);
+      c++;
+      if (c % 3 == 0 && i > 0) buf.write(' ');
+    }
+    return buf.toString().split('').reversed.join();
   }
 
   Widget _buildWorkingHoursRow(String day, String hours) {
