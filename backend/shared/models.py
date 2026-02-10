@@ -82,6 +82,7 @@ class Partner(Base):
     is_24_hours = Column(Boolean, default=False)
     amenities = Column(JSON, default=[])
     additional_services = Column(JSON, default=[])
+    wash_time = Column(Integer, default=60)  # minutes
     phone = Column(String(50))
     status = Column(String(20), default="pending")
     is_active = Column(Boolean, default=True)

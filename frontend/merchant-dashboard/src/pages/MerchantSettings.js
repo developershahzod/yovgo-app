@@ -17,6 +17,7 @@ const MerchantSettings = () => {
     city: 'Tashkent',
     workingHours: '08:00 - 22:00',
     description: 'Premium avtomoyка xizmati',
+    washTime: 60,
   });
 
   const AMENITY_OPTIONS = [
@@ -75,6 +76,7 @@ const MerchantSettings = () => {
           city: data.city || prev.city,
           workingHours: data.working_hours || prev.workingHours,
           description: data.description || prev.description,
+          washTime: data.wash_time || prev.washTime,
         }));
         setAmenities(data.amenities || []);
         setAdditionalServices(data.additional_services || []);
@@ -98,6 +100,7 @@ const MerchantSettings = () => {
           city: profile.city,
           working_hours: profile.workingHours,
           description: profile.description,
+          wash_time: parseInt(profile.washTime) || 60,
           amenities: amenities,
           additional_services: additionalServices,
         });
@@ -187,6 +190,22 @@ const MerchantSettings = () => {
                   onChange={(e) => handleProfileChange('workingHours', e.target.value)}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                 />
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Yuvish vaqti (daqiqa)</label>
+              <div className="flex items-center gap-2">
+                <Clock size={18} className="text-gray-400" />
+                <input
+                  type="number"
+                  min="10"
+                  max="300"
+                  value={profile.washTime}
+                  onChange={(e) => handleProfileChange('washTime', e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  placeholder="60"
+                />
+                <span className="text-sm text-gray-500">min</span>
               </div>
             </div>
           </div>

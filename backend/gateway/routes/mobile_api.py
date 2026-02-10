@@ -21,7 +21,7 @@ from shared.auth import AuthHandler
 # Get current user dependency
 get_current_user = AuthHandler.get_current_user
 
-router = APIRouter(prefix="/api/mobile", tags=["Mobile App"])
+router = APIRouter(tags=["Mobile App"])
 
 
 def _get_partner_rating(db: Session, partner_id) -> dict:
@@ -108,6 +108,7 @@ async def get_nearby_car_washes(
                     "is_24_hours": getattr(partner, 'is_24_hours', False) or False,
                     "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
                     "description": partner.description or "",
+                    "wash_time": getattr(partner, 'wash_time', 60) or 60,
                 })
     
     # Sort by distance
@@ -165,6 +166,7 @@ async def get_premium_car_washes(
             "is_24_hours": getattr(partner, 'is_24_hours', False) or False,
             "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
             "description": partner.description or "",
+            "wash_time": getattr(partner, 'wash_time', 60) or 60,
         })
     
     return {
@@ -248,6 +250,7 @@ async def get_car_wash_detail(
             "is_24_hours": getattr(partner, 'is_24_hours', False) or False,
             "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
             "description": partner.description or "Premium avtomoyka xizmatlari",
+            "wash_time": getattr(partner, 'wash_time', 60) or 60,
         }
     }
 

@@ -1,13 +1,16 @@
-from fastapi import FastAPI, Request, HTTPException, Depends
+from fastapi import FastAPI, Request, HTTPException, Depends, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from prometheus_client import Counter, Histogram, generate_latest
 from starlette.responses import Response
 import httpx
 import time
 import os
 import sys
+import uuid
+import shutil
 
 # Add parent directory to path for shared imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -25,7 +28,22 @@ app = FastAPI(
 # GZip Compression for responses > 500 bytes
 app.add_middleware(GZipMiddleware, minimum_size=500)
 
-# CORS is handled by nginx - no middleware needed here
+# CORS middleware for cross-origin requests from admin/merchant dashboards
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://admin.yuvgo.uz",
+        "https://merchant.yuvgo.uz",
+        "https://app.yuvgo.uz",
+        "https://yuvgo.uz",
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Prometheus Metrics
 REQUEST_COUNT = Counter('gateway_requests_total', 'Total requests', ['method', 'endpoint', 'status'])
@@ -40,6 +58,7 @@ SERVICES = {
     "payment": os.getenv("PAYMENT_SERVICE_URL", "http://payment_service:8005"),
     "notification": os.getenv("NOTIFICATION_SERVICE_URL", "http://notification_service:8006"),
     "admin": os.getenv("ADMIN_SERVICE_URL", "http://admin_service:8007"),
+    "merchant": os.getenv("MERCHANT_SERVICE_URL", "http://partner_service:8003"),
 }
 
 # Rate Limiting
@@ -167,8 +186,94 @@ async def notification_service(path: str, request: Request):
 async def admin_service(path: str, request: Request):
     return await proxy_request("admin", f"/{path}", request)
 
+# Merchant Service Routes (uses partner service for merchant auth)
+@app.api_route("/api/merchant/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
+async def merchant_service(path: str, request: Request):
+    return await proxy_request("merchant", f"/merchant/{path}", request)
+
 # Include mobile API routes
 app.include_router(mobile_api.router, prefix="/api/mobile", tags=["Mobile API"])
+
+# ==================== IMAGE UPLOAD ====================
+
+UPLOAD_DIR = "/app/uploads"
+os.makedirs(UPLOAD_DIR, exist_ok=True)
+os.makedirs(f"{UPLOAD_DIR}/logos", exist_ok=True)
+os.makedirs(f"{UPLOAD_DIR}/gallery", exist_ok=True)
+
+# Serve uploaded files as static
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
+
+@app.post("/api/upload/image")
+async def upload_image(
+    file: UploadFile = File(...),
+    category: str = Form("gallery"),
+):
+    """Upload an image file. Returns the public URL."""
+    # Validate file type
+    allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+    if file.content_type not in allowed:
+        raise HTTPException(status_code=400, detail="Only JPEG, PNG, WebP, GIF images are allowed")
+    
+    # Validate file size (max 5MB)
+    contents = await file.read()
+    if len(contents) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="File too large. Max 5MB.")
+    
+    # Generate unique filename
+    ext = file.filename.rsplit(".", 1)[-1] if "." in file.filename else "jpg"
+    filename = f"{uuid.uuid4().hex}.{ext}"
+    
+    subfolder = "logos" if category == "logo" else "gallery"
+    filepath = f"{UPLOAD_DIR}/{subfolder}/{filename}"
+    
+    with open(filepath, "wb") as f:
+        f.write(contents)
+    
+    # Return the public URL
+    url = f"/uploads/{subfolder}/{filename}"
+    
+    return {
+        "success": True,
+        "url": url,
+        "full_url": f"https://app.yuvgo.uz{url}",
+        "filename": filename
+    }
+
+@app.post("/api/upload/images")
+async def upload_multiple_images(
+    files: list[UploadFile] = File(...),
+    category: str = Form("gallery"),
+):
+    """Upload multiple image files. Returns list of public URLs."""
+    allowed = ["image/jpeg", "image/png", "image/webp", "image/gif"]
+    urls = []
+    
+    for file in files:
+        if file.content_type not in allowed:
+            continue
+        
+        contents = await file.read()
+        if len(contents) > 5 * 1024 * 1024:
+            continue
+        
+        ext = file.filename.rsplit(".", 1)[-1] if "." in file.filename else "jpg"
+        filename = f"{uuid.uuid4().hex}.{ext}"
+        
+        subfolder = "logos" if category == "logo" else "gallery"
+        filepath = f"{UPLOAD_DIR}/{subfolder}/{filename}"
+        
+        with open(filepath, "wb") as f:
+            f.write(contents)
+        
+        url = f"https://app.yuvgo.uz/uploads/{subfolder}/{filename}"
+        urls.append(url)
+    
+    return {
+        "success": True,
+        "urls": urls,
+        "count": len(urls)
+    }
 
 # Health check for all services
 @app.get("/api/services/health")
