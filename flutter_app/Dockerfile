@@ -15,6 +15,11 @@ COPY . .
 # Build for web
 RUN flutter build web --release --pwa-strategy none
 
+# Add cache-busting: inject build timestamp into index.html
+RUN BUILD_TS=$(date +%s) && \
+    sed -i "s|flutter_bootstrap.js|flutter_bootstrap.js?v=${BUILD_TS}|g" build/web/index.html && \
+    echo "{\"build_time\":\"${BUILD_TS}\"}" > build/web/build_info.json
+
 # Production stage - Nginx
 FROM nginx:alpine
 
