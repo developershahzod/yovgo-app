@@ -277,7 +277,12 @@ const Branches = () => {
 
   const getWorkingHoursDisplay = (wh) => {
     if (!wh) return '08:00 - 22:00';
-    if (wh.open) return `${wh.open} - ${wh.close || '22:00'}`;
+    if (typeof wh === 'string') return wh;
+    if (typeof wh === 'object') {
+      const o = wh.open || wh.monday?.open || '08:00';
+      const c = wh.close || wh.monday?.close || '22:00';
+      return `${o} - ${c}`;
+    }
     return '08:00 - 22:00';
   };
 

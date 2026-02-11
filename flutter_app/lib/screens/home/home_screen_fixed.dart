@@ -73,6 +73,16 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
     }
   }
 
+  double _haversine(double lat1, double lon1, double lat2, double lon2) {
+    const r = 6371.0; // Earth radius in km
+    final dLat = (lat2 - lat1) * math.pi / 180;
+    final dLon = (lon2 - lon1) * math.pi / 180;
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(lat1 * math.pi / 180) * math.cos(lat2 * math.pi / 180) *
+        math.sin(dLon / 2) * math.sin(dLon / 2);
+    return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+  }
+
   Future<void> _loadHomeData() async {
     // Get user location first
     await _getUserLocation();
@@ -803,14 +813,30 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                context.tr('home_nearest'),
-                style: TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                  fontFamily: 'Mulish',
-                ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr('home_nearest'),
+                    style: TextStyle(
+                      color: AppTheme.textPrimary,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      fontFamily: 'Mulish',
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Row(
+                    children: [
+                      Icon(Icons.my_location, size: 12, color: AppTheme.primaryCyan),
+                      const SizedBox(width: 4),
+                      Text(
+                        (_userLat != 41.311) ? 'Sizning joylashuvingiz aniqlandi' : 'Toshkent (standart)',
+                        style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontFamily: 'Mulish'),
+                      ),
+                    ],
+                  ),
+                ],
               ),
               TextButton(
                 onPressed: () {},
@@ -836,8 +862,18 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
             padding: const EdgeInsets.symmetric(horizontal: 16),
             children: _nearbyCarWashes.isNotEmpty
               ? _nearbyCarWashes.take(5).map((p) {
-                  final distKm = p['distance'] != null ? (p['distance'] as num).toDouble() : 0.0;
-                  final dist = p['distance'] != null
+                  double distKm = 0.0;
+                  if (p['distance'] != null) {
+                    distKm = double.tryParse(p['distance'].toString()) ?? 0.0;
+                  } else {
+                    // Calculate distance client-side using Haversine
+                    final pLat = double.tryParse(p['latitude']?.toString() ?? '');
+                    final pLng = double.tryParse(p['longitude']?.toString() ?? '');
+                    if (pLat != null && pLng != null) {
+                      distKm = _haversine(_userLat, _userLng, pLat, pLng);
+                    }
+                  }
+                  final dist = distKm > 0
                       ? (distKm < 1 ? '${(distKm * 1000).toInt()} m' : '${distKm.toStringAsFixed(1)} km')
                       : '';
                   final imageUrl = p['image_url'] ?? p['photo_url'] ?? '';
