@@ -49,7 +49,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
       if (_searchFocusNode.hasFocus) {
         setState(() => _isSearchActive = true);
         if (_panelController.isAttached) {
-          _panelController.animatePanelToPosition(0.5, duration: const Duration(milliseconds: 300));
+          _panelController.animatePanelToPosition(1.0, duration: const Duration(milliseconds: 300));
         }
       }
     });
@@ -229,7 +229,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
         backdropEnabled: true,
         backdropOpacity: 0.3,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, -5))],
+        boxShadow: const [BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.1), blurRadius: 20, offset: Offset(0, -5))],
         panelBuilder: (scrollController) => _buildPanel(scrollController),
         body: Stack(
           children: [
@@ -243,7 +243,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
                 width: 48, height: 48,
                 decoration: BoxDecoration(
                   color: Colors.white, shape: BoxShape.circle,
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 2))],
+                  boxShadow: const [BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.15), blurRadius: 8, offset: Offset(0, 2))],
                 ),
                 child: IconButton(
                   icon: Icon(Icons.my_location, color: AppTheme.primaryCyan, size: 22),
@@ -310,7 +310,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
                             onTap: () {
                               setState(() => _isSearchActive = true);
                               if (_panelController.isAttached) {
-                                _panelController.animatePanelToPosition(0.5, duration: const Duration(milliseconds: 300));
+                                _panelController.animatePanelToPosition(1.0, duration: const Duration(milliseconds: 300));
                               }
                             },
                             style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w500),
