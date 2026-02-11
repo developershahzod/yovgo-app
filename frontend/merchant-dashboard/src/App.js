@@ -16,7 +16,11 @@ import Branches from './pages/Branches';
 import Layout from './components/LayoutClean';
 
 const ProtectedRoute = ({ children }) => {
-  const { merchant } = useMerchantAuth();
+  const { merchant, loading } = useMerchantAuth();
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-screen"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>;
+  }
 
   if (!merchant) {
     return <Navigate to="/login" />;
