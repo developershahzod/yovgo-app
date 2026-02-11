@@ -1,8 +1,33 @@
 import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
+import '../../services/favorites_service.dart';
 
-class SavedScreenPixelPerfect extends StatelessWidget {
+class SavedScreenPixelPerfect extends StatefulWidget {
   const SavedScreenPixelPerfect({Key? key}) : super(key: key);
+
+  @override
+  State<SavedScreenPixelPerfect> createState() => _SavedScreenPixelPerfectState();
+}
+
+class _SavedScreenPixelPerfectState extends State<SavedScreenPixelPerfect> {
+  List<Map<String, dynamic>> _favorites = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFavorites();
+  }
+
+  Future<void> _loadFavorites() async {
+    final favs = await FavoritesService.getFavorites();
+    if (mounted) setState(() { _favorites = favs; _isLoading = false; });
+  }
+
+  Future<void> _removeFavorite(String id) async {
+    await FavoritesService.removeFavorite(id);
+    await _loadFavorites();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,28 +36,43 @@ class SavedScreenPixelPerfect extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Top bar
             _buildTopBar(context),
-            // Empty state
             Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.bookmark_border, size: 64, color: Colors.grey.shade300),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Saqlanganlar yo\'q',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textPrimary, fontFamily: 'Mulish'),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Sevimli avtomoykalarni saqlang',
-                      style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish'),
-                    ),
-                  ],
-                ),
-              ),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _favorites.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.bookmark_border, size: 64, color: Colors.grey.shade300),
+                              const SizedBox(height: 16),
+                              Text('Saqlanganlar yo\'q', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textPrimary, fontFamily: 'Mulish')),
+                              const SizedBox(height: 8),
+                              Text('Sevimli avtomoykalarni saqlang', style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
+                            ],
+                          ),
+                        )
+                      : ListView.separated(
+                          padding: const EdgeInsets.all(16),
+                          itemCount: _favorites.length,
+                          separatorBuilder: (_, __) => const SizedBox(height: 16),
+                          itemBuilder: (context, index) {
+                            final f = _favorites[index];
+                            return _buildSavedCarWashCard(
+                              name: (f['name'] ?? 'Avtomoyqa').toString(),
+                              address: (f['address'] ?? '').toString(),
+                              distance: '',
+                              rating: double.tryParse(f['rating']?.toString() ?? '') ?? 4.5,
+                              status: f['is_open'] == true ? 'Ochiq' : 'Yopiq',
+                              statusColor: f['is_open'] == true ? Colors.green : Colors.red,
+                              statusBgColor: f['is_open'] == true ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                              context: context,
+                              partnerId: f['id']?.toString() ?? '',
+                              partnerData: f,
+                            );
+                          },
+                        ),
             ),
           ],
         ),
@@ -94,9 +134,11 @@ class SavedScreenPixelPerfect extends StatelessWidget {
     required Color statusColor,
     required Color statusBgColor,
     required BuildContext context,
+    required String partnerId,
+    Map<String, dynamic>? partnerData,
   }) {
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/car-wash-detail'),
+      onTap: () => Navigator.pushNamed(context, '/car-wash-detail', arguments: partnerData),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -116,16 +158,27 @@ class SavedScreenPixelPerfect extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(20),
-                  child: Image.asset(
-                    'assets/images/194b66145883c040db1229c8b27859f09f39f78f.png',
-                    width: double.infinity,
-                    height: 160,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: AppTheme.lightGray,
-                      );
-                    },
+                  child: (partnerData?['image_url'] ?? partnerData?['photo_url'] ?? '').toString().isNotEmpty
+                      ? Image.network(
+                          (partnerData?['image_url'] ?? partnerData?['photo_url'] ?? '').toString(),
+                          width: double.infinity,
+                          height: 160,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(color: AppTheme.lightGray, child: const Center(child: Icon(Icons.local_car_wash, size: 48, color: Colors.grey))),
+                        )
+                      : Container(color: AppTheme.lightGray, child: const Center(child: Icon(Icons.local_car_wash, size: 48, color: Colors.grey))),
+                ),
+                // Remove bookmark button
+                Positioned(
+                  right: 12,
+                  top: 12,
+                  child: GestureDetector(
+                    onTap: () => _removeFavorite(partnerId),
+                    child: Container(
+                      width: 36, height: 36,
+                      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                      child: const Icon(Icons.bookmark, color: AppTheme.primaryCyan, size: 20),
+                    ),
                   ),
                 ),
                 // Rating badge

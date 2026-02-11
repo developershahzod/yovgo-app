@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
+import '../../services/favorites_service.dart';
 import '../../l10n/language_provider.dart';
 
 class CarWashDetailScreenNew extends StatefulWidget {
@@ -16,6 +17,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   int _currentImageIndex = 0;
   bool _isLoading = true;
   bool _descExpanded = false;
+  bool _isFavorite = false;
   Map<String, dynamic>? _partner;
 
   // Reviews
@@ -36,6 +38,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
       final args = ModalRoute.of(context)?.settings.arguments;
       if (args is Map<String, dynamic>) {
         setState(() { _partner = args; _isLoading = false; });
+        _checkFavorite(args['id']?.toString());
         _fetchReviews(args['id']?.toString());
         return;
       }
@@ -62,6 +65,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
             final pd = data.data is Map ? data.data['partner'] ?? data.data : null;
             if (pd != null) {
               setState(() { _partner = pd; _isLoading = false; });
+              _checkFavorite(pd['id']?.toString());
               _fetchReviews(pd['id']?.toString());
               return;
             }
@@ -74,6 +78,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
         final partners = (data.data['partners'] as List?) ?? [];
         if (partners.isNotEmpty) {
           setState(() { _partner = Map<String, dynamic>.from(partners.first); _isLoading = false; });
+          _checkFavorite(partners.first['id']?.toString());
           _fetchReviews(partners.first['id']?.toString());
           return;
         }
@@ -82,6 +87,12 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
       debugPrint('Car wash detail load error: $e');
     }
     if (mounted) setState(() => _isLoading = false);
+  }
+
+  Future<void> _checkFavorite(String? partnerId) async {
+    if (partnerId == null) return;
+    final fav = await FavoritesService.isFavorite(partnerId);
+    if (mounted) setState(() => _isFavorite = fav);
   }
 
   Future<void> _fetchReviews(String? partnerId) async {
@@ -414,10 +425,16 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                     _buildCircleBtn(Icons.arrow_back, () => Navigator.pop(context)),
                     Row(
                       children: [
-                        _buildCircleBtn(Icons.bookmark_border, () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Saqlanganlarga qo\'shildi'), duration: Duration(seconds: 1)),
-                          );
+                        _buildCircleBtn(_isFavorite ? Icons.bookmark : Icons.bookmark_border, () async {
+                          if (_partner == null) return;
+                          await FavoritesService.toggleFavorite(_partner!);
+                          final fav = await FavoritesService.isFavorite(_partner!['id']?.toString() ?? '');
+                          if (mounted) {
+                            setState(() => _isFavorite = fav);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(fav ? 'Saqlanganlarga qo\'shildi' : 'Saqlanganlardan o\'chirildi'), duration: const Duration(seconds: 1)),
+                            );
+                          }
                         }),
                         const SizedBox(width: 12),
                         _buildCircleBtn(Icons.ios_share, () {
