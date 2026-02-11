@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
+import '../home/home_screen_fixed.dart';
 
 class MapScreenNew extends StatefulWidget {
   const MapScreenNew({Key? key}) : super(key: key);
@@ -80,26 +81,35 @@ class _MapScreenNewState extends State<MapScreenNew> {
     _saveSearchHistory();
   }
 
-  static bool _locationAsked = false;
-
   Future<void> _getCurrentLocation() async {
+    // Use shared location from HomeScreenFixed if already obtained
+    final cachedLat = SharedLocationState.cachedLat;
+    final cachedLng = SharedLocationState.cachedLng;
+    final alreadyObtained = SharedLocationState.locationObtained;
+
+    if (alreadyObtained) {
+      if (mounted) {
+        setState(() {
+          _currentPosition = LatLng(cachedLat, cachedLng);
+        });
+        _mapController?.animateCamera(CameraUpdate.newLatLng(_currentPosition));
+        _loadCarWashes();
+      }
+      return;
+    }
+
     try {
       LocationPermission permission = await Geolocator.checkPermission();
-      // If already granted, just use it — don't ask again
+      // Never request permission from map — home screen handles that
       if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-        // Permission already granted, proceed
-      } else if (permission == LocationPermission.denied && !_locationAsked) {
-        _locationAsked = true;
-        permission = await Geolocator.requestPermission();
-      }
-      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-        final position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+        final position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.medium,
+        ).timeout(const Duration(seconds: 8));
         if (mounted) {
           setState(() {
             _currentPosition = LatLng(position.latitude, position.longitude);
           });
           _mapController?.animateCamera(CameraUpdate.newLatLng(_currentPosition));
-          // Reload car washes with actual location
           _loadCarWashes();
         }
       }

@@ -14,8 +14,9 @@ class HomeScreenFixed extends StatefulWidget {
 }
 
 class _HomeScreenFixedState extends State<HomeScreenFixed> {
-  // Static: only ask permission once per app session
+  // Global shared location state — ask permission once across all screens
   static bool _locationPermissionAsked = false;
+  static bool _locationObtained = false;
   static double _cachedLat = 41.311;
   static double _cachedLng = 69.279;
 
@@ -55,42 +56,69 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
     _loadHomeData();
   }
 
-  Future<void> _getUserLocation() async {
-    // If we already have cached coords from this session, use them
-    if (_locationPermissionAsked) {
-      if (mounted) {
-        setState(() {
-          _userLat = _cachedLat;
-          _userLng = _cachedLng;
-        });
-      }
-      return;
-    }
-    _locationPermissionAsked = true;
+  /// Try to get user location in the background. Never blocks API loading.
+  /// After location is obtained, reloads car washes with real coords.
+  Future<void> _getUserLocationInBackground() async {
+    // Always start with cached/default coords
+    _userLat = _cachedLat;
+    _userLng = _cachedLng;
+
+    // If we already obtained real coords this session, just use them
+    if (_locationObtained) return;
 
     try {
       LocationPermission permission = await Geolocator.checkPermission();
-      // Only ask if not already granted and not yet asked this session
-      if (permission == LocationPermission.denied) {
+
+      // Only request permission once per app session
+      if (permission == LocationPermission.denied && !_locationPermissionAsked) {
+        _locationPermissionAsked = true;
         permission = await Geolocator.requestPermission();
       }
-      if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        _locationPermissionAsked = true;
         return; // Use default Tashkent coords
       }
+
+      _locationPermissionAsked = true;
+
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.medium,
-      ).timeout(const Duration(seconds: 5));
+      ).timeout(const Duration(seconds: 8));
+
       _cachedLat = position.latitude;
       _cachedLng = position.longitude;
+      _locationObtained = true;
+
       if (mounted) {
         setState(() {
           _userLat = position.latitude;
           _userLng = position.longitude;
         });
+        // Reload car washes with real location
+        _loadNearbyCarWashes();
       }
     } catch (_) {
-      // Geolocation not available — use default Tashkent coords
+      // Geolocation not available or timed out — keep default Tashkent coords
     }
+  }
+
+  Future<void> _loadNearbyCarWashes() async {
+    try {
+      final lat = _userLat != 0 ? _userLat : 41.311;
+      final lng = _userLng != 0 ? _userLng : 69.279;
+      final resp = await FullApiService.get('/api/mobile/car-washes/nearby',
+          queryParameters: {'latitude': lat, 'longitude': lng, 'radius': 50});
+      if (mounted && resp.statusCode == 200) {
+        final data = resp.data;
+        final partners = ((data['partners'] as List?) ??
+                (data['car_washes'] as List?) ??
+                [])
+            .cast<Map<String, dynamic>>();
+        setState(() => _nearbyCarWashes = partners);
+      }
+    } catch (_) {}
   }
 
   double _haversine(double lat1, double lon1, double lat2, double lon2) {
@@ -104,17 +132,18 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
   }
 
   Future<void> _loadHomeData() async {
-    // Get user location first
-    await _getUserLocation();
+    // 1. Start location request in background (non-blocking)
+    //    This will reload car washes when location arrives.
+    _getUserLocationInBackground();
 
-    // Check auth
+    // 2. Load all API data immediately with default/cached coords
+    //    These don't need to wait for location.
     final loggedIn = await FullApiService.isLoggedIn();
     if (mounted) setState(() => _isLoggedIn = loggedIn);
 
     // Load subscription
     try {
       final res = await FullApiService.getSubscriptionStatus();
-      // API returns {success: true, subscription: {...}} or {subscription: null}
       final sub = res['subscription'] as Map<String, dynamic>?;
       if (mounted && sub != null && sub['status'] == 'active') {
         setState(() {
@@ -123,11 +152,10 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
           _usedVisits = sub['used_visits'] ?? sub['visits_used'] ?? 0;
           final isUnlimited = sub['is_unlimited'] == true;
           if (isUnlimited) {
-            _totalVisits = -1; // -1 means unlimited
+            _totalVisits = -1;
           } else {
             _totalVisits = sub['total_visits'] ?? sub['visit_limit'] ?? 0;
             if (_totalVisits == 0) {
-              // Fallback: total = used + remaining
               final rem = sub['remaining_visits'] ?? sub['visits_remaining'] ?? 0;
               _totalVisits = _usedVisits + (rem as int);
             }
@@ -147,7 +175,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
       }
     } catch (_) {}
 
-    // Load weather with real location
+    // Load weather with cached/default location
     try {
       final weather = await FullApiService.getWeatherData(
         latitude: _userLat,
@@ -156,30 +184,20 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
       if (mounted) setState(() => _weatherData = weather);
     } catch (_) {}
 
-    // Load promo plan (best value plan for banner)
+    // Load promo plan
     try {
       final resp = await FullApiService.get('/api/mobile/subscriptions/plans');
       if (mounted && resp.statusCode == 200) {
         final plans = (resp.data['plans'] as List?)?.cast<Map<String, dynamic>>() ?? [];
         if (plans.isNotEmpty) {
-          // Pick the plan with the most duration_days (best value)
           plans.sort((a, b) => (b['duration_days'] ?? 0).compareTo(a['duration_days'] ?? 0));
           setState(() => _promoPlan = plans.first);
         }
       }
     } catch (_) {}
 
-    // Load nearby car washes with real location (always use default if geo failed)
-    try {
-      final lat = _userLat != 0 ? _userLat : 41.311;
-      final lng = _userLng != 0 ? _userLng : 69.279;
-      final resp = await FullApiService.get('/api/mobile/car-washes/nearby', queryParameters: {'latitude': lat, 'longitude': lng, 'radius': 50});
-      if (mounted && resp.statusCode == 200) {
-        final data = resp.data;
-        final partners = ((data['partners'] as List?) ?? (data['car_washes'] as List?) ?? []).cast<Map<String, dynamic>>();
-        setState(() => _nearbyCarWashes = partners);
-      }
-    } catch (_) {}
+    // Load nearby car washes with default/cached coords (will reload when real location arrives)
+    await _loadNearbyCarWashes();
 
     // Load recent visits (only for logged-in users)
     if (_isLoggedIn) {
@@ -1954,4 +1972,13 @@ extension HomeScreenMethods on _HomeScreenFixedState {
       ),
     );
   }
+}
+
+/// Public accessor for shared location state so other screens (map) can use cached coords
+/// without requesting permission again.
+class SharedLocationState {
+  static double get cachedLat => _HomeScreenFixedState._cachedLat;
+  static double get cachedLng => _HomeScreenFixedState._cachedLng;
+  static bool get locationObtained => _HomeScreenFixedState._locationObtained;
+  static bool get permissionAsked => _HomeScreenFixedState._locationPermissionAsked;
 }
