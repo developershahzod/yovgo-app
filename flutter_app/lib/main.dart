@@ -20,6 +20,7 @@ import 'screens/saved/saved_screen_pixel_perfect.dart';
 import 'screens/profile/payment_cards_screen.dart';
 import 'screens/profile/cars_screen.dart';
 import 'screens/profile/settings_screen.dart';
+import 'screens/profile/visit_history_screen.dart';
 import 'screens/subscriptions/my_subscription_screen.dart';
 import 'screens/subscriptions/subscription_plans_screen.dart';
 import 'screens/subscriptions/subscription_detail_screen.dart';
@@ -89,6 +90,7 @@ class MyApp extends StatelessWidget {
             '/payment-cards': (context) => const AuthGuard(child: PaymentCardsScreen()),
             '/cars': (context) => const AuthGuard(child: CarsScreen()),
             '/settings': (context) => const SettingsScreen(),
+            '/visit-history': (context) => const AuthGuard(child: VisitHistoryScreen()),
             '/my-subscription': (context) => const AuthGuard(child: MySubscriptionScreen()),
             '/subscription-plans': (context) => const SubscriptionPlansScreen(),
             '/subscription-detail': (context) => const SubscriptionDetailScreen(),

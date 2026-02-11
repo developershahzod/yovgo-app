@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../core/theme/app_colors.dart';
-import '../../core/theme/app_text_styles.dart';
+import '../../config/app_theme.dart';
+import '../../services/full_api_service.dart';
 
 class VisitHistoryScreen extends StatefulWidget {
   const VisitHistoryScreen({super.key});
@@ -10,52 +10,43 @@ class VisitHistoryScreen extends StatefulWidget {
 }
 
 class _VisitHistoryScreenState extends State<VisitHistoryScreen> {
-  final List<Visit> _visits = [
-    Visit(
-      id: '1',
-      carWashName: 'Black Star Car Wash',
-      date: DateTime.now().subtract(const Duration(days: 1)),
-      vehiclePlate: '01A123BC',
-      status: 'completed',
-    ),
-    Visit(
-      id: '2',
-      carWashName: 'Wash House Car Wash',
-      date: DateTime.now().subtract(const Duration(days: 3)),
-      vehiclePlate: '01A123BC',
-      status: 'completed',
-    ),
-    Visit(
-      id: '3',
-      carWashName: 'DJ Car Wash',
-      date: DateTime.now().subtract(const Duration(days: 7)),
-      vehiclePlate: '01B456DE',
-      status: 'completed',
-    ),
-    Visit(
-      id: '4',
-      carWashName: 'Moyka 777',
-      date: DateTime.now().subtract(const Duration(days: 10)),
-      vehiclePlate: '01A123BC',
-      status: 'completed',
-    ),
-  ];
+  List<dynamic> _visits = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVisits();
+  }
+
+  Future<void> _loadVisits() async {
+    try {
+      final visits = await FullApiService.getVisitHistory(limit: 50);
+      if (mounted) setState(() { _visits = visits; _isLoading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
+          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Tashriflar tarixi', style: AppTextStyles.appBarTitle),
+        title: const Text('Tashriflar tarixi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: AppTheme.textPrimary)),
         centerTitle: true,
       ),
-      body: _visits.isEmpty ? _buildEmptyState() : _buildVisitList(),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _visits.isEmpty
+              ? _buildEmptyState()
+              : _buildVisitList(),
     );
   }
 
@@ -67,24 +58,17 @@ class _VisitHistoryScreenState extends State<VisitHistoryScreen> {
           Container(
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
+              color: AppTheme.primaryCyan.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(
-              Icons.history,
-              size: 64,
-              color: AppColors.primary,
-            ),
+            child: const Icon(Icons.history, size: 64, color: AppTheme.primaryCyan),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'Tashriflar yo\'q',
-            style: AppTextStyles.h4,
-          ),
+          const Text('Tashriflar yo\'q', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: AppTheme.textPrimary)),
           const SizedBox(height: 8),
           Text(
-            'Avtomoyqaga tashrif buyuring va tarix bu yerda ko\'rinadi',
-            style: AppTextStyles.bodyMedium.copyWith(color: AppColors.textSecondary),
+            'Avtomoyqaga tashrif buyuring va\ntarix bu yerda ko\'rinadi',
+            style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish'),
             textAlign: TextAlign.center,
           ),
         ],
@@ -96,90 +80,64 @@ class _VisitHistoryScreenState extends State<VisitHistoryScreen> {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: _visits.length,
-      itemBuilder: (context, index) {
-        return _buildVisitCard(_visits[index]);
-      },
+      itemBuilder: (context, index) => _buildVisitCard(_visits[index]),
     );
   }
 
-  Widget _buildVisitCard(Visit visit) {
+  Widget _buildVisitCard(Map<String, dynamic> visit) {
+    final carWashName = (visit['partner_name'] ?? visit['car_wash_name'] ?? 'Avtomoyqa').toString();
+    final plate = (visit['vehicle_plate'] ?? visit['license_plate'] ?? '').toString();
+    final status = (visit['status'] ?? 'completed').toString();
+    DateTime? date;
+    try { date = DateTime.parse(visit['created_at'] ?? visit['date'] ?? ''); } catch (_) {}
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))],
       ),
       child: Row(
         children: [
           Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.local_car_wash,
-              color: AppColors.primary,
-              size: 28,
-            ),
+            width: 56, height: 56,
+            decoration: BoxDecoration(color: AppTheme.primaryCyan.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            child: const Icon(Icons.local_car_wash, color: AppTheme.primaryCyan, size: 28),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  visit.carWashName,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.directions_car, size: 14, color: AppColors.textTertiary),
+                Text(carWashName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish', color: AppTheme.textPrimary)),
+                if (plate.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    Icon(Icons.directions_car, size: 14, color: AppTheme.textTertiary),
                     const SizedBox(width: 4),
-                    Text(
-                      visit.vehiclePlate,
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-                    ),
-                  ],
-                ),
+                    Text(plate, style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
+                  ]),
+                ],
               ],
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                _formatDate(visit.date),
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
-              ),
+              if (date != null)
+                Text(_formatDate(date), style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
               const SizedBox(height: 4),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppColors.successLight,
+                  color: status == 'completed' ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Text(
-                  'Yakunlangan',
-                  style: TextStyle(
-                    color: AppColors.success,
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Text(
+                  status == 'completed' ? 'Yakunlangan' : 'Jarayonda',
+                  style: TextStyle(color: status == 'completed' ? Colors.green : Colors.orange, fontSize: 10, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -190,33 +148,10 @@ class _VisitHistoryScreenState extends State<VisitHistoryScreen> {
   }
 
   String _formatDate(DateTime date) {
-    final now = DateTime.now();
-    final difference = now.difference(date);
-
-    if (difference.inDays == 0) {
-      return 'Bugun';
-    } else if (difference.inDays == 1) {
-      return 'Kecha';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} kun oldin';
-    } else {
-      return '${date.day}.${date.month.toString().padLeft(2, '0')}.${date.year}';
-    }
+    final diff = DateTime.now().difference(date);
+    if (diff.inDays == 0) return 'Bugun';
+    if (diff.inDays == 1) return 'Kecha';
+    if (diff.inDays < 7) return '${diff.inDays} kun oldin';
+    return '${date.day}.${date.month.toString().padLeft(2, '0')}.${date.year}';
   }
-}
-
-class Visit {
-  final String id;
-  final String carWashName;
-  final DateTime date;
-  final String vehiclePlate;
-  final String status;
-
-  Visit({
-    required this.id,
-    required this.carWashName,
-    required this.date,
-    required this.vehiclePlate,
-    required this.status,
-  });
 }

@@ -125,7 +125,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   onTap: () => Navigator.pushNamed(context, '/cars')),
               _buildDivider(),
               _buildMenuRow(Icons.history, context.tr('profile_history'),
-                  onTap: () {}),
+                  onTap: () => Navigator.pushNamed(context, '/visit-history')),
               _buildDivider(),
               _buildMenuRow(Icons.credit_card_outlined, context.tr('profile_payment_methods'),
                   trailing: _cardCount > 0 ? '$_cardCount' : null,
