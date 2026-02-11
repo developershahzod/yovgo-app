@@ -219,18 +219,18 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     }
 
     final p = _partner ?? {};
-    final name = p['name'] ?? 'Car Wash';
-    final description = (p['description'] ?? '') as String;
-    final address = p['address'] ?? '';
-    final phone = p['phone'] ?? p['phone_number'] ?? '';
-    final rating = (p['rating'] ?? 5.0).toDouble();
+    final name = (p['name'] ?? 'Car Wash').toString();
+    final description = (p['description'] ?? '').toString();
+    final address = (p['address'] ?? '').toString();
+    final phone = (p['phone'] ?? p['phone_number'] ?? '').toString();
+    final rating = double.tryParse(p['rating']?.toString() ?? '') ?? 5.0;
     final isPremium = p['is_premium'] == true;
     final isOpen = p['is_open'] != false;
     final workingHours = p['working_hours'];
     final lat = p['latitude'];
     final lng = p['longitude'];
-    final imageUrl = p['image_url'] ?? p['photo_url'] ?? p['logo_url'] ?? '';
-    final galleryUrls = (p['gallery_urls'] as List?)?.cast<String>() ?? [];
+    final imageUrl = (p['image_url'] ?? p['photo_url'] ?? p['logo_url'] ?? '').toString();
+    final galleryUrls = (p['gallery_urls'] as List?)?.map((e) => e.toString()).toList() ?? (p['images'] as List?)?.map((e) => e.toString()).toList() ?? [];
     final allImages = <String>[
       if (imageUrl.isNotEmpty && imageUrl.startsWith('http')) imageUrl,
       ...galleryUrls.where((u) => u.startsWith('http')),
