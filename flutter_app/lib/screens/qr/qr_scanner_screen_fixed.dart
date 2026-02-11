@@ -126,8 +126,11 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
       }
     } finally {
       if (mounted) {
-        setState(() => _isScanning = false);
-        // Don't restart scanner - wait for user to come back
+        setState(() {
+          _isScanning = false;
+          _scannedOnce = false;
+        });
+        _scannerController?.start();
       }
     }
   }
@@ -266,7 +269,17 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
           visitId: visitId,
         ),
       ),
-    );
+    ).then((_) {
+      // Reset scanner when user comes back from timer screen
+      if (mounted) {
+        setState(() {
+          _scannedOnce = false;
+          _isScanning = false;
+        });
+        _scannerController?.start();
+        _loadUserState(); // Refresh subscription counters
+      }
+    });
   }
 
   @override
