@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
+import '../../l10n/language_provider.dart';
 
 class VisitHistoryScreen extends StatefulWidget {
   const VisitHistoryScreen({super.key});
@@ -39,7 +40,7 @@ class _VisitHistoryScreenState extends State<VisitHistoryScreen> {
           icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Tashriflar tarixi', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: AppTheme.textPrimary)),
+        title: Text(context.tr('profile_history'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: AppTheme.textPrimary)),
         centerTitle: true,
       ),
       body: _isLoading
@@ -57,17 +58,17 @@ class _VisitHistoryScreenState extends State<VisitHistoryScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryCyan.withOpacity(0.1),
+            decoration: const BoxDecoration(
+              color: Color.fromRGBO(0, 191, 254, 0.1),
               shape: BoxShape.circle,
             ),
             child: const Icon(Icons.history, size: 64, color: AppTheme.primaryCyan),
           ),
           const SizedBox(height: 24),
-          const Text('Tashriflar yo\'q', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: AppTheme.textPrimary)),
+          Text(context.tr('visit_no_visits'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: AppTheme.textPrimary)),
           const SizedBox(height: 8),
           Text(
-            'Avtomoyqaga tashrif buyuring va\ntarix bu yerda ko\'rinadi',
+            context.tr('visit_start'),
             style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish'),
             textAlign: TextAlign.center,
           ),
@@ -85,7 +86,7 @@ class _VisitHistoryScreenState extends State<VisitHistoryScreen> {
   }
 
   Widget _buildVisitCard(Map<String, dynamic> visit) {
-    final carWashName = (visit['partner_name'] ?? visit['car_wash_name'] ?? 'Avtomoyqa').toString();
+    final carWashName = (visit['partner_name'] ?? visit['car_wash_name'] ?? context.tr('car_wash_default')).toString();
     final plate = (visit['vehicle_plate'] ?? visit['license_plate'] ?? '').toString();
     final status = (visit['status'] ?? 'completed').toString();
     DateTime? date;
@@ -97,13 +98,13 @@ class _VisitHistoryScreenState extends State<VisitHistoryScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 2))],
+        boxShadow: const [BoxShadow(color: Color.fromRGBO(0, 0, 0, 0.03), blurRadius: 8, offset: Offset(0, 2))],
       ),
       child: Row(
         children: [
           Container(
             width: 56, height: 56,
-            decoration: BoxDecoration(color: AppTheme.primaryCyan.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            decoration: BoxDecoration(color: const Color.fromRGBO(0, 191, 254, 0.1), borderRadius: BorderRadius.circular(12)),
             child: const Icon(Icons.local_car_wash, color: AppTheme.primaryCyan, size: 28),
           ),
           const SizedBox(width: 16),
@@ -132,11 +133,11 @@ class _VisitHistoryScreenState extends State<VisitHistoryScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: status == 'completed' ? Colors.green.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+                  color: status == 'completed' ? const Color.fromRGBO(76, 175, 80, 0.1) : const Color.fromRGBO(255, 152, 0, 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
-                  status == 'completed' ? 'Yakunlangan' : 'Jarayonda',
+                  status == 'completed' ? context.tr('status_completed') : context.tr('status_in_progress'),
                   style: TextStyle(color: status == 'completed' ? Colors.green : Colors.orange, fontSize: 10, fontWeight: FontWeight.w600),
                 ),
               ),
@@ -149,9 +150,9 @@ class _VisitHistoryScreenState extends State<VisitHistoryScreen> {
 
   String _formatDate(DateTime date) {
     final diff = DateTime.now().difference(date);
-    if (diff.inDays == 0) return 'Bugun';
-    if (diff.inDays == 1) return 'Kecha';
-    if (diff.inDays < 7) return '${diff.inDays} kun oldin';
+    if (diff.inDays == 0) return context.tr('today');
+    if (diff.inDays == 1) return context.tr('yesterday');
+    if (diff.inDays < 7) return '${diff.inDays} ${context.tr('days_ago')}';
     return '${date.day}.${date.month.toString().padLeft(2, '0')}.${date.year}';
   }
 }

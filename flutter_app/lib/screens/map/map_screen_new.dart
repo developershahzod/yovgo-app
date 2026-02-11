@@ -287,13 +287,8 @@ class _MapScreenNewState extends State<MapScreenNew> {
                   child: Container(
                     height: 48,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: const Color(0xFFF5F7FA),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: const Color(0xFFE8ECF0),
-                        width: 1,
-                      ),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
                     ),
                     child: Row(
                       children: [
@@ -659,19 +654,19 @@ class _MapScreenNewState extends State<MapScreenNew> {
     if (apiStatus.isNotEmpty) return apiStatus;
     final isOpen = p['is_open'] == true;
     final is24h = p['is_24_hours'] == true;
-    if (is24h) return '24/7 OCHIQ';
+    if (is24h) return context.tr('open_24_7');
     final wh = p['working_hours'];
     final closeTime = (wh is Map ? wh['close'] : null)?.toString() ?? p['closing_time']?.toString() ?? p['close_time']?.toString() ?? '';
     final openTime = (wh is Map ? wh['open'] : null)?.toString() ?? p['opening_time']?.toString() ?? p['open_time']?.toString() ?? '';
     if (isOpen && closeTime.isNotEmpty) {
       final t = closeTime.length >= 5 ? closeTime.substring(0, 5) : closeTime;
-      return '$t GACHA OCHIQ';
+      return '${context.tr('open_until')} $t';
     }
     if (!isOpen && openTime.isNotEmpty) {
       final t = openTime.length >= 5 ? openTime.substring(0, 5) : openTime;
-      return 'YOPIQ $t GACHA';
+      return '${context.tr('closed_until')} $t';
     }
-    return isOpen ? 'OCHIQ' : 'YOPIQ';
+    return isOpen ? context.tr('status_open') : context.tr('status_closed');
   }
 
   Color _getStatusColor(Map<String, dynamic> p) {
@@ -682,7 +677,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
   }
 
   Widget _buildCarWashCard(Map<String, dynamic> p) {
-    final name = p['name'] ?? 'Car Wash';
+    final name = p['name'] ?? context.tr('car_wash_default');
     final address = p['address'] ?? '';
     final distNum = p['distance'] != null ? (p['distance'] as num).toDouble() : 0.0;
     final distance = distNum > 0
@@ -713,7 +708,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.55),
+                        color: const Color.fromRGBO(0, 0, 0, 0.55),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
@@ -814,10 +809,10 @@ class _MapScreenNewState extends State<MapScreenNew> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('История', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, fontFamily: 'Mulish')),
+                Text(context.tr('search_history'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, fontFamily: 'Mulish')),
                 GestureDetector(
                   onTap: _clearHistory,
-                  child: Text('Hammasini o\'chirish', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.primaryCyan, fontFamily: 'Mulish')),
+                  child: Text(context.tr('clear_all'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.primaryCyan, fontFamily: 'Mulish')),
                 ),
               ],
             ),
@@ -924,7 +919,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
             ),
             GestureDetector(
               onTap: () => _removeFromHistory(text),
-              child: Text('O\'chirish', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.textTertiary, fontFamily: 'Mulish')),
+              child: Text(context.tr('delete_item'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.textTertiary, fontFamily: 'Mulish')),
             ),
           ],
         ),
@@ -978,16 +973,16 @@ class _MapScreenNewState extends State<MapScreenNew> {
           Container(
             width: 100, height: 100,
             decoration: BoxDecoration(
-              color: AppTheme.primaryCyan.withOpacity(0.1),
+              color: const Color.fromRGBO(0, 191, 254, 0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(Icons.search, size: 48, color: AppTheme.primaryCyan),
           ),
           const SizedBox(height: 24),
-          const Text('Hech narsa topilmadi', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, fontFamily: 'Mulish')),
+          Text(context.tr('nothing_found'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, fontFamily: 'Mulish')),
           const SizedBox(height: 8),
           Text(
-            '"$query" so\'roviga aloqador hech narsa topilmadi',
+            '"$query" ${context.tr('nothing_found_desc')}',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish', height: 1.4),
           ),
@@ -1007,10 +1002,10 @@ class _MapScreenNewState extends State<MapScreenNew> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Geolokatsiyangizga\nruxsat bering', textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, fontFamily: 'Mulish')),
+              Text(context.tr('location_permission_title'), textAlign: TextAlign.center, style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, fontFamily: 'Mulish')),
               const SizedBox(height: 14),
               Text(
-                'Sizga yaqin avtomoykalarni ko\'rishimiz uchun sozlamalarda joylashuv ma\'lumotiga ruxsat bering',
+                context.tr('location_permission_desc'),
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, height: 1.5, fontFamily: 'Mulish'),
               ),
@@ -1023,7 +1018,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
                     side: BorderSide(color: Colors.grey.shade300),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: Text('Hozir emas', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
+                  child: Text(context.tr('not_now'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
                 ),
               ),
               const SizedBox(height: 10),
@@ -1032,7 +1027,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
                 child: ElevatedButton(
                   onPressed: () => setState(() => _showLocationDialog = false),
                   style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryCyan, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
-                  child: Text('Sozlamalarni ochish', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white, fontFamily: 'Mulish')),
+                  child: Text(context.tr('open_settings'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white, fontFamily: 'Mulish')),
                 ),
               ),
             ],

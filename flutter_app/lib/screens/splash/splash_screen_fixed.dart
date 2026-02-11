@@ -25,40 +25,29 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    // Wave animation — continuous flowing motion
+    // Wave animation — continuous flowing motion (fast)
     _waveController = AnimationController(
-      duration: const Duration(seconds: 3),
+      duration: const Duration(milliseconds: 1500),
       vsync: this,
     )..repeat();
     _waveSlide = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _waveController, curve: Curves.linear),
     );
 
-    // Logo entrance animation
+    // Logo controller (kept for compatibility, not used for animation)
     _logoController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1),
       vsync: this,
     );
-    _logoFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: const Interval(0.0, 0.6, curve: Curves.easeOut)),
-    );
-    _logoScale = Tween<double>(begin: 0.5, end: 1.0).animate(
-      CurvedAnimation(parent: _logoController, curve: const Interval(0.0, 0.7, curve: Curves.elasticOut)),
-    );
-    _logoSlide = Tween<Offset>(begin: const Offset(0, 0.15), end: Offset.zero).animate(
-      CurvedAnimation(parent: _logoController, curve: const Interval(0.0, 0.6, curve: Curves.easeOutCubic)),
-    );
+    _logoFade = Tween<double>(begin: 1.0, end: 1.0).animate(_logoController);
+    _logoScale = Tween<double>(begin: 1.0, end: 1.0).animate(_logoController);
+    _logoSlide = Tween<Offset>(begin: Offset.zero, end: Offset.zero).animate(_logoController);
 
     // Shimmer glow animation
     _shimmerController = AnimationController(
       duration: const Duration(milliseconds: 1800),
       vsync: this,
     )..repeat(reverse: true);
-
-    // Start logo animation after a short delay
-    Future.delayed(const Duration(milliseconds: 300), () {
-      if (mounted) _logoController.forward();
-    });
 
     _checkAuthAndNavigate();
   }

@@ -395,6 +395,30 @@ const Map<String, String> _enTranslations = {
   'onboarding_skip': 'Skip',
   'onboarding_start': 'Get Started',
 
+  // Map screen
+  'search_history': 'History',
+  'clear_all': 'Clear all',
+  'delete_item': 'Delete',
+  'nothing_found': 'Nothing found',
+  'nothing_found_desc': 'Nothing found for',
+  'location_permission_title': 'Allow your\nlocation',
+  'location_permission_desc': 'Allow location access in settings to see nearby car washes',
+  'not_now': 'Not now',
+  'open_settings': 'Open Settings',
+  'open_24_7': '24/7 OPEN',
+  'open_until': 'OPEN UNTIL',
+  'closed_until': 'CLOSED UNTIL',
+  'status_open': 'OPEN',
+  'status_closed': 'CLOSED',
+  'car_wash_default': 'Car Wash',
+
+  // Visit dates & statuses
+  'today': 'Today',
+  'yesterday': 'Yesterday',
+  'days_ago': 'days ago',
+  'status_completed': 'Completed',
+  'status_in_progress': 'In progress',
+
   // Settings
   'settings_app_language': 'App Language',
 };
@@ -743,6 +767,30 @@ const Map<String, String> _ruTranslations = {
   'onboarding_skip': 'Пропустить',
   'onboarding_start': 'Начать',
 
+  // Map screen
+  'search_history': 'История',
+  'clear_all': 'Очистить все',
+  'delete_item': 'Удалить',
+  'nothing_found': 'Ничего не найдено',
+  'nothing_found_desc': 'Ничего не найдено по запросу',
+  'location_permission_title': 'Разрешите\nгеолокацию',
+  'location_permission_desc': 'Разрешите доступ к местоположению в настройках, чтобы видеть ближайшие автомойки',
+  'not_now': 'Не сейчас',
+  'open_settings': 'Открыть настройки',
+  'open_24_7': '24/7 ОТКРЫТО',
+  'open_until': 'ОТКРЫТО ДО',
+  'closed_until': 'ЗАКРЫТО ДО',
+  'status_open': 'ОТКРЫТО',
+  'status_closed': 'ЗАКРЫТО',
+  'car_wash_default': 'Автомойка',
+
+  // Visit dates & statuses
+  'today': 'Сегодня',
+  'yesterday': 'Вчера',
+  'days_ago': 'дней назад',
+  'status_completed': 'Завершено',
+  'status_in_progress': 'В процессе',
+
   // Settings
   'settings_app_language': 'Язык приложения',
 };
@@ -1090,6 +1138,30 @@ const Map<String, String> _uzTranslations = {
   // Onboarding
   'onboarding_skip': 'O\'tkazib yuborish',
   'onboarding_start': 'Boshlash',
+
+  // Map screen
+  'search_history': 'Tarix',
+  'clear_all': 'Hammasini o\'chirish',
+  'delete_item': 'O\'chirish',
+  'nothing_found': 'Hech narsa topilmadi',
+  'nothing_found_desc': 'so\'roviga aloqador hech narsa topilmadi',
+  'location_permission_title': 'Geolokatsiyangizga\nruxsat bering',
+  'location_permission_desc': 'Sizga yaqin avtomoykalarni ko\'rishimiz uchun sozlamalarda joylashuv ma\'lumotiga ruxsat bering',
+  'not_now': 'Hozir emas',
+  'open_settings': 'Sozlamalarni ochish',
+  'open_24_7': '24/7 OCHIQ',
+  'open_until': 'GACHA OCHIQ',
+  'closed_until': 'GACHA YOPIQ',
+  'status_open': 'OCHIQ',
+  'status_closed': 'YOPIQ',
+  'car_wash_default': 'Avtomoyqa',
+
+  // Visit dates & statuses
+  'today': 'Bugun',
+  'yesterday': 'Kecha',
+  'days_ago': 'kun oldin',
+  'status_completed': 'Yakunlangan',
+  'status_in_progress': 'Jarayonda',
 
   // Settings
   'settings_app_language': 'Ilova tili',
