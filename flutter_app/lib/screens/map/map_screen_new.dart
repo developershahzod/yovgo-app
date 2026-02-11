@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
@@ -27,16 +29,55 @@ class _MapScreenNewState extends State<MapScreenNew> {
   Set<Marker> _markers = {};
   double _dragStartY = 0;
 
+  // Search state
+  bool _isSearchActive = false;
+  bool _hasSearched = false;
+  List<String> _searchHistory = [];
+  static const _historyKey = 'map_search_history';
+
   @override
   void initState() {
     super.initState();
     _getCurrentLocation();
     _loadCarWashes();
+    _loadSearchHistory();
     _searchFocusNode.addListener(() {
-      if (_searchFocusNode.hasFocus && _panelController.isAttached) {
-        _panelController.animatePanelToPosition(0.5, duration: const Duration(milliseconds: 300));
+      if (_searchFocusNode.hasFocus) {
+        setState(() => _isSearchActive = true);
+        if (_panelController.isAttached) {
+          _panelController.animatePanelToPosition(0.5, duration: const Duration(milliseconds: 300));
+        }
       }
     });
+  }
+
+  Future<void> _loadSearchHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getStringList(_historyKey);
+    if (mounted && raw != null) setState(() => _searchHistory = raw);
+  }
+
+  Future<void> _saveSearchHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList(_historyKey, _searchHistory);
+  }
+
+  void _addToHistory(String query) {
+    if (query.trim().isEmpty) return;
+    _searchHistory.remove(query.trim().toLowerCase());
+    _searchHistory.insert(0, query.trim().toLowerCase());
+    if (_searchHistory.length > 10) _searchHistory = _searchHistory.sublist(0, 10);
+    _saveSearchHistory();
+  }
+
+  void _removeFromHistory(String query) {
+    setState(() => _searchHistory.remove(query));
+    _saveSearchHistory();
+  }
+
+  void _clearHistory() {
+    setState(() => _searchHistory.clear());
+    _saveSearchHistory();
   }
 
   static bool _locationAsked = false;
@@ -105,6 +146,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
 
   void _onSearch(String query) {
     setState(() {
+      _hasSearched = query.isNotEmpty;
       if (query.isEmpty) {
         _filteredCarWashes = _carWashes;
       } else {
@@ -115,6 +157,46 @@ class _MapScreenNewState extends State<MapScreenNew> {
         }).toList();
       }
     });
+  }
+
+  void _submitSearch(String query) {
+    if (query.trim().isNotEmpty) {
+      _addToHistory(query.trim());
+    }
+    _onSearch(query);
+    setState(() => _isSearchActive = false);
+    _searchFocusNode.unfocus();
+  }
+
+  void _selectHistoryItem(String query) {
+    _searchController.text = query;
+    _submitSearch(query);
+  }
+
+  void _exitSearch() {
+    _searchFocusNode.unfocus();
+    _searchController.clear();
+    _onSearch('');
+    setState(() { _isSearchActive = false; _hasSearched = false; });
+    if (_panelController.isAttached) {
+      _panelController.animatePanelToPosition(0.0, duration: const Duration(milliseconds: 300));
+    }
+  }
+
+  List<String> _getMatchingHistory(String query) {
+    if (query.isEmpty) return [];
+    return _searchHistory.where((h) => h.contains(query.toLowerCase())).toList();
+  }
+
+  List<String> _getSuggestions(String query) {
+    if (query.isEmpty) return [];
+    final q = query.toLowerCase();
+    return _carWashes
+        .map((p) => (p['name'] ?? '').toString())
+        .where((n) => n.toLowerCase().contains(q))
+        .toSet()
+        .take(5)
+        .toList();
   }
 
   @override
@@ -194,7 +276,10 @@ class _MapScreenNewState extends State<MapScreenNew> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
+                      border: Border.all(
+                        color: _isSearchActive ? AppTheme.primaryCyan : const Color(0xFFE8ECF0),
+                        width: _isSearchActive ? 1.5 : 1,
+                      ),
                       boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
                     ),
                     child: Row(
@@ -207,7 +292,10 @@ class _MapScreenNewState extends State<MapScreenNew> {
                             controller: _searchController,
                             focusNode: _searchFocusNode,
                             onChanged: _onSearch,
+                            onSubmitted: _submitSearch,
+                            textInputAction: TextInputAction.search,
                             onTap: () {
+                              setState(() => _isSearchActive = true);
                               if (_panelController.isAttached) {
                                 _panelController.animatePanelToPosition(0.5, duration: const Duration(milliseconds: 300));
                               }
@@ -224,10 +312,21 @@ class _MapScreenNewState extends State<MapScreenNew> {
                         ),
                         if (_searchController.text.isNotEmpty)
                           GestureDetector(
-                            onTap: () { _searchController.clear(); _onSearch(''); },
+                            onTap: () {
+                              _searchController.clear();
+                              _onSearch('');
+                              setState(() => _hasSearched = false);
+                            },
                             child: Padding(
-                              padding: const EdgeInsets.all(12),
-                              child: Icon(Icons.close_rounded, color: AppTheme.textTertiary, size: 18),
+                              padding: const EdgeInsets.all(10),
+                              child: Container(
+                                width: 22, height: 22,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: AppTheme.textTertiary, width: 1.5),
+                                ),
+                                child: Icon(Icons.close, color: AppTheme.textTertiary, size: 14),
+                              ),
                             ),
                           ),
                       ],
@@ -236,12 +335,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
                 ),
                 const SizedBox(width: 10),
                 GestureDetector(
-                  onTap: () {
-                    _searchFocusNode.unfocus();
-                    if (_panelController.isAttached) {
-                      _panelController.animatePanelToPosition(0.0, duration: const Duration(milliseconds: 300));
-                    }
-                  },
+                  onTap: _exitSearch,
                   child: Container(
                     width: 48, height: 48,
                     decoration: BoxDecoration(
@@ -257,43 +351,50 @@ class _MapScreenNewState extends State<MapScreenNew> {
             ),
           ),
 
-          const SizedBox(height: 12),
+          // Search active: show history/suggestions/empty
+          if (_isSearchActive) ...[
+            _buildSearchContent(),
+          ] else ...[
+            const SizedBox(height: 12),
 
-          // Filter chips
-          SizedBox(
-            height: 40,
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              children: [
-                _buildFilterChip('premium', 'Premium', Icons.workspace_premium, AppTheme.darkNavy),
-                const SizedBox(width: 8),
-                _buildFilterChip('24/7', '24/7', Icons.access_time, AppTheme.green),
-                const SizedBox(width: 8),
-                _buildFilterChip('open', context.tr('map_open_now'), Icons.schedule, AppTheme.primaryCyan),
-                const SizedBox(width: 8),
-                _buildFilterChip('nearest', context.tr('map_nearby'), Icons.near_me, AppTheme.primaryCyan),
-                const SizedBox(width: 8),
-                _buildFilterChip('rating', context.tr('detail_rating'), Icons.star, AppTheme.yellow),
-              ],
+            // Filter chips
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  _buildFilterChip('premium', 'Premium', Icons.workspace_premium, AppTheme.darkNavy),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('24/7', '24/7', Icons.access_time, AppTheme.green),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('open', context.tr('map_open_now'), Icons.schedule, AppTheme.primaryCyan),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('nearest', context.tr('map_nearby'), Icons.near_me, AppTheme.primaryCyan),
+                  const SizedBox(width: 8),
+                  _buildFilterChip('rating', context.tr('detail_rating'), Icons.star, AppTheme.yellow),
+                ],
+              ),
             ),
-          ),
 
-          const SizedBox(height: 16),
+            const SizedBox(height: 16),
 
-          // Car wash list
-          if (_isLoading)
-            const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
-          else if (_filteredCarWashes.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(40),
-              child: Center(child: Text(context.tr('saved_empty'), style: TextStyle(color: AppTheme.textSecondary, fontSize: 15))),
-            )
-          else
-            ..._filteredCarWashes.map((p) => Padding(
-              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-              child: _buildCarWashCard(p),
-            )),
+            // Car wash list
+            if (_isLoading)
+              const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
+            else if (_hasSearched && _filteredCarWashes.isEmpty)
+              _buildEmptySearchResult(_searchController.text)
+            else if (_filteredCarWashes.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(40),
+                child: Center(child: Text(context.tr('saved_empty'), style: TextStyle(color: AppTheme.textSecondary, fontSize: 15))),
+              )
+            else
+              ..._filteredCarWashes.map((p) => Padding(
+                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                child: _buildCarWashCard(p),
+              )),
+          ],
 
           const SizedBox(height: 80),
         ],
@@ -546,6 +647,202 @@ class _MapScreenNewState extends State<MapScreenNew> {
           image: AssetImage('assets/images/194b66145883c040db1229c8b27859f09f39f78f.png'),
           fit: BoxFit.cover,
         ),
+      ),
+    );
+  }
+
+  Widget _buildSearchContent() {
+    final query = _searchController.text.trim();
+
+    if (query.isEmpty) {
+      // Show full history
+      if (_searchHistory.isEmpty) return const SizedBox.shrink();
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('История', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, fontFamily: 'Mulish')),
+                GestureDetector(
+                  onTap: _clearHistory,
+                  child: Text('Hammasini o\'chirish', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.primaryCyan, fontFamily: 'Mulish')),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
+              ),
+              child: Column(
+                children: _searchHistory.asMap().entries.map((entry) {
+                  final i = entry.key;
+                  final h = entry.value;
+                  return Column(
+                    children: [
+                      if (i > 0) Divider(height: 1, color: const Color(0xFFE8ECF0)),
+                      _buildHistoryItem(h),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Typing: show matching history + suggestions
+    final matchingHistory = _getMatchingHistory(query);
+    final suggestions = _getSuggestions(query)
+        .where((s) => !matchingHistory.contains(s.toLowerCase()))
+        .toList();
+
+    if (matchingHistory.isEmpty && suggestions.isEmpty) {
+      return _buildEmptySearchResult(query);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Matching history
+          if (matchingHistory.isNotEmpty)
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
+              ),
+              child: Column(
+                children: matchingHistory.asMap().entries.map((entry) {
+                  final i = entry.key;
+                  final h = entry.value;
+                  return Column(
+                    children: [
+                      if (i > 0) Divider(height: 1, color: const Color(0xFFE8ECF0)),
+                      _buildHistoryItem(h),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+          if (matchingHistory.isNotEmpty && suggestions.isNotEmpty)
+            const SizedBox(height: 10),
+          // Suggestions
+          if (suggestions.isNotEmpty)
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
+              ),
+              child: Column(
+                children: suggestions.asMap().entries.map((entry) {
+                  final i = entry.key;
+                  final s = entry.value;
+                  return Column(
+                    children: [
+                      if (i > 0) Divider(height: 1, color: const Color(0xFFE8ECF0)),
+                      _buildSuggestionItem(s, query),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHistoryItem(String text) {
+    return GestureDetector(
+      onTap: () => _selectHistoryItem(text),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(Icons.access_time, size: 20, color: AppTheme.textTertiary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: AppTheme.textPrimary, fontFamily: 'Mulish')),
+            ),
+            GestureDetector(
+              onTap: () => _removeFromHistory(text),
+              child: Text('O\'chirish', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppTheme.textTertiary, fontFamily: 'Mulish')),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuggestionItem(String name, String query) {
+    final q = query.toLowerCase();
+    final lower = name.toLowerCase();
+    final matchStart = lower.indexOf(q);
+
+    return GestureDetector(
+      onTap: () {
+        _searchController.text = name;
+        _submitSearch(name);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(Icons.search, size: 20, color: AppTheme.textTertiary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: matchStart >= 0
+                  ? RichText(
+                      text: TextSpan(
+                        style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: AppTheme.textPrimary, fontFamily: 'Mulish'),
+                        children: [
+                          if (matchStart > 0) TextSpan(text: name.substring(0, matchStart)),
+                          TextSpan(text: name.substring(matchStart, matchStart + q.length), style: const TextStyle(fontWeight: FontWeight.w800)),
+                          if (matchStart + q.length < name.length) TextSpan(text: name.substring(matchStart + q.length)),
+                        ],
+                      ),
+                    )
+                  : Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w400, color: AppTheme.textPrimary, fontFamily: 'Mulish')),
+            ),
+            Icon(Icons.chevron_right, size: 20, color: AppTheme.textTertiary),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptySearchResult(String query) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 40),
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          Container(
+            width: 100, height: 100,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryCyan.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.search, size: 48, color: AppTheme.primaryCyan),
+          ),
+          const SizedBox(height: 24),
+          const Text('Hech narsa topilmadi', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppTheme.textPrimary, fontFamily: 'Mulish')),
+          const SizedBox(height: 8),
+          Text(
+            '"$query" so\'roviga aloqador hech narsa topilmadi',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish', height: 1.4),
+          ),
+        ],
       ),
     );
   }
