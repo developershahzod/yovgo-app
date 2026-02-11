@@ -980,12 +980,25 @@ async def create_payment_link(
                 "method": "transfer.create_token",
                 "params": {
                     "order_id": order_id,
-                    "amount": int(amount),  # UZS (API expects amount in sums)
-                    "details": {"description": f"YuvGO obuna to'lovi"},
+                    "amount": int(amount),
+                    "details": {
+                        "description": "YuvGO obuna to'lovi",
+                        "ofdInfo": {
+                            "Items": [
+                                {
+                                    "Name": "YuvGO Subscription",
+                                    "SPIC": "03304999067000000",
+                                    "PackageCode": "1344094",
+                                    "price": int(amount),
+                                    "count": 1,
+                                    "VATPercent": 0,
+                                    "Discount": 0,
+                                }
+                            ]
+                        },
+                    },
                     "success_url": "https://app.yuvgo.uz/#/payment-success",
                     "fail_url": "https://app.yuvgo.uz/#/payment-fail",
-                    "customer_id": str(user_id),
-                    "customer_phone": user.phone_number if user else None,
                 },
             }
             resp = await client.post(

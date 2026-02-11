@@ -125,11 +125,25 @@ class IpakYuliClient:
                 "created_at": "2024-01-01T12:00:00Z"
             }
         """
+        default_ofd = {
+            "Items": [
+                {
+                    "Name": "YuvGO Subscription",
+                    "SPIC": "03304999067000000",
+                    "PackageCode": "1344094",
+                    "price": amount,
+                    "count": 1,
+                    "VATPercent": 0,
+                    "Discount": 0,
+                }
+            ]
+        }
         params = {
             "order_id": order_id,
             "amount": amount,
             "details": {
-                "description": description
+                "description": description,
+                "ofdInfo": ofd_info or default_ofd,
             },
             "success_url": success_url or SUCCESS_URL,
             "fail_url": fail_url or FAIL_URL
@@ -139,8 +153,6 @@ class IpakYuliClient:
             params["customer_id"] = customer_id
         if customer_phone:
             params["customer_phone"] = customer_phone
-        if ofd_info:
-            params["details"]["ofdInfo"] = ofd_info
             
         return await self._make_request("transfer", "transfer.create_token", params)
     
