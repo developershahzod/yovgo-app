@@ -5,7 +5,7 @@ import '../l10n/language_provider.dart';
 import 'home/home_screen_fixed.dart';
 import 'map/map_screen_new.dart';
 import 'qr/qr_scanner_screen_fixed.dart';
-import 'subscriptions/subscriptions_screen.dart';
+import 'subscriptions/my_subscription_screen.dart';
 import 'profile/profile_screen.dart';
 
 class MainNavigationFixed extends StatefulWidget {
@@ -45,7 +45,7 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
           const MapScreenNew(),
           // Only build QR scanner when its tab is active to prevent camera on all pages
           _currentIndex == 2 ? const QrScannerScreenFixed() : const SizedBox.shrink(),
-          const SubscriptionsScreen(),
+          const MySubscriptionScreen(),
           const ProfileScreen(),
         ],
       ),

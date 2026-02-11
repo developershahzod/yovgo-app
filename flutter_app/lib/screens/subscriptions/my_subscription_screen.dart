@@ -257,7 +257,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
               children: [
                 Expanded(child: _buildStatCard(Icons.attach_money, 'Tejalgan pul', '${_formatPrice(_savedAmount)} so\'m')),
                 const SizedBox(width: 8),
-                Expanded(child: _buildStatCard(Icons.access_time, 'Tashriflar', _isUnlimited ? '$_visitsUsed / ∞' : '$_visitsUsed / $_visitsLimit')),
+                Expanded(child: _buildStatCard(Icons.access_time, 'Shu oy tashriflari', _isUnlimited ? '$_visitsUsed / ∞' : '$_visitsUsed / $_visitsLimit')),
               ],
             ),
           ),
