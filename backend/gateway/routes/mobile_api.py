@@ -626,12 +626,25 @@ async def qr_checkin(
     
     user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
     
+    location_id = None
     try:
         parts = qr_token.split("_")
         if len(parts) >= 2 and parts[0] == "MERCHANT":
-            partner_id = parts[1]  # UUID string, not int
+            partner_id = parts[1]  # UUID string
+        elif len(parts) >= 2 and parts[0] == "BRANCH":
+            branch_id = parts[1]  # UUID string — this is a PartnerLocation id
+            branch = db.query(PartnerLocation).filter(
+                PartnerLocation.id == branch_id,
+                PartnerLocation.is_active == True
+            ).first()
+            if not branch:
+                raise HTTPException(status_code=404, detail="Branch not found")
+            partner_id = str(branch.partner_id)
+            location_id = str(branch.id)
         else:
             raise ValueError("Invalid QR format")
+    except HTTPException:
+        raise
     except:
         raise HTTPException(status_code=400, detail="Invalid QR code")
     
@@ -667,6 +680,7 @@ async def qr_checkin(
     visit = Visit(
         user_id=user_id,
         partner_id=partner_id,
+        location_id=location_id,
         subscription_id=subscription.id,
         vehicle_id=vehicle_id,
         check_in_time=datetime.utcnow(),
@@ -685,11 +699,19 @@ async def qr_checkin(
     
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == subscription.plan_id).first()
     
+    # Get location name for response
+    location_name = None
+    if location_id:
+        loc = db.query(PartnerLocation).filter(PartnerLocation.id == location_id).first()
+        if loc:
+            location_name = loc.name
+    
     return {
         "success": True,
         "message": "Tashrif muvaffaqiyatli ro'yxatdan o'tkazildi!",
-        "partner_name": partner.name,
+        "partner_name": location_name or partner.name,
         "partner_id": str(partner.id),
+        "location_id": location_id,
         "visit_id": str(visit.id),
         "check_in_time": visit.check_in_time.isoformat(),
         "status": "in_progress",
@@ -709,7 +731,7 @@ async def complete_visit(
     if not visit:
         raise HTTPException(status_code=404, detail="Visit not found")
     visit.status = "completed"
-    visit.check_out_time = datetime.utcnow()
+    visit.notes = f"Completed at {datetime.utcnow().isoformat()}"
     db.commit()
     return {"success": True, "message": "Tashrif yakunlandi!", "visit_id": str(visit.id)}
 
@@ -736,14 +758,15 @@ async def get_visit_history(
         vehicle = db.query(Vehicle).filter(Vehicle.id == v.vehicle_id).first() if v.vehicle_id else None
         result.append({
             "id": str(v.id),
-            "partner_name": partner.name if partner else (location.name if location else "Avtomoyka"),
+            "partner_name": (location.name if location else None) or (partner.name if partner else "Avtomoyka"),
             "address": (location.address if location else (partner.address if partner and hasattr(partner, 'address') else "")) or "",
             "vehicle_brand": f"{vehicle.brand or ''} {vehicle.model or ''}".strip() if vehicle else "",
+            "vehicle_plate": vehicle.plate_number if vehicle else "",
             "plate_number": vehicle.plate_number if vehicle else "",
             "region": "",
             "status": v.status or "completed",
             "check_in_time": v.check_in_time.isoformat() if v.check_in_time else None,
-            "check_out_time": v.check_out_time.isoformat() if v.check_out_time else None,
+            "created_at": v.check_in_time.isoformat() if v.check_in_time else None,
             "visited_at": v.check_in_time.isoformat() if v.check_in_time else None,
         })
     return {"success": True, "visits": result, "count": len(result)}

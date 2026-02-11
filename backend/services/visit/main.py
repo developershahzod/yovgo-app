@@ -442,14 +442,26 @@ async def user_checkin(
 ):
     """User scans merchant QR code to check-in"""
     
-    # Validate QR token format
-    if not request.qr_token.startswith('MERCHANT_'):
-        raise HTTPException(status_code=400, detail="Invalid merchant QR code")
-    
-    # Extract partner_id from token (format: MERCHANT_partnerId_timestamp)
+    # Validate QR token format and extract partner_id + location_id
+    location_id = None
     try:
         parts = request.qr_token.split('_')
-        partner_id = parts[1] if len(parts) > 1 else None
+        if len(parts) >= 2 and parts[0] == 'MERCHANT':
+            partner_id = parts[1]
+        elif len(parts) >= 2 and parts[0] == 'BRANCH':
+            branch_id = parts[1]
+            branch = db.query(PartnerLocation).filter(
+                PartnerLocation.id == branch_id,
+                PartnerLocation.is_active == True
+            ).first()
+            if not branch:
+                raise HTTPException(status_code=404, detail="Branch not found")
+            partner_id = str(branch.partner_id)
+            location_id = str(branch.id)
+        else:
+            raise ValueError("Invalid QR format")
+    except HTTPException:
+        raise
     except:
         raise HTTPException(status_code=400, detail="Invalid QR token format")
     
@@ -490,6 +502,7 @@ async def user_checkin(
     visit = Visit(
         user_id=request.user_id,
         partner_id=partner_id,
+        location_id=location_id,
         subscription_id=subscription.id,
         check_in_time=datetime.utcnow(),
         status="completed",
