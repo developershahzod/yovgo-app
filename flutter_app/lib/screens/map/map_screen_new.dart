@@ -186,46 +186,74 @@ class _MapScreenNewState extends State<MapScreenNew> {
           // Search bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Container(
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppTheme.borderGray, width: 1),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
-              ),
-              child: Row(
-                children: [
-                  const SizedBox(width: 14),
-                  Icon(Icons.search_rounded, color: AppTheme.textSecondary, size: 22),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      focusNode: _searchFocusNode,
-                      onChanged: _onSearch,
-                      onTap: () {
-                        if (_panelController.isAttached) {
-                          _panelController.animatePanelToPosition(0.5, duration: const Duration(milliseconds: 300));
-                        }
-                      },
-                      style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w500),
-                      decoration: InputDecoration(
-                        hintText: context.tr('map_search'),
-                        hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w400),
-                        border: InputBorder.none,
-                        isDense: true,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
+                    ),
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 14),
+                        Icon(Icons.search_rounded, color: AppTheme.textSecondary, size: 22),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            focusNode: _searchFocusNode,
+                            onChanged: _onSearch,
+                            onTap: () {
+                              if (_panelController.isAttached) {
+                                _panelController.animatePanelToPosition(0.5, duration: const Duration(milliseconds: 300));
+                              }
+                            },
+                            style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w500),
+                            decoration: InputDecoration(
+                              hintText: context.tr('map_search'),
+                              hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w400),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                        if (_searchController.text.isNotEmpty)
+                          GestureDetector(
+                            onTap: () { _searchController.clear(); _onSearch(''); },
+                            child: Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Icon(Icons.close_rounded, color: AppTheme.textTertiary, size: 18),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
-                  if (_searchController.text.isNotEmpty)
-                    IconButton(
-                      icon: Icon(Icons.close_rounded, color: AppTheme.textTertiary, size: 20),
-                      onPressed: () { _searchController.clear(); _onSearch(''); },
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: () {
+                    _searchFocusNode.unfocus();
+                    if (_panelController.isAttached) {
+                      _panelController.animatePanelToPosition(0.0, duration: const Duration(milliseconds: 300));
+                    }
+                  },
+                  child: Container(
+                    width: 48, height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
                     ),
-                ],
-              ),
+                    child: Icon(Icons.close, color: AppTheme.textPrimary, size: 20),
+                  ),
+                ),
+              ],
             ),
           ),
 
@@ -354,17 +382,24 @@ class _MapScreenNewState extends State<MapScreenNew> {
     return GestureDetector(
       onTap: () => _applyFilter(id),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        padding: const EdgeInsets.only(left: 4, right: 14, top: 4, bottom: 4),
         decoration: BoxDecoration(
           color: isSelected ? color : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isSelected ? color : Colors.grey.shade300, width: 1),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: isSelected ? color : const Color(0xFFE8ECF0), width: 1),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 16, color: isSelected ? Colors.white : color),
-            const SizedBox(width: 5),
+            Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(
+                color: isSelected ? Colors.white.withOpacity(0.2) : color.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 15, color: isSelected ? Colors.white : color),
+            ),
+            const SizedBox(width: 6),
             Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isSelected ? Colors.white : AppTheme.textPrimary, fontFamily: 'Mulish')),
           ],
         ),
@@ -372,52 +407,71 @@ class _MapScreenNewState extends State<MapScreenNew> {
     );
   }
 
+  String _getStatusText(Map<String, dynamic> p) {
+    final isOpen = p['is_open'] == true;
+    final is24h = p['is_24_hours'] == true;
+    if (is24h) return '24/7 OCHIQ';
+    final closeTime = p['closing_time']?.toString() ?? p['close_time']?.toString() ?? '';
+    final openTime = p['opening_time']?.toString() ?? p['open_time']?.toString() ?? '';
+    if (isOpen && closeTime.isNotEmpty) {
+      final t = closeTime.length >= 5 ? closeTime.substring(0, 5) : closeTime;
+      return '$t GACHA OCHIQ';
+    }
+    if (!isOpen && openTime.isNotEmpty) {
+      final t = openTime.length >= 5 ? openTime.substring(0, 5) : openTime;
+      return 'YOPIQ $t GACHA';
+    }
+    return isOpen ? 'GACHA OCHIQ' : 'YOPIQ';
+  }
+
+  Color _getStatusColor(Map<String, dynamic> p) {
+    final isOpen = p['is_open'] == true;
+    final is24h = p['is_24_hours'] == true;
+    if (is24h) return const Color(0xFF5CCC27);
+    return isOpen ? AppTheme.primaryCyan : const Color(0xFFFC3E3E);
+  }
+
   Widget _buildCarWashCard(Map<String, dynamic> p) {
     final name = p['name'] ?? 'Car Wash';
     final address = p['address'] ?? '';
-    final distance = p['distance'] != null ? '${(p['distance'] as num).toStringAsFixed(1)} km' : '';
+    final distNum = p['distance'] != null ? (p['distance'] as num).toDouble() : 0.0;
+    final distance = distNum > 0
+        ? (distNum < 1 ? '${(distNum * 1000).toInt()} m' : '${distNum.toStringAsFixed(1)} km')
+        : '';
     final rating = (p['rating'] ?? 0).toDouble();
-    final isOpen = p['is_open'] == true;
-    final status = p['status'] ?? (isOpen ? context.tr('detail_open') : context.tr('detail_closed'));
+    final statusText = _getStatusText(p);
+    final statusColor = _getStatusColor(p);
 
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/car-wash-detail', arguments: p),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image
-            Container(
-              height: 180,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Image with rating badge
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: SizedBox(
+              height: 200,
               width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-              ),
               child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: _getCarWashImage(p),
-                  ),
+                  _getCarWashImage(p),
                   // Rating badge
                   Positioned(
                     bottom: 12, left: 12,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.black54,
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.black.withOpacity(0.55),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.star, size: 14, color: AppTheme.yellow),
-                          const SizedBox(width: 3),
-                          Text(rating.toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+                          const Icon(Icons.star_rounded, size: 16, color: Color(0xFFFFD600)),
+                          const SizedBox(width: 4),
+                          Text(rating.toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                         ],
                       ),
                     ),
@@ -425,42 +479,41 @@ class _MapScreenNewState extends State<MapScreenNew> {
                 ],
               ),
             ),
-            const SizedBox(height: 10),
-            // Status badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: isOpen ? AppTheme.primaryCyan : AppTheme.red,
-                borderRadius: BorderRadius.circular(6),
+          ),
+          const SizedBox(height: 10),
+          // Status badge
+          Row(
+            children: [
+              Container(
+                width: 22, height: 22,
+                decoration: BoxDecoration(
+                  color: statusColor,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.access_time, size: 13, color: Colors.white),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.access_time, size: 12, color: Colors.white),
-                  const SizedBox(width: 4),
-                  Text(status.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 6),
-            // Name
-            Text(name, style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppTheme.textPrimary, fontFamily: 'Mulish')),
-            if (address.isNotEmpty) ...[
-              const SizedBox(height: 2),
-              Text(address, style: TextStyle(fontSize: 13, color: AppTheme.textSecondary), maxLines: 2, overflow: TextOverflow.ellipsis),
+              const SizedBox(width: 6),
+              Text(statusText, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: statusColor, fontFamily: 'Mulish')),
             ],
-            if (distance.isNotEmpty) ...[
-              const SizedBox(height: 6),
-              Row(
-                children: [
-                  Icon(Icons.location_on_outlined, size: 16, color: AppTheme.primaryCyan),
-                  const SizedBox(width: 4),
-                  Text(distance, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.primaryCyan)),
-                ],
-              ),
-            ],
+          ),
+          const SizedBox(height: 6),
+          // Name
+          Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
+          if (address.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(address, style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, fontFamily: 'Mulish'), maxLines: 2, overflow: TextOverflow.ellipsis),
           ],
-        ),
+          if (distance.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Icon(Icons.location_on_outlined, size: 16, color: AppTheme.primaryCyan),
+                const SizedBox(width: 4),
+                Text(distance, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.primaryCyan, fontFamily: 'Mulish')),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -475,7 +528,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
       return Image.network(
         url,
         width: double.infinity,
-        height: 180,
+        height: 200,
         fit: BoxFit.cover,
         errorBuilder: (_, __, ___) => _defaultCarWashImage(),
       );
@@ -486,7 +539,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
   Widget _defaultCarWashImage() {
     return Container(
       width: double.infinity,
-      height: 180,
+      height: 200,
       decoration: const BoxDecoration(
         color: Color(0xFF1A2332),
         image: DecorationImage(
