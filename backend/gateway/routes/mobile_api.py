@@ -970,20 +970,25 @@ async def create_payment_link(
         "Authorization": f"Bearer {IPAKYULI_ACCESS_TOKEN}",
     }
 
-    # Use sync requests in thread to avoid async ConnectError issues
-    import asyncio, requests as sync_requests
+    # Use subprocess curl to avoid connection issues in uvicorn worker process
+    import asyncio, subprocess, json as _json
     def _call_ipakyuli():
-        return sync_requests.post(
-            f"{IPAKYULI_BASE_URL}/api/transfer",
-            json=payload,
-            headers=headers,
-            timeout=30,
+        result = subprocess.run(
+            ["curl", "-s", "-X", "POST",
+             f"{IPAKYULI_BASE_URL}/api/transfer",
+             "-H", "Content-Type: application/json",
+             "-H", f"Authorization: Bearer {IPAKYULI_ACCESS_TOKEN}",
+             "-d", _json.dumps(payload),
+             "--connect-timeout", "15",
+             "--max-time", "30"],
+            capture_output=True, text=True, timeout=35,
         )
+        return result.stdout
 
     try:
-        resp = await asyncio.to_thread(_call_ipakyuli)
-        print(f"[IPAKYULI] Status: {resp.status_code}, Body: {resp.text[:500]}")
-        data = resp.json()
+        raw = await asyncio.to_thread(_call_ipakyuli)
+        print(f"[IPAKYULI] Response: {raw[:500]}")
+        data = _json.loads(raw)
         if "error" in data:
             print(f"[IPAKYULI] Error: {data['error']}")
             payment.status = "failed"
