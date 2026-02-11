@@ -287,8 +287,9 @@ class _MapScreenNewState extends State<MapScreenNew> {
                   child: Container(
                     height: 48,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F7FA),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
                     ),
                     child: Row(
                       children: [
@@ -350,7 +351,6 @@ class _MapScreenNewState extends State<MapScreenNew> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
                     ),
                     child: Icon(Icons.close, color: AppTheme.textPrimary, size: 20),
                   ),

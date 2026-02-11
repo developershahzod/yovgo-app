@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../config/constants.dart';
 import '../../services/auth_service.dart';
+import '../../l10n/language_provider.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -37,9 +38,9 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Вход',
-                  style: TextStyle(
+                Text(
+                  context.tr('auth_login'),
+                  style: const TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.bold,
                     color: AppColors.text,
@@ -49,9 +50,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 
                 const SizedBox(height: 8),
                 
-                const Text(
-                  'Введите свои данные для входа',
-                  style: TextStyle(
+                Text(
+                  context.tr('auth_login_desc'),
+                  style: const TextStyle(
                     fontSize: 15,
                     color: AppColors.textLight,
                   ),
@@ -63,9 +64,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.error.withOpacity(0.1),
+                      color: const Color.fromRGBO(244, 67, 54, 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.error.withOpacity(0.3)),
+                      border: Border.all(color: const Color.fromRGBO(244, 67, 54, 0.3)),
                     ),
                     child: Row(
                       children: [
@@ -90,14 +91,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 TextFormField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Телефон',
+                  decoration: InputDecoration(
+                    labelText: context.tr('auth_phone'),
                     hintText: '+998901234567',
-                    prefixIcon: Icon(Icons.phone_outlined),
+                    prefixIcon: const Icon(Icons.phone_outlined),
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Введите номер телефона';
+                      return context.tr('auth_phone_required');
                     }
                     return null;
                   },
@@ -110,8 +111,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _passwordController,
                   obscureText: _obscurePassword,
                   decoration: InputDecoration(
-                    labelText: 'Пароль',
-                    hintText: 'Введите пароль',
+                    labelText: context.tr('auth_password'),
+                    hintText: context.tr('auth_password_hint'),
                     prefixIcon: const Icon(Icons.lock_outline),
                     suffixIcon: IconButton(
                       icon: Icon(
@@ -126,7 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Введите пароль';
+                      return context.tr('auth_password_required');
                     }
                     return null;
                   },
@@ -149,7 +150,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               strokeWidth: 2,
                             ),
                           )
-                        : const Text('Войти'),
+                        : Text(context.tr('auth_login_btn')),
                   ),
                 ),
                 
@@ -159,9 +160,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Нет аккаунта? ',
-                      style: TextStyle(
+                    Text(
+                      context.tr('auth_no_account'),
+                      style: const TextStyle(
                         color: AppColors.textLight,
                         fontSize: 15,
                       ),
@@ -170,9 +171,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () {
                         Navigator.pushReplacementNamed(context, '/register');
                       },
-                      child: const Text(
-                        'Зарегистрироваться',
-                        style: TextStyle(
+                      child: Text(
+                        context.tr('auth_register'),
+                        style: const TextStyle(
                           color: AppColors.text,
                           fontSize: 15,
                           fontWeight: FontWeight.w600,

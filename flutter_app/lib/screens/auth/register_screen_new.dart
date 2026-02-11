@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../services/full_api_service.dart';
+import '../../l10n/language_provider.dart';
 
 class RegisterScreenNew extends StatefulWidget {
   const RegisterScreenNew({Key? key}) : super(key: key);
@@ -57,11 +58,11 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
     final phone = _phoneController.text.trim();
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = 'Ismingizni kiriting');
+      setState(() => _error = 'Please enter your name');
       return;
     }
     if (phone.length < 13) {
-      setState(() => _error = 'Telefon raqamni to\'liq kiriting');
+      setState(() => _error = 'Please enter full phone number');
       return;
     }
     setState(() { _isLoading = true; _error = null; });
@@ -73,9 +74,9 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
       }
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];
-      setState(() => _error = detail?.toString() ?? 'Xatolik yuz berdi');
+      setState(() => _error = detail?.toString() ?? 'An error occurred');
     } catch (e) {
-      setState(() => _error = 'Tarmoq xatosi');
+      setState(() => _error = 'Network error');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -86,7 +87,7 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
     final name = _nameController.text.trim();
     final code = _codeController.text.trim();
     if (code.length < 5) {
-      setState(() => _error = 'Kodni to\'liq kiriting');
+      setState(() => _error = 'Please enter the full code');
       return;
     }
     setState(() { _isLoading = true; _error = null; });
@@ -101,9 +102,9 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
       }
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];
-      setState(() => _error = detail?.toString() ?? 'Kod noto\'g\'ri');
+      setState(() => _error = detail?.toString() ?? 'Invalid code');
     } catch (e) {
-      setState(() => _error = 'Tarmoq xatosi');
+      setState(() => _error = 'Network error');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -112,7 +113,7 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
   Future<void> _completeProfile() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = 'Ismingizni kiriting');
+      setState(() => _error = 'Please enter your name');
       return;
     }
     setState(() { _isLoading = true; _error = null; });
@@ -181,14 +182,14 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
         const SizedBox(height: 16),
         Image.asset('assets/images/Light BG Default.png', height: 28, fit: BoxFit.contain),
         const SizedBox(height: 40),
-        const Text(
-          'Ro\'yxatdan o\'tish',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
+        Text(
+          context.tr('auth_register'),
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
         ),
         const SizedBox(height: 8),
         Text(
-          'Ma\'lumotlaringizni kiriting',
-          style: TextStyle(fontSize: 15, color: const Color(0xFF8F96A0), fontFamily: 'Mulish'),
+          context.tr('auth_register_desc'),
+          style: const TextStyle(fontSize: 15, color: Color(0xFF8F96A0), fontFamily: 'Mulish'),
         ),
         const SizedBox(height: 32),
         if (_error != null) _buildError(),
@@ -203,8 +204,8 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
             autocorrect: false,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish'),
             decoration: InputDecoration(
-              labelText: 'Ismingiz',
-              labelStyle: TextStyle(color: const Color(0xFF8F96A0), fontFamily: 'Mulish'),
+              labelText: context.tr('auth_name'),
+              labelStyle: const TextStyle(color: Color(0xFF8F96A0), fontFamily: 'Mulish'),
               prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF8F96A0)),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -222,8 +223,8 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
             keyboardType: TextInputType.phone,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish'),
             decoration: InputDecoration(
-              labelText: 'Telefon raqam',
-              labelStyle: TextStyle(color: const Color(0xFF8F96A0), fontFamily: 'Mulish'),
+              labelText: context.tr('auth_phone'),
+              labelStyle: const TextStyle(color: Color(0xFF8F96A0), fontFamily: 'Mulish'),
               prefixIcon: const Icon(Icons.phone_outlined, color: Color(0xFF8F96A0)),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -244,19 +245,19 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
             ),
             child: _isLoading
                 ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('Kod yuborish', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                : Text(context.tr('auth_send_code'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
           ),
         ),
         const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Akkauntingiz bormi? ', style: TextStyle(fontSize: 14, color: const Color(0xFF8F96A0), fontFamily: 'Mulish')),
+            Text(context.tr('auth_has_account'), style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
             GestureDetector(
               onTap: () => Navigator.pushReplacementNamed(context, '/login'),
-              child: const Text(
-                'Tizimga kirish',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF00BFFE), fontFamily: 'Mulish'),
+              child: Text(
+                context.tr('auth_login_link'),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF00BFFE), fontFamily: 'Mulish'),
               ),
             ),
           ],
@@ -271,7 +272,7 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
                 Navigator.pushReplacementNamed(context, '/main');
               }
             },
-            child: Text('Keyinroq', style: TextStyle(fontSize: 14, color: const Color(0xFF8F96A0), fontFamily: 'Mulish')),
+            child: Text(context.tr('auth_later'), style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
           ),
         ),
         const SizedBox(height: 32),
@@ -287,14 +288,14 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
         const SizedBox(height: 16),
         Image.asset('assets/images/Light BG Default.png', height: 28, fit: BoxFit.contain),
         const SizedBox(height: 40),
-        const Text(
-          'Kodni kiriting',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
+        Text(
+          context.tr('auth_enter_code'),
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
         ),
         const SizedBox(height: 8),
         Text(
-          '$phone raqamiga kod yuborildi',
-          style: TextStyle(fontSize: 15, color: const Color(0xFF8F96A0), fontFamily: 'Mulish'),
+          '${context.tr('auth_code_sent')} $phone',
+          style: const TextStyle(fontSize: 15, color: Color(0xFF8F96A0), fontFamily: 'Mulish'),
         ),
         const SizedBox(height: 32),
         if (_error != null) _buildError(),
@@ -322,10 +323,10 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
         const SizedBox(height: 16),
         Center(
           child: _resendSeconds > 0
-              ? Text('Qayta yuborish: $_resendSeconds s', style: TextStyle(fontSize: 14, color: const Color(0xFF8F96A0), fontFamily: 'Mulish'))
+              ? Text('${context.tr('auth_resend')}: $_resendSeconds s', style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0), fontFamily: 'Mulish'))
               : GestureDetector(
                   onTap: _isLoading ? null : _sendCode,
-                  child: const Text('Kodni qayta yuborish', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
+                  child: Text(context.tr('auth_resend_code'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
                 ),
         ),
         const SizedBox(height: 24),
@@ -342,7 +343,7 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
             ),
             child: _isLoading
                 ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('Tasdiqlash', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                : Text(context.tr('auth_verify'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
           ),
         ),
         const SizedBox(height: 32),
@@ -357,14 +358,14 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
         const SizedBox(height: 16),
         Image.asset('assets/images/Light BG Default.png', height: 28, fit: BoxFit.contain),
         const SizedBox(height: 40),
-        const Text(
-          'Ismingizni kiriting',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
+        Text(
+          context.tr('auth_enter_name'),
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
         ),
         const SizedBox(height: 8),
         Text(
-          'Ro\'yxatdan o\'tish uchun ismingizni kiriting',
-          style: TextStyle(fontSize: 15, color: const Color(0xFF8F96A0), fontFamily: 'Mulish'),
+          context.tr('auth_enter_name_desc'),
+          style: const TextStyle(fontSize: 15, color: Color(0xFF8F96A0), fontFamily: 'Mulish'),
         ),
         const SizedBox(height: 32),
         if (_error != null) _buildError(),
@@ -380,8 +381,8 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
             autofocus: true,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish'),
             decoration: InputDecoration(
-              labelText: 'Ism va familiya',
-              labelStyle: TextStyle(color: const Color(0xFF8F96A0), fontFamily: 'Mulish'),
+              labelText: context.tr('auth_fullname'),
+              labelStyle: const TextStyle(color: Color(0xFF8F96A0), fontFamily: 'Mulish'),
               prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF8F96A0)),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -402,7 +403,7 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
             ),
             child: _isLoading
                 ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('Davom etish', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                : Text(context.tr('auth_continue'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
           ),
         ),
         const SizedBox(height: 32),
@@ -416,9 +417,9 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.red.withOpacity(0.08),
+            color: const Color.fromRGBO(244, 67, 54, 0.08),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.red.withOpacity(0.2)),
+            border: Border.all(color: const Color.fromRGBO(244, 67, 54, 0.2)),
           ),
           child: Row(
             children: [
