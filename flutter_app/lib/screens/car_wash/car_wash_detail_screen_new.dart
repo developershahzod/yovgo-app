@@ -894,7 +894,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   // ─── Bottom Bar ───
   Widget _buildBottomBar(dynamic lat, dynamic lng) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, -4))],
@@ -904,7 +904,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
           children: [
             // Marshrut button
             SizedBox(
-              height: 52,
+              height: 48,
               child: ElevatedButton.icon(
                 onPressed: () {
                   if (lat != null && lng != null) _showMapPicker(lat, lng);
@@ -924,7 +924,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
             // QR / Obuna button
             Expanded(
               child: SizedBox(
-                height: 52,
+                height: 48,
                 child: ElevatedButton.icon(
                   onPressed: () => Navigator.pushNamed(context, '/qr'),
                   icon: const Icon(Icons.qr_code_scanner, size: 18),

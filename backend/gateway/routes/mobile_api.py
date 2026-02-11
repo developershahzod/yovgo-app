@@ -691,6 +691,41 @@ async def complete_visit(
     return {"success": True, "message": "Tashrif yakunlandi!", "visit_id": str(visit.id)}
 
 
+@router.get("/visits/history")
+async def get_visit_history(
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    """Get user's visit history"""
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+    visits = (
+        db.query(Visit)
+        .filter(Visit.user_id == user_id)
+        .order_by(Visit.check_in_time.desc())
+        .limit(limit)
+        .all()
+    )
+    result = []
+    for v in visits:
+        partner = db.query(Partner).filter(Partner.id == v.partner_id).first() if v.partner_id else None
+        location = db.query(PartnerLocation).filter(PartnerLocation.id == v.location_id).first() if v.location_id else None
+        vehicle = db.query(Vehicle).filter(Vehicle.id == v.vehicle_id).first() if v.vehicle_id else None
+        result.append({
+            "id": str(v.id),
+            "partner_name": partner.name if partner else (location.name if location else "Avtomoyka"),
+            "address": (location.address if location else (partner.address if partner and hasattr(partner, 'address') else "")) or "",
+            "vehicle_brand": f"{vehicle.brand or ''} {vehicle.model or ''}".strip() if vehicle else "",
+            "plate_number": vehicle.plate_number if vehicle else "",
+            "region": "",
+            "status": v.status or "completed",
+            "check_in_time": v.check_in_time.isoformat() if v.check_in_time else None,
+            "check_out_time": v.check_out_time.isoformat() if v.check_out_time else None,
+            "visited_at": v.check_in_time.isoformat() if v.check_in_time else None,
+        })
+    return {"success": True, "visits": result, "count": len(result)}
+
+
 # ==================== USER ENDPOINTS ====================
 
 @router.get("/users/me")

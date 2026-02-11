@@ -19,11 +19,23 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
   bool _isLoggedIn = false;
   bool _hasSubscription = false;
   bool _isLoading = true;
+  bool _scannedOnce = false;
+  MobileScannerController? _scannerController;
 
   @override
   void initState() {
     super.initState();
+    _scannerController = MobileScannerController(
+      detectionSpeed: DetectionSpeed.normal,
+      facing: CameraFacing.back,
+    );
     _loadUserState();
+  }
+
+  @override
+  void dispose() {
+    _scannerController?.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserState() async {
@@ -63,7 +75,9 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
   }
 
   Future<void> _handleQrScanned(String qrToken) async {
-    if (_isScanning) return;
+    if (_isScanning || _scannedOnce) return;
+    _scannedOnce = true;
+    _scannerController?.stop();
 
     // Not logged in → go to registration
     if (!_isLoggedIn) {
@@ -111,7 +125,10 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
         );
       }
     } finally {
-      if (mounted) setState(() => _isScanning = false);
+      if (mounted) {
+        setState(() => _isScanning = false);
+        // Don't restart scanner - wait for user to come back
+      }
     }
   }
 
@@ -260,7 +277,9 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
         children: [
           // Real camera preview
           MobileScanner(
+            controller: _scannerController,
             onDetect: (capture) {
+              if (_scannedOnce || _isScanning) return;
               final barcodes = capture.barcodes;
               if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
                 _handleQrScanned(barcodes.first.rawValue!);

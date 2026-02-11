@@ -339,11 +339,10 @@ class FullApiService {
     int limit = 20,
   }) async {
     try {
-      final response = await _dio.get('/api/visit/visits', queryParameters: {
-        'skip': skip,
+      final response = await _dio.get('/api/mobile/visits/history', queryParameters: {
         'limit': limit,
       });
-      return response.data;
+      return (response.data['visits'] as List?) ?? [];
     } catch (e) {
       rethrow;
     }

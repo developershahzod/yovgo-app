@@ -130,43 +130,29 @@ class _MapScreenNewState extends State<MapScreenNew> {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, -5))],
         panelBuilder: (scrollController) => _buildPanel(scrollController),
-        body: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          onVerticalDragStart: (details) {
-            _dragStartY = details.globalPosition.dy;
-          },
-          onVerticalDragUpdate: (details) {
-            final dy = details.globalPosition.dy - _dragStartY;
-            if (dy < -40 && _panelController.isAttached && !_panelController.isPanelOpen) {
-              _panelController.animatePanelToPosition(0.5, duration: const Duration(milliseconds: 300));
-            } else if (dy > 40 && _panelController.isAttached && _panelController.isPanelOpen) {
-              _panelController.close();
-            }
-          },
-          child: Stack(
-            children: [
-              // Map
-              _buildMapView(),
-              // My Location Button
-              Positioned(
-                right: 16,
-                bottom: minHeight + 16,
-                child: Container(
-                  width: 48, height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white, shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 2))],
-                  ),
-                  child: IconButton(
-                    icon: Icon(Icons.my_location, color: AppTheme.primaryCyan, size: 22),
-                    onPressed: () => _getCurrentLocation(),
-                  ),
+        body: Stack(
+          children: [
+            // Map - no GestureDetector wrapper so zoom/pan works on iOS
+            _buildMapView(),
+            // My Location Button
+            Positioned(
+              right: 16,
+              bottom: minHeight + 16,
+              child: Container(
+                width: 48, height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white, shape: BoxShape.circle,
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 2))],
+                ),
+                child: IconButton(
+                  icon: Icon(Icons.my_location, color: AppTheme.primaryCyan, size: 22),
+                  onPressed: () => _getCurrentLocation(),
                 ),
               ),
-              // Location Permission Dialog
-              if (_showLocationDialog) _buildLocationDialog(),
-            ],
-          ),
+            ),
+            // Location Permission Dialog
+            if (_showLocationDialog) _buildLocationDialog(),
+          ],
         ),
       ),
     );
@@ -197,14 +183,15 @@ class _MapScreenNewState extends State<MapScreenNew> {
             child: Container(
               height: 48,
               decoration: BoxDecoration(
-                color: AppTheme.lightGray,
+                color: const Color(0xFFF5F6F8),
                 borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
               ),
               child: Row(
                 children: [
-                  const SizedBox(width: 12),
-                  Icon(Icons.search, color: AppTheme.textTertiary, size: 22),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 14),
+                  Icon(Icons.search_rounded, color: AppTheme.primaryCyan, size: 22),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
                       controller: _searchController,
@@ -215,9 +202,10 @@ class _MapScreenNewState extends State<MapScreenNew> {
                           _panelController.animatePanelToPosition(0.5, duration: const Duration(milliseconds: 300));
                         }
                       },
+                      style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         hintText: context.tr('map_search'),
-                        hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 15, fontFamily: 'Mulish'),
+                        hintStyle: TextStyle(color: const Color(0xFFADB5BD), fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w400),
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -226,7 +214,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
                   ),
                   if (_searchController.text.isNotEmpty)
                     IconButton(
-                      icon: Icon(Icons.close, color: AppTheme.textSecondary, size: 20),
+                      icon: Icon(Icons.close_rounded, color: AppTheme.textSecondary, size: 20),
                       onPressed: () { _searchController.clear(); _onSearch(''); },
                     ),
                 ],
@@ -317,8 +305,8 @@ class _MapScreenNewState extends State<MapScreenNew> {
       mapToolbarEnabled: false,
       scrollGesturesEnabled: true,
       zoomGesturesEnabled: true,
-      tiltGesturesEnabled: false,
-      rotateGesturesEnabled: false,
+      tiltGesturesEnabled: true,
+      rotateGesturesEnabled: true,
     );
   }
 
