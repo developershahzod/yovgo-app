@@ -885,7 +885,7 @@ async def create_payment_link(
     current_user = Depends(get_current_user),
 ):
     """Create IpakYuli payment link for subscription"""
-    import httpx, uuid as _uuid
+    import uuid as _uuid
     user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
     user = db.query(User).filter(User.id == user_id).first()
 
@@ -971,7 +971,7 @@ async def create_payment_link(
     }
 
     # Run in a separate Python process to avoid uvicorn worker connection issues
-    import asyncio, subprocess, json as _json, tempfile, os
+    import asyncio, subprocess, json as _json, tempfile
     def _call_ipakyuli():
         # Write payload and config to temp file
         tmp_in = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
