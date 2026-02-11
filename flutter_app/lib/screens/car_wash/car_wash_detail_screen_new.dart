@@ -18,6 +18,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   bool _isLoading = true;
   bool _descExpanded = false;
   bool _isFavorite = false;
+  bool _hasSubscription = false;
   Map<String, dynamic>? _partner;
 
   // Reviews
@@ -87,6 +88,19 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
       debugPrint('Car wash detail load error: $e');
     }
     if (mounted) setState(() => _isLoading = false);
+    _checkSubscription();
+  }
+
+  Future<void> _checkSubscription() async {
+    try {
+      final res = await FullApiService.get('/api/mobile/subscriptions/active');
+      if (mounted && res.statusCode == 200 && res.data != null) {
+        final sub = res.data is Map ? (res.data['subscription'] ?? res.data) : null;
+        if (sub != null && sub['status'] == 'active') {
+          setState(() => _hasSubscription = true);
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _checkFavorite(String? partnerId) async {
@@ -921,21 +935,32 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
               ),
             ),
             const SizedBox(width: 10),
-            // QR / Obuna button
+            // QR / Obuna button (depends on subscription)
             Expanded(
               child: SizedBox(
                 height: 48,
-                child: ElevatedButton.icon(
-                  onPressed: () => Navigator.pushNamed(context, '/qr'),
-                  icon: const Icon(Icons.qr_code_scanner, size: 18),
-                  label: const Text('QR kodni skanerlash', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFD600),
-                    foregroundColor: const Color(0xFF0A0C13),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    elevation: 0,
-                  ),
-                ),
+                child: _hasSubscription
+                    ? ElevatedButton.icon(
+                        onPressed: () => Navigator.pushNamed(context, '/qr'),
+                        icon: const Icon(Icons.qr_code_scanner, size: 18),
+                        label: const Text('QR kodni skanerlash', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFD600),
+                          foregroundColor: const Color(0xFF0A0C13),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                      )
+                    : ElevatedButton(
+                        onPressed: () => Navigator.pushNamed(context, '/subscription-plans'),
+                        child: const Text('Obuna sotib olish', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFFFD600),
+                          foregroundColor: const Color(0xFF0A0C13),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                      ),
               ),
             ),
           ],
