@@ -430,7 +430,7 @@ const Branches = () => {
             </div>
 
             {/* Actions */}
-            <div className="grid grid-cols-4 border-t border-gray-100">
+            <div className="grid grid-cols-5 border-t border-gray-100">
               <button
                 onClick={() => handleViewBranch(branch)}
                 className="flex flex-col items-center justify-center gap-1 py-3 text-gray-500 hover:bg-gray-50 hover:text-emerald-600 transition-colors"
@@ -458,6 +458,13 @@ const Branches = () => {
               >
                 <Users size={16} />
                 <span className="text-[10px] font-medium">Xodimlar</span>
+              </button>
+              <button
+                onClick={() => handleDeleteBranch(branch.id)}
+                className="flex flex-col items-center justify-center gap-1 py-3 text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+              >
+                <Trash2 size={16} />
+                <span className="text-[10px] font-medium">O'chirish</span>
               </button>
             </div>
           </div>
