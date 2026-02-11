@@ -232,8 +232,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    final name = _fullName.isNotEmpty ? _fullName : 'Shakhzod Ismoilov';
-    final phone = _phone.isNotEmpty ? _phone : '+998 93 956 6961';
+    final name = _fullName.isNotEmpty ? _fullName : 'Foydalanuvchi';
+    final phone = _phone.isNotEmpty ? _phone : '';
 
     return Row(
       children: [
