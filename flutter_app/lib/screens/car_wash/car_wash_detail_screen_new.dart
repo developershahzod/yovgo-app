@@ -1166,13 +1166,23 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   // ─── Amenities & Services helpers ───
   List<String> _getAmenities(Map p) {
     final raw = p['amenities'];
-    if (raw is List) return raw.map((e) => e.toString()).toList();
+    if (raw is List) {
+      return raw.map((e) {
+        if (e is Map) return (e['name'] ?? e['title'] ?? '').toString();
+        return e.toString();
+      }).where((s) => s.isNotEmpty).toList();
+    }
     return [];
   }
 
   List<String> _getAdditionalServices(Map p) {
     final raw = p['additional_services'];
-    if (raw is List) return raw.map((e) => e.toString()).toList();
+    if (raw is List) {
+      return raw.map((e) {
+        if (e is Map) return (e['name'] ?? e['title'] ?? '').toString();
+        return e.toString();
+      }).where((s) => s.isNotEmpty).toList();
+    }
     return [];
   }
 
