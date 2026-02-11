@@ -13,14 +13,7 @@ class QRService {
       }
       return null;
     } catch (e) {
-      print('Error checking in: $e');
-      // Mock success for development
-      return {
-        'success': true,
-        'message': 'Tashrif muvaffaqiyatli ro\'yxatdan o\'tkazildi!',
-        'partner_name': 'Black Star Car Wash',
-        'visit_id': 'mock_visit_${DateTime.now().millisecondsSinceEpoch}',
-      };
+      return null;
     }
   }
 

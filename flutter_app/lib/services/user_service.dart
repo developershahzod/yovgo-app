@@ -10,8 +10,7 @@ class UserService {
       }
       return null;
     } catch (e) {
-      print('Error fetching user profile: $e');
-      return _getMockUser();
+      return null;
     }
   }
 
@@ -24,7 +23,6 @@ class UserService {
       }
       return null;
     } catch (e) {
-      print('Error updating profile: $e');
       return null;
     }
   }
@@ -38,27 +36,7 @@ class UserService {
       }
       return null;
     } catch (e) {
-      print('Error fetching stats: $e');
-      return _getMockStats();
+      return null;
     }
-  }
-
-  static Map<String, dynamic> _getMockUser() {
-    return {
-      'id': '1',
-      'full_name': 'Shakhzod Ismoilov',
-      'phone_number': '+998 93 956 6961',
-      'email': 'user@yuvgo.uz',
-      'avatar_url': null,
-    };
-  }
-
-  static Map<String, dynamic> _getMockStats() {
-    return {
-      'total_car_washes': 0,
-      'total_visits': 8,
-      'total_savings': 0,
-      'active_subscription': true,
-    };
   }
 }
