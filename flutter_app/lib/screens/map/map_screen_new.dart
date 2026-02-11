@@ -509,11 +509,15 @@ class _MapScreenNewState extends State<MapScreenNew> {
   }
 
   String _getStatusText(Map<String, dynamic> p) {
+    // Use pre-computed status from API if available
+    final apiStatus = p['status']?.toString() ?? '';
+    if (apiStatus.isNotEmpty) return apiStatus;
     final isOpen = p['is_open'] == true;
     final is24h = p['is_24_hours'] == true;
     if (is24h) return '24/7 OCHIQ';
-    final closeTime = p['closing_time']?.toString() ?? p['close_time']?.toString() ?? '';
-    final openTime = p['opening_time']?.toString() ?? p['open_time']?.toString() ?? '';
+    final wh = p['working_hours'];
+    final closeTime = (wh is Map ? wh['close'] : null)?.toString() ?? p['closing_time']?.toString() ?? p['close_time']?.toString() ?? '';
+    final openTime = (wh is Map ? wh['open'] : null)?.toString() ?? p['opening_time']?.toString() ?? p['open_time']?.toString() ?? '';
     if (isOpen && closeTime.isNotEmpty) {
       final t = closeTime.length >= 5 ? closeTime.substring(0, 5) : closeTime;
       return '$t GACHA OCHIQ';
@@ -522,7 +526,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
       final t = openTime.length >= 5 ? openTime.substring(0, 5) : openTime;
       return 'YOPIQ $t GACHA';
     }
-    return isOpen ? 'GACHA OCHIQ' : 'YOPIQ';
+    return isOpen ? 'OCHIQ' : 'YOPIQ';
   }
 
   Color _getStatusColor(Map<String, dynamic> p) {
