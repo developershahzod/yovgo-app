@@ -193,8 +193,6 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
               const SizedBox(height: 16),
               if (!_hasSubscription) _buildSubscriptionBanner(),
               if (!_hasSubscription) const SizedBox(height: 16),
-              _buildCategoriesSection(),
-              const SizedBox(height: 24),
               _buildNearestCarWashesSection(),
               if (_isLoggedIn) const SizedBox(height: 24),
               if (_isLoggedIn) _buildRecentVisitsSection(),

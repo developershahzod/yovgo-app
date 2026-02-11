@@ -6,11 +6,7 @@ class PaymentCardsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cards = [
-      {'type': 'uzcard', 'number': '8600 •••• •••• 9842', 'label': 'Asosiy karta'},
-      {'type': 'mastercard', 'number': '5174 •••• •••• 2444', 'label': ''},
-      {'type': 'visa', 'number': '4455 •••• •••• 6496', 'label': ''},
-    ];
+    final List<Map<String, String>> cards = [];
 
     return Scaffold(
       backgroundColor: AppTheme.lightBackground,
