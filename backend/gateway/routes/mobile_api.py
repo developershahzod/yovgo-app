@@ -969,7 +969,7 @@ async def create_payment_link(
         print(f"Payment service error: {e}")
 
     # Fallback: create payment link directly via IpakYuli API
-    IPAKYULI_BASE_URL = os.getenv("IPAKYULI_BASE_URL", "https://partner.ecomm.staging.ipakyulibank.uz")
+    IPAKYULI_BASE_URL = os.getenv("IPAKYULI_BASE_URL", "https://ecom.ipakyulibank.uz")
     IPAKYULI_ACCESS_TOKEN = os.getenv("IPAKYULI_ACCESS_TOKEN", "")
 
     try:
@@ -980,7 +980,7 @@ async def create_payment_link(
                 "method": "transfer.create_token",
                 "params": {
                     "order_id": order_id,
-                    "amount": int(amount * 100),  # tiyin
+                    "amount": int(amount),  # UZS (API expects amount in sums)
                     "details": {"description": f"YuvGO obuna to'lovi"},
                     "success_url": "https://app.yuvgo.uz/#/payment-success",
                     "fail_url": "https://app.yuvgo.uz/#/payment-fail",
@@ -989,7 +989,7 @@ async def create_payment_link(
                 },
             }
             resp = await client.post(
-                f"{IPAKYULI_BASE_URL}/transfer",
+                f"{IPAKYULI_BASE_URL}/api/transfer",
                 json=payload,
                 headers={
                     "Content-Type": "application/json",

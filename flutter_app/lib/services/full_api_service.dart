@@ -398,7 +398,26 @@ class FullApiService {
 
   // ==================== PAYMENT SERVICE (IPAKYULIBANK) ====================
 
-  /// Create payment link via IpakYuliBank E-Comm
+  /// Create payment via mobile API gateway (recommended)
+  /// Handles IpakYuli integration server-side
+  static Future<Map<String, dynamic>> createMobilePayment({
+    required String subscriptionId,
+    String? planId,
+    double? amount,
+  }) async {
+    try {
+      final response = await _dio.post('/api/mobile/payments/create', data: {
+        'subscription_id': subscriptionId,
+        if (planId != null) 'plan_id': planId,
+        if (amount != null) 'amount': amount,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Create payment link via IpakYuliBank E-Comm (legacy direct call)
   /// Returns payment_url to redirect user to secure payment page
   static Future<Map<String, dynamic>> createPaymentLink({
     required String subscriptionId,

@@ -84,16 +84,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final subscriptionId = subResult['id']?.toString() ?? subResult['subscription_id']?.toString();
       if (subscriptionId == null) throw Exception('Obuna yaratishda xatolik');
 
-      // Step 2: Create payment link
+      // Step 2: Create payment link via mobile API (handles IpakYuli integration)
       final price = _plan!['price'] ?? 0;
       final amount = (price is int) ? price.toDouble() : (price as num).toDouble();
       try {
-        final paymentResult = await FullApiService.createPaymentLink(
+        final paymentResult = await FullApiService.createMobilePayment(
           subscriptionId: subscriptionId,
+          planId: _plan!['id'].toString(),
           amount: amount,
-          description: 'YuvGO ${_plan!['name'] ?? ''} obuna',
-          successUrl: 'https://app.yuvgo.uz/#/payment-success',
-          failUrl: 'https://app.yuvgo.uz/#/payment-fail',
         );
         final paymentUrl = paymentResult['payment_url']?.toString();
         if (paymentUrl != null && paymentUrl.isNotEmpty) {

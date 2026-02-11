@@ -708,28 +708,28 @@ export default function LandingPage() {
 
               {/* Floating badge: Car washes - top right */}
               <div className="hidden md:flex absolute items-center gap-2 bg-white rounded-full shadow-lg px-4 py-2.5 z-30"
-                style={{ top: '10px', right: '10px' }}>
+                style={{ top: '30px', right: '-80px' }}>
                 <span className="text-[18px]">🚗</span>
                 <span className="text-[13px] font-bold text-[#0a0c13] whitespace-nowrap">{t.stats.carWashes}</span>
               </div>
 
               {/* Floating badge: Wash rating - left middle */}
               <div className="hidden md:flex absolute items-center gap-2 bg-white rounded-full shadow-lg px-4 py-2.5 z-30"
-                style={{ top: '42%', left: '-50px' }}>
+                style={{ top: '38%', left: '-110px' }}>
                 <span className="text-[18px]">✨</span>
                 <span className="text-[13px] font-bold text-[#0a0c13] whitespace-nowrap">{t.stats.washRating}</span>
               </div>
 
               {/* Floating badge: Premium washes - bottom left */}
               <div className="hidden md:flex absolute items-center gap-2 bg-white rounded-full shadow-lg px-4 py-2.5 z-30"
-                style={{ bottom: '60px', left: '-20px' }}>
+                style={{ bottom: '100px', left: '-100px' }}>
                 <span className="text-[18px]">🏆</span>
                 <span className="text-[13px] font-bold text-[#0a0c13] whitespace-nowrap">{t.stats.premiumWashes}</span>
               </div>
 
               {/* Floating badge: Subscribers - bottom right */}
               <div className="hidden md:flex absolute items-center gap-2 bg-white rounded-full shadow-lg px-4 py-2.5 z-30"
-                style={{ bottom: '30px', right: '-10px' }}>
+                style={{ bottom: '60px', right: '-90px' }}>
                 <span className="text-[18px]">👥</span>
                 <span className="text-[13px] font-bold text-[#0a0c13] whitespace-nowrap">{t.stats.subscribers}</span>
               </div>
@@ -747,11 +747,17 @@ export default function LandingPage() {
           <div className="flex items-center justify-center gap-10 md:gap-14 flex-wrap">
             {/* Uzcard */}
             <div className="flex items-center gap-2.5 flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/e/e6/Uzcard_logo.png/240px-Uzcard_logo.png" alt="Uzcard" className="h-8 object-contain" />
+              <svg className="h-8" viewBox="0 0 200 60" fill="none">
+                <rect width="200" height="60" rx="8" fill="#1B3E8F"/>
+                <text x="100" y="38" textAnchor="middle" fill="white" fontSize="24" fontWeight="bold" fontFamily="Arial,sans-serif">UzCard</text>
+              </svg>
             </div>
             {/* Humo */}
             <div className="flex items-center flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity">
-              <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/4/47/Humo_logo.png/240px-Humo_logo.png" alt="Humo" className="h-8 object-contain" />
+              <svg className="h-8" viewBox="0 0 200 60" fill="none">
+                <rect width="200" height="60" rx="8" fill="#00A859"/>
+                <text x="100" y="38" textAnchor="middle" fill="white" fontSize="24" fontWeight="bold" fontFamily="Arial,sans-serif">Humo</text>
+              </svg>
             </div>
             {/* Visa */}
             <div className="flex items-center flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity">
@@ -770,11 +776,15 @@ export default function LandingPage() {
             </div>
             {/* Payme */}
             <div className="flex items-center flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity">
-              <img src="https://cdn.payme.uz/logo/payme_color.svg" alt="Payme" className="h-7 object-contain" />
+              <svg className="h-7" viewBox="0 0 200 50" fill="none">
+                <text x="0" y="36" fill="#00CCCC" fontSize="32" fontWeight="bold" fontFamily="Arial,sans-serif">payme</text>
+              </svg>
             </div>
             {/* Click */}
             <div className="flex items-center flex-shrink-0 opacity-50 hover:opacity-100 transition-opacity">
-              <img src="https://click.uz/click/images/logo-click.svg" alt="Click" className="h-7 object-contain" />
+              <svg className="h-7" viewBox="0 0 200 50" fill="none">
+                <text x="0" y="36" fill="#00B5E2" fontSize="32" fontWeight="bold" fontFamily="Arial,sans-serif">Click</text>
+              </svg>
             </div>
           </div>
         </div>

@@ -13,6 +13,7 @@ from pydantic import BaseModel
 
 # Configuration
 IPAKYULI_BASE_URL = os.getenv("IPAKYULI_BASE_URL", "https://ecom.ipakyulibank.uz")
+# Production API: https://ecom.ipakyulibank.uz/api/transfer (JSON-RPC 2.0)
 IPAKYULI_ACCESS_TOKEN = os.getenv("IPAKYULI_ACCESS_TOKEN", "")
 IPAKYULI_CASHBOX_ID = os.getenv("IPAKYULI_CASHBOX_ID", "")
 IPAKYULI_MERCHANT_ID = os.getenv("IPAKYULI_MERCHANT_ID", "")
@@ -107,7 +108,7 @@ class IpakYuliClient:
         
         Args:
             order_id: Unique order identifier in your system
-            amount: Amount in tiyin (1 UZS = 100 tiyin)
+            amount: Amount in UZS (sums, not tiyin)
             description: Payment description
             customer_id: Optional customer ID for tracking
             customer_phone: Optional customer phone number
@@ -244,7 +245,7 @@ class IpakYuliClient:
         Args:
             contract_id: Tokenization contract ID
             order_id: Unique order ID
-            amount: Amount in tiyin
+            amount: Amount in UZS (sums)
             description: Payment description
             ofd_info: Optional OFD data
             
