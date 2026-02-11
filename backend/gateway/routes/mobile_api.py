@@ -468,20 +468,37 @@ async def get_active_subscription(
     
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == subscription.plan_id).first()
     
+    # Calculate days remaining
+    days_remaining = (subscription.end_date - datetime.utcnow()).days
+    if days_remaining < 0:
+        days_remaining = 0
+    
+    # Count actual visits from visits table
+    actual_visits = db.query(Visit).filter(
+        Visit.user_id == user_id,
+        Visit.created_at >= subscription.start_date
+    ).count()
+    
+    used = max(subscription.visits_used or 0, actual_visits)
+    saved_amount = used * 15000
+    
     return {
         "success": True,
         "subscription": {
             "id": str(subscription.id),
             "plan_id": str(subscription.plan_id),
             "plan_name": plan.name if plan else "Unknown",
+            "duration_days": plan.duration_days if plan else 30,
             "start_date": subscription.start_date.isoformat(),
             "end_date": subscription.end_date.isoformat(),
+            "days_remaining": days_remaining,
             "total_visits": plan.visit_limit if plan else 0,
-            "used_visits": subscription.visits_used or 0,
+            "used_visits": used,
             "remaining_visits": subscription.visits_remaining or 0,
             "is_unlimited": subscription.is_unlimited or False,
             "is_active": subscription.status == "active",
             "status": subscription.status,
+            "saved_amount": saved_amount,
         }
     }
 

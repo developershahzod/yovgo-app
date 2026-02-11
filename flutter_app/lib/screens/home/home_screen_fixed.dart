@@ -120,7 +120,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
         setState(() {
           _hasSubscription = true;
           _planName = sub['plan_name'] ?? sub['name'] ?? '';
-          _usedVisits = sub['visits_used'] ?? sub['used_visits'] ?? 0;
+          _usedVisits = sub['used_visits'] ?? sub['visits_used'] ?? 0;
           final isUnlimited = sub['is_unlimited'] == true;
           if (isUnlimited) {
             _totalVisits = -1; // -1 means unlimited
@@ -132,7 +132,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
               _totalVisits = _usedVisits + (rem as int);
             }
           }
-          _savedAmount = (_usedVisits * 15000);
+          _savedAmount = sub['saved_amount'] ?? (_usedVisits * 15000);
           final endStr = sub['end_date']?.toString();
           if (endStr != null && endStr.isNotEmpty) {
             try {

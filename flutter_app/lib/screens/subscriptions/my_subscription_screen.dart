@@ -210,13 +210,23 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
               ),
               child: Stack(
                 children: [
-                  // 3D number image
+                  // Duration badge
                   Positioned(
-                    top: 10, left: 10,
-                    child: Image.asset(
-                      'assets/images/72736a3105b93be09268e4ff3f9cf58a4e3a202e.png',
-                      height: 120, fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                    top: 16, left: 20,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.workspace_premium, color: Colors.white, size: 16),
+                          const SizedBox(width: 6),
+                          const Text('PREMIUM', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish', letterSpacing: 0.5)),
+                        ],
+                      ),
                     ),
                   ),
                   Padding(
