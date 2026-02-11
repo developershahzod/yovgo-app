@@ -265,8 +265,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: AppTheme.primaryCyan,
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: const Text(
-                    'OBUNACHI',
+                  child: Text(
+                    context.tr('subscriber'),
                     style: TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.w800,
@@ -423,9 +423,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Maxfiylik siyosati',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, fontFamily: 'Mulish'),
+                  Text(
+                    context.tr('privacy_policy'),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, fontFamily: 'Mulish'),
                   ),
                   IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
                 ],
@@ -475,7 +475,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Telegram ochilmadi')),
+          SnackBar(content: Text(context.tr('telegram_error'))),
         );
       }
     }
@@ -508,9 +508,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Yordam markazi',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, fontFamily: 'Mulish'),
+                  Text(
+                    context.tr('help_center'),
+                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, fontFamily: 'Mulish'),
                   ),
                   IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
                 ],

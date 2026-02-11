@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
+import '../../l10n/language_provider.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -56,16 +57,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _getErrorMessage(dynamic e) {
     String msg = e.toString();
     if (msg.contains('already have an active subscription') || msg.contains('already has active')) {
-      return 'Sizda allaqachon faol obuna mavjud!';
+      return context.tr('already_active_sub');
     }
     if (msg.contains('Not authenticated') || msg.contains('401')) {
-      return 'Iltimos, avval tizimga kiring';
+      return context.tr('login_first');
     }
     if (msg.contains('Plan not found')) {
-      return 'Obuna rejasi topilmadi';
+      return context.tr('plan_not_found');
     }
     if (msg.contains('Payment creation failed')) {
-      return 'To\'lov yaratishda xatolik. Qayta urinib ko\'ring.';
+      return context.tr('payment_create_error');
     }
     msg = msg.replaceAll('Exception: ', '').replaceAll('DioException', 'Tarmoq xatosi');
     if (msg.length > 100) msg = msg.substring(0, 100);
@@ -89,7 +90,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
       
       final subscriptionId = subResult['id']?.toString() ?? subResult['subscription_id']?.toString();
-      if (subscriptionId == null) throw Exception('Obuna yaratishda xatolik');
+      if (subscriptionId == null) throw Exception(context.tr('sub_create_error'));
 
       // Step 2: Create payment link via mobile API (handles IpakYuli integration)
       final price = _plan!['price'] ?? 0;
@@ -145,7 +146,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Color(0xFF0A0C13)), onPressed: () => Navigator.pop(context)),
-        title: const Text('Obunani sotib olish', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
+        title: Text(context.tr('checkout_buy_sub'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -157,16 +158,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             _buildPlanCard(planName, price, oldPrice, discount),
 
             // ─── Activation Date ───
-            _buildSection('Obunani faollashtirish sanasi', _buildDateField()),
+            _buildSection(context.tr('activation_date'), _buildDateField()),
 
             // ─── Promo Code ───
-            _buildSection('Promokod', _buildPromoField()),
+            _buildSection(context.tr('promo_code'), _buildPromoField()),
 
             // ─── Payment Info ───
-            _buildSection('To\'lov usuli', _buildPaymentInfo()),
+            _buildSection(context.tr('payment_method'), _buildPaymentInfo()),
 
             // ─── Narxi ───
-            _buildSection('Narxi', _buildPriceBreakdown(oldPrice, discountAmount, price, installmentPrice)),
+            _buildSection(context.tr('price'), _buildPriceBreakdown(oldPrice, discountAmount, price, installmentPrice)),
           ],
         ),
       ),
@@ -234,7 +235,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               Icon(Icons.refresh, size: 14, color: const Color(0xFF8F96A0)),
               const SizedBox(width: 4),
-              Text('Qayta rasmiylashtirish mumkin', style: TextStyle(fontSize: 12, color: const Color(0xFF8F96A0), fontFamily: 'Mulish')),
+              Text(context.tr('sub_renewable'), style: TextStyle(fontSize: 12, color: const Color(0xFF8F96A0), fontFamily: 'Mulish')),
             ],
           ),
           const SizedBox(height: 16),
@@ -281,7 +282,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Obunani faollashtirish sanasi', style: TextStyle(fontSize: 12, color: const Color(0xFF8F96A0), fontFamily: 'Mulish')),
+            Text(context.tr('activation_date'), style: TextStyle(fontSize: 12, color: const Color(0xFF8F96A0), fontFamily: 'Mulish')),
             const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -308,7 +309,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            _promoController.text.isNotEmpty ? 'Promokodingizni kiriting' : 'Promokod bormi?',
+            _promoController.text.isNotEmpty ? context.tr('promo_enter') : context.tr('promo_have'),
             style: TextStyle(fontSize: 12, color: const Color(0xFF8F96A0), fontFamily: 'Mulish'),
           ),
           Row(
@@ -319,7 +320,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   onChanged: (_) => setState(() => _promoError = false),
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
                   decoration: InputDecoration(
-                    hintText: 'Promokodni kiriting',
+                    hintText: context.tr('promo_enter'),
                     hintStyle: TextStyle(fontSize: 15, color: const Color(0xFFCCCCCC), fontFamily: 'Mulish', fontWeight: FontWeight.w400),
                     border: InputBorder.none,
                     isDense: true,
@@ -349,7 +350,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               children: [
                 Icon(Icons.info, size: 14, color: const Color(0xFFFC3E3E)),
                 const SizedBox(width: 4),
-                Text('Muddati o\'tgan', style: TextStyle(fontSize: 12, color: const Color(0xFFFC3E3E), fontFamily: 'Mulish')),
+                Text(context.tr('promo_expired'), style: TextStyle(fontSize: 12, color: const Color(0xFFFC3E3E), fontFamily: 'Mulish')),
               ],
             ),
           ],
@@ -378,13 +379,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             child: const Icon(Icons.credit_card, color: Color(0xFF00BFFE), size: 24),
           ),
           const SizedBox(width: 14),
-          const Expanded(
+          Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Karta orqali to\'lov', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
-                SizedBox(height: 2),
-                Text('Uzcard, Humo, Visa, Mastercard', style: TextStyle(fontSize: 13, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
+                Text(context.tr('card_payment'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                const SizedBox(height: 2),
+                Text(context.tr('card_types'), style: const TextStyle(fontSize: 13, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
               ],
             ),
           ),
@@ -405,19 +406,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _buildPriceBreakdown(dynamic oldPrice, int discountAmount, dynamic price, int installmentPrice) {
     return Column(
       children: [
-        _buildPriceLine('Obuna narxi', '${_fmt(oldPrice)} so\'m'),
+        _buildPriceLine(context.tr('sub_price'), '${_fmt(oldPrice)} ${context.tr('currency')}'),
         const SizedBox(height: 8),
-        _buildPriceLine('Chegirma', '${_fmt(discountAmount)} so\'m', color: const Color(0xFF00BFFE)),
+        _buildPriceLine(context.tr('discount_label'), '${_fmt(discountAmount)} ${context.tr('currency')}', color: const Color(0xFF00BFFE)),
         const SizedBox(height: 8),
-        _buildPriceLine('Summa', '${_fmt(price)} so\'m'),
+        _buildPriceLine(context.tr('amount'), '${_fmt(price)} ${context.tr('currency')}'),
         const SizedBox(height: 8),
-        _buildPriceLine('Promokod', '0 so\'m'),
+        _buildPriceLine(context.tr('promo_code'), '0 ${context.tr('currency')}'),
         const SizedBox(height: 12),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('To\'liq to\'lov', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
-            Text('${_fmt(price)} so\'m', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+            Text(context.tr('full_payment'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+            Text('${_fmt(price)} ${context.tr('currency')}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
           ],
         ),
       ],
@@ -470,7 +471,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ),
             child: _isProcessing
                 ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF0A0C13)))
-                : const Text('To\'lov qilish', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                : Text(context.tr('make_payment'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
           ),
         ),
       ),
@@ -490,9 +491,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               Container(width: 80, height: 80, decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.hourglass_top, size: 48, color: Colors.orange)),
               const SizedBox(height: 24),
-              const Text('To\'lov kutilmoqda', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+              Text(context.tr('payment_pending'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
               const SizedBox(height: 12),
-              const Text('To\'lov sahifasi ochildi. To\'lovni amalga oshiring va ilovaga qayting.', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
+              Text(context.tr('payment_pending_desc'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
               const SizedBox(height: 24),
               SizedBox(width: double.infinity, height: 48, child: ElevatedButton(onPressed: () { Navigator.of(context).pop(); Navigator.of(context).pop(); }, child: const Text('OK'))),
             ],
@@ -514,9 +515,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             children: [
               Container(width: 80, height: 80, decoration: BoxDecoration(color: const Color(0xFF5CCC27).withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.check_circle, size: 48, color: Color(0xFF5CCC27))),
               const SizedBox(height: 24),
-              const Text('Muvaffaqiyatli!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
+              Text(context.tr('success_title'), style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
               const SizedBox(height: 12),
-              const Text('Obuna muvaffaqiyatli faollashtirildi!', textAlign: TextAlign.center, style: TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
+              Text(context.tr('sub_activated'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
               const SizedBox(height: 24),
               SizedBox(width: double.infinity, height: 48, child: ElevatedButton(onPressed: () { Navigator.of(context).pop(); Navigator.of(context).pop(); }, child: const Text('OK'))),
             ],

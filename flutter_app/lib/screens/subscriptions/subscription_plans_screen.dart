@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/full_api_service.dart';
+import '../../l10n/language_provider.dart';
 
 class SubscriptionPlansScreen extends StatefulWidget {
   const SubscriptionPlansScreen({Key? key}) : super(key: key);
@@ -63,7 +64,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
         elevation: 0,
         surfaceTintColor: Colors.transparent,
         leading: IconButton(icon: const Icon(Icons.arrow_back, color: Color(0xFF0A0C13)), onPressed: () => Navigator.pop(context)),
-        title: const Text('Obunalar', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
+        title: Text(context.tr('sub_plans_title'), style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
         centerTitle: true,
       ),
       body: _isLoading
@@ -85,13 +86,13 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                'YuvGO bilan\nxarajatlaringizni tejang!',
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white, fontFamily: 'Mulish', height: 1.3),
+                              Text(
+                                context.tr('sub_banner_title'),
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: Colors.white, fontFamily: 'Mulish', height: 1.3),
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Sizga mos keladigan obuna turini tanlang',
+                                context.tr('sub_banner_desc'),
                                 style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.9), fontFamily: 'Mulish'),
                               ),
                             ],
@@ -122,12 +123,12 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                           child: const Icon(Icons.store_outlined, size: 18, color: Color(0xFF0A0C13)),
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Avtomoykalarni ko\'rish', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
-                              Text('+ 60 avtomoykalar', style: TextStyle(fontSize: 12, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
+                              Text(context.tr('view_car_washes'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                              Text(context.tr('car_wash_count'), style: const TextStyle(fontSize: 12, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
                             ],
                           ),
                         ),
@@ -206,7 +207,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                     children: [
                       Icon(Icons.refresh, size: 14, color: const Color(0xFF8F96A0)),
                       const SizedBox(width: 4),
-                      const Text('Qayta rasmiylashtirish mumkin', style: TextStyle(fontSize: 12, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
+                      Text(context.tr('sub_renewable'), style: const TextStyle(fontSize: 12, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
                     ],
                   ),
                 ],

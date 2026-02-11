@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/full_api_service.dart';
+import '../../l10n/language_provider.dart';
 
 class MySubscriptionScreen extends StatefulWidget {
   const MySubscriptionScreen({Key? key}) : super(key: key);
@@ -91,9 +92,9 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(20, 16, 20, 16),
-          child: Text('Mening obunam', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+          child: Text(context.tr('my_subscription'), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
         ),
         // Guest card
         Padding(
@@ -123,10 +124,10 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Mehmon obunachi', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
+                        Text(context.tr('guest_subscriber'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
                         Row(
                           children: [
-                            Text('Pullik obunalar haqida batafsil ma\'lumot', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9), fontFamily: 'Mulish')),
+                            Text(context.tr('sub_paid_info'), style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9), fontFamily: 'Mulish')),
                             const SizedBox(width: 6),
                             Icon(Icons.arrow_forward, color: Colors.white, size: 16),
                           ],
@@ -141,7 +142,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
         ),
         const SizedBox(height: 16),
         // FAQ row
-        _buildActionRow(Icons.help_outline, 'Savollar va javoblar', const Color(0xFF0A0C13), () {}),
+        _buildActionRow(Icons.help_outline, context.tr('sub_faq'), const Color(0xFF0A0C13), () {}),
         const Spacer(),
         // Buy subscription banner
         Padding(
@@ -169,13 +170,13 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
                       children: [
                         Row(
                           children: [
-                            const Text('Obuna sotib oling', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
+                            Text(context.tr('sub_buy'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
                             const SizedBox(width: 4),
                             const Icon(Icons.arrow_forward, color: Colors.white, size: 18),
                           ],
                         ),
                         const SizedBox(height: 4),
-                        Text('Bizning obuna orqali 50% gacha pul tejaysiz!', style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.9), fontFamily: 'Mulish')),
+                        Text(context.tr('sub_save_desc'), style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.9), fontFamily: 'Mulish')),
                       ],
                     ),
                   ),
@@ -195,9 +196,9 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.fromLTRB(20, 16, 20, 16),
-            child: Text('Mening obunam', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            child: Text(context.tr('my_subscription'), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
           ),
           // Subscription card
           Padding(
@@ -226,7 +227,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
                         const SizedBox(height: 80),
                         Text(_planName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
                         const SizedBox(height: 4),
-                        Text(_endDate.isNotEmpty ? 'Tugaydi: ${_formatEndDate(_endDate)}' : '', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9), fontFamily: 'Mulish')),
+                        Text(_endDate.isNotEmpty ? '${context.tr('sub_expires')}: ${_formatEndDate(_endDate)}' : '', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9), fontFamily: 'Mulish')),
                         const SizedBox(height: 12),
                         Align(
                           alignment: Alignment.centerRight,
@@ -242,13 +243,13 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
                                     children: [
                                       Icon(Icons.info, size: 14, color: Colors.white),
                                       const SizedBox(width: 4),
-                                      const Text('Obuna tugadi', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
+                                      Text(context.tr('sub_expired'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
                                     ],
                                   )
                                 : Column(
                                     children: [
-                                      Text('Qoldi:', style: TextStyle(fontSize: 11, color: const Color(0xFF8F96A0), fontFamily: 'Mulish')),
-                                      Text('$_daysLeft kun', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
+                                      Text(context.tr('sub_remaining'), style: TextStyle(fontSize: 11, color: const Color(0xFF8F96A0), fontFamily: 'Mulish')),
+                                      Text('$_daysLeft ${context.tr('days')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
                                     ],
                                   ),
                           ),
@@ -266,19 +267,19 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                Expanded(child: _buildStatCard(Icons.attach_money, 'Tejalgan pul', '${_formatPrice(_savedAmount)} so\'m')),
+                Expanded(child: _buildStatCard(Icons.attach_money, context.tr('saved_money'), '${_formatPrice(_savedAmount)} ${context.tr('currency')}')),
                 const SizedBox(width: 8),
-                Expanded(child: _buildStatCard(Icons.access_time, 'Shu oy tashriflari', _isUnlimited ? '$_visitsUsed / ∞' : '$_visitsUsed / $_visitsLimit')),
+                Expanded(child: _buildStatCard(Icons.access_time, context.tr('monthly_visits'), _isUnlimited ? '$_visitsUsed / ∞' : '$_visitsUsed / $_visitsLimit')),
               ],
             ),
           ),
           const SizedBox(height: 16),
           // Action rows
           if (isExpired) ...[
-            _buildActionRow(Icons.refresh, 'Obunani qayta rasmiylashtirish', const Color(0xFF00BFFE), () => Navigator.pushNamed(context, '/subscription-plans')),
-            _buildActionRow(Icons.ac_unit, 'Obunani muzlatish', const Color(0xFF8F96A0), () {}),
+            _buildActionRow(Icons.refresh, context.tr('sub_renew_action'), const Color(0xFF00BFFE), () => Navigator.pushNamed(context, '/subscription-plans')),
+            _buildActionRow(Icons.ac_unit, context.tr('sub_freeze'), const Color(0xFF8F96A0), () {}),
           ],
-          _buildActionRow(Icons.help_outline, 'Savollar va javoblar', const Color(0xFF0A0C13), () {}),
+          _buildActionRow(Icons.help_outline, context.tr('sub_faq'), const Color(0xFF0A0C13), () {}),
         ],
       ),
     );

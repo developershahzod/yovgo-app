@@ -154,7 +154,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                 children: [
                   Container(width: 40, height: 4, decoration: BoxDecoration(color: const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(2))),
                   const SizedBox(height: 20),
-                  const Text('Baholash', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800, fontFamily: 'Mulish')),
+                  Text(context.tr('rate'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, fontFamily: 'Mulish')),
                   const SizedBox(height: 4),
                   Text(_partner?['name'] ?? '', style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
                   const SizedBox(height: 20),
@@ -178,7 +178,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                     controller: commentController,
                     maxLines: 3,
                     decoration: InputDecoration(
-                      hintText: 'Izoh qoldiring (ixtiyoriy)',
+                      hintText: context.tr('review_hint'),
                       hintStyle: const TextStyle(color: Color(0xFFB0B0B0), fontSize: 14),
                       filled: true,
                       fillColor: const Color(0xFFF5F7FA),
@@ -202,14 +202,14 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                             Navigator.pop(ctx);
                             _fetchReviews(_partner?['id']);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Bahoingiz qabul qilindi!'), duration: Duration(seconds: 2)),
+                              SnackBar(content: Text(context.tr('review_submitted')), duration: const Duration(seconds: 2)),
                             );
                           }
                         } catch (e) {
                           setSheetState(() => submitting = false);
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Xatolik yuz berdi. Avval tizimga kiring.'), duration: Duration(seconds: 2)),
+                              SnackBar(content: Text(context.tr('review_error')), duration: const Duration(seconds: 2)),
                             );
                           }
                         }
@@ -222,7 +222,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                       ),
                       child: submitting
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Text('Yuborish', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                          : Text(context.tr('submit'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                     ),
                   ),
                 ],
@@ -325,7 +325,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
 
                           // Narxlar (Prices)
                           if (_getServices(p).isNotEmpty) ...[
-                            const Text('Moyka narxlari', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                            Text(context.tr('wash_prices'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                             const SizedBox(height: 12),
                             ..._getServices(p).map((s) => _buildPriceRow(s)),
                             const SizedBox(height: 24),
@@ -335,7 +335,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
 
                           // Qulayliklari
                           if (_getAmenities(p).isNotEmpty) ...[
-                            const Text('Qulayliklari', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                            Text(context.tr('detail_amenities'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                             const SizedBox(height: 16),
                             ..._getAmenities(p).map((a) => _buildBorderedItem(_amenityIcon(a), a)),
 
@@ -347,12 +347,12 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
 
                           // Qo'shimcha servislar
                           if (_getAdditionalServices(p).isNotEmpty) ...[
-                            const Text('Qo\'shimcha servislar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                            Text(context.tr('detail_services'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                             const SizedBox(height: 16),
                             ..._getAdditionalServices(p).map((s) => _buildBorderedItem(_serviceIcon(s), s)),
                             const SizedBox(height: 8),
                             Text(
-                              'Qo\'shimcha servislar obuna tarifiga kirmaydi va alohida to\'lov talab qilinadi',
+                              context.tr('services_note'),
                               style: TextStyle(fontSize: 12, color: const Color(0xFF8F96A0), height: 1.4),
                             ),
                           ],
@@ -363,7 +363,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                           const SizedBox(height: 24),
 
                           // Manzil (Address + Map)
-                          const Text('Manzil', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                          Text(context.tr('detail_address'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                           const SizedBox(height: 12),
                           _buildMapSection(lat, lng),
                           if (address.isNotEmpty) ...[
@@ -386,7 +386,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                           const SizedBox(height: 24),
 
                           // Ish vaqti
-                          const Text('Ish vaqti', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                          Text(context.tr('detail_working_hours'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                           const SizedBox(height: 4),
                           // Current status
                           Container(
@@ -402,7 +402,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                                 Icon(Icons.access_time, size: 16, color: isOpen ? const Color(0xFF5CCC27) : const Color(0xFFFC3E3E)),
                                 const SizedBox(width: 6),
                                 Text(
-                                  isOpen ? 'Hozir ochiq' : 'Yopiq — ertaga ${_getOpenTime(workingHours)} da ochiladi',
+                                  isOpen ? context.tr('currently_open') : '${context.tr('closed_opens_tomorrow')} ${_getOpenTime(workingHours)}',
                                   style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isOpen ? const Color(0xFF5CCC27) : const Color(0xFFFC3E3E), fontFamily: 'Mulish'),
                                 ),
                               ],
@@ -446,7 +446,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                           if (mounted) {
                             setState(() => _isFavorite = fav);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(fav ? 'Saqlanganlarga qo\'shildi' : 'Saqlanganlardan o\'chirildi'), duration: const Duration(seconds: 1)),
+                              SnackBar(content: Text(fav ? context.tr('added_to_saved') : context.tr('removed_from_saved')), duration: const Duration(seconds: 1)),
                             );
                           }
                         }),
@@ -455,7 +455,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                           final shareText = '$name - $address\nYuvGO ilovasida ko\'ring!';
                           Clipboard.setData(ClipboardData(text: shareText));
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Nusxalandi!'), duration: Duration(seconds: 1)),
+                            SnackBar(content: Text(context.tr('copied')), duration: const Duration(seconds: 1)),
                           );
                         }),
                       ],
@@ -762,7 +762,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 16),
-              Text('Qaysi ilovada ko\'rishni xohlaysiz?', style: TextStyle(fontSize: 15, color: const Color(0xFF8F96A0))),
+              Text(context.tr('which_app'), style: TextStyle(fontSize: 15, color: const Color(0xFF8F96A0))),
               const SizedBox(height: 8),
               _mapOption('YandexMap', () {
                 Navigator.pop(ctx);
@@ -780,7 +780,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
               }),
               const SizedBox(height: 8),
               const Divider(height: 1),
-              _mapOption('Ortga', () => Navigator.pop(ctx), isBold: true),
+              _mapOption(context.tr('go_back'), () => Navigator.pop(ctx), isBold: true),
               const SizedBox(height: 8),
             ],
           ),
@@ -834,7 +834,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   }
 
   List<Widget> _buildWeeklySchedule(dynamic workingHours) {
-    final days = ['Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba', 'Yakshanba'];
+    final days = [context.tr('monday'), context.tr('tuesday'), context.tr('wednesday'), context.tr('thursday'), context.tr('friday'), context.tr('saturday'), context.tr('sunday')];
     String hours = '08:00 - 22:00';
     if (workingHours is Map) {
       final open = workingHours['open'] ?? '08:00';
@@ -924,7 +924,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                   if (lat != null && lng != null) _showMapPicker(lat, lng);
                 },
                 icon: const Icon(Icons.navigation_outlined, size: 18),
-                label: const Text('Marshrut', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                label: Text(context.tr('detail_route'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0A0C13),
                   foregroundColor: Colors.white,
@@ -943,7 +943,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                     ? ElevatedButton.icon(
                         onPressed: () => Navigator.pushNamed(context, '/qr'),
                         icon: const Icon(Icons.qr_code_scanner, size: 18),
-                        label: const Text('QR kodni skanerlash', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                        label: Text(context.tr('detail_scan_qr'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFFFD600),
                           foregroundColor: const Color(0xFF0A0C13),
@@ -953,7 +953,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                       )
                     : ElevatedButton(
                         onPressed: () => Navigator.pushNamed(context, '/subscription-plans'),
-                        child: const Text('Obuna sotib olish', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                        child: Text(context.tr('sub_buy'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFFFD600),
                           foregroundColor: const Color(0xFF0A0C13),
@@ -998,7 +998,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Baholar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+            Text(context.tr('reviews'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
             GestureDetector(
               onTap: _showWriteReviewSheet,
               child: Container(
@@ -1007,12 +1007,12 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                   color: const Color(0xFFFFD600),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.edit, size: 16, color: Color(0xFF0A0C13)),
-                    SizedBox(width: 6),
-                    Text('Baholash', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                    const Icon(Icons.edit, size: 16, color: Color(0xFF0A0C13)),
+                    const SizedBox(width: 6),
+                    Text(context.tr('rate'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                   ],
                 ),
               ),
@@ -1100,11 +1100,11 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                 children: [
                   const Icon(Icons.rate_review_outlined, size: 40, color: Color(0xFFD0D0D0)),
                   const SizedBox(height: 8),
-                  const Text('Hali baholar yo\'q', style: TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
+                  Text(context.tr('no_reviews'), style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
                   const SizedBox(height: 8),
                   GestureDetector(
                     onTap: _showWriteReviewSheet,
-                    child: const Text('Birinchi bo\'lib baholang!', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF00BCD4))),
+                    child: Text(context.tr('be_first_reviewer'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF00BCD4))),
                   ),
                 ],
               ),
@@ -1118,7 +1118,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
           Center(
             child: TextButton(
               onPressed: () {}, // TODO: show all reviews
-              child: Text('Barcha ${_reviewCount} ta bahoni ko\'rish', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF00BCD4))),
+              child: Text('${context.tr('see_all_reviews')} ($_reviewCount)', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF00BCD4))),
             ),
           ),
         ],

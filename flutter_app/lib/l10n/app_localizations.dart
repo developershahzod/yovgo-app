@@ -275,6 +275,124 @@ const Map<String, String> _enTranslations = {
   'home_subscribe_title': 'Special discount\non subscription!',
   'home_subscribe_desc': 'Subscribe and save on car washes',
   'home_subscribe_btn': 'Subscribe',
+
+  // My Subscription
+  'my_subscription': 'My Subscription',
+  'guest_subscriber': 'Guest Subscriber',
+  'sub_paid_info': 'Learn more about paid subscriptions',
+  'sub_buy': 'Buy Subscription',
+  'sub_save_desc': 'Save up to 50% with our subscription!',
+  'sub_expired': 'Subscription expired',
+  'sub_remaining': 'Remaining:',
+  'days': 'days',
+  'sub_renew_action': 'Renew subscription',
+  'sub_renewable': 'Renewable',
+
+  // Subscription Plans
+  'sub_plans_title': 'Subscriptions',
+  'sub_banner_title': 'Save your expenses\nwith YuvGO!',
+  'sub_banner_desc': 'Choose the subscription that suits you',
+  'view_car_washes': 'View car washes',
+  'car_wash_count': '+ 60 car washes',
+
+  // Car Wash Detail
+  'wash_prices': 'Wash Prices',
+  'services_note': 'Additional services are not included in the subscription and require separate payment',
+  'currently_open': 'Open now',
+  'closed_opens_tomorrow': 'Closed — opens tomorrow at',
+  'reviews': 'Reviews',
+  'rate': 'Rate',
+  'review_hint': 'Leave a comment (optional)',
+  'submit': 'Submit',
+  'review_submitted': 'Your review has been submitted!',
+  'review_error': 'Error occurred. Please login first.',
+  'no_reviews': 'No reviews yet',
+  'be_first_reviewer': 'Be the first to review!',
+  'see_all_reviews': 'See all reviews',
+  'added_to_saved': 'Added to saved',
+  'removed_from_saved': 'Removed from saved',
+  'copied': 'Copied!',
+  'which_app': 'Which app to open?',
+  'go_back': 'Back',
+
+  // Profile
+  'subscriber': 'SUBSCRIBER',
+  'visits_count': 'Visits',
+  'saved_count': 'Saved',
+  'privacy_policy': 'Privacy Policy',
+  'help_center': 'Help Center',
+  'telegram_error': 'Could not open Telegram',
+  'no_visits': 'No visits yet',
+
+  // Checkout
+  'checkout_title': 'Checkout',
+  'plan_details': 'Plan Details',
+  'duration': 'Duration',
+  'price': 'Price',
+  'total': 'Total',
+  'pay_now': 'Pay Now',
+  'payment_secure': 'Secure payment',
+
+  // Weather
+  'wash_rating': 'Wash Rating',
+  'weather_forecast': 'Weather Forecast',
+
+  // Visit History
+  'visit_history': 'Visit History',
+
+  // Days of week
+  'monday': 'Monday',
+  'tuesday': 'Tuesday',
+  'wednesday': 'Wednesday',
+  'thursday': 'Thursday',
+  'friday': 'Friday',
+  'saturday': 'Saturday',
+  'sunday': 'Sunday',
+  'mon_fri': 'Monday - Friday',
+
+  // Checkout
+  'checkout_buy_sub': 'Buy Subscription',
+  'activation_date': 'Subscription activation date',
+  'promo_code': 'Promo code',
+  'promo_have': 'Have a promo code?',
+  'promo_enter': 'Enter promo code',
+  'promo_expired': 'Expired',
+  'payment_method': 'Payment method',
+  'card_payment': 'Card payment',
+  'card_types': 'Uzcard, Humo, Visa, Mastercard',
+  'sub_price': 'Subscription price',
+  'discount_label': 'Discount',
+  'amount': 'Amount',
+  'full_payment': 'Full payment',
+  'make_payment': 'Make Payment',
+  'payment_pending': 'Payment Pending',
+  'payment_pending_desc': 'Payment page opened. Complete the payment and return to the app.',
+  'success_title': 'Success!',
+  'sub_activated': 'Subscription activated successfully!',
+  'already_active_sub': 'You already have an active subscription!',
+  'login_first': 'Please login first',
+  'plan_not_found': 'Subscription plan not found',
+  'payment_create_error': 'Payment creation error. Please try again.',
+  'sub_create_error': 'Subscription creation error',
+
+  // Saved Screen
+  'saved_favorites': 'Favorites',
+
+  // Notifications
+  'notif_today': 'Today',
+  'notif_earlier': 'Earlier',
+
+  // Visit History
+  'visit_no_visits': 'No visits yet',
+  'visit_start': 'Start using car washes to see your visit history',
+  'visit_find': 'Find Car Washes',
+
+  // Onboarding
+  'onboarding_skip': 'Skip',
+  'onboarding_start': 'Get Started',
+
+  // Settings
+  'settings_app_language': 'App Language',
 };
 
 // Russian Translations
@@ -501,6 +619,124 @@ const Map<String, String> _ruTranslations = {
   'home_subscribe_title': 'Специальная скидка\nна подписку!',
   'home_subscribe_desc': 'Подпишитесь и экономьте на автомойках',
   'home_subscribe_btn': 'Подписаться',
+
+  // My Subscription
+  'my_subscription': 'Моя подписка',
+  'guest_subscriber': 'Гостевой подписчик',
+  'sub_paid_info': 'Подробнее о платных подписках',
+  'sub_buy': 'Купить подписку',
+  'sub_save_desc': 'Экономьте до 50% с нашей подпиской!',
+  'sub_expired': 'Подписка истекла',
+  'sub_remaining': 'Осталось:',
+  'days': 'дней',
+  'sub_renew_action': 'Продлить подписку',
+  'sub_renewable': 'Можно продлить',
+
+  // Subscription Plans
+  'sub_plans_title': 'Подписки',
+  'sub_banner_title': 'Экономьте расходы\nс YuvGO!',
+  'sub_banner_desc': 'Выберите подходящую подписку',
+  'view_car_washes': 'Посмотреть автомойки',
+  'car_wash_count': '+ 60 автомоек',
+
+  // Car Wash Detail
+  'wash_prices': 'Цены на мойку',
+  'services_note': 'Дополнительные услуги не входят в подписку и оплачиваются отдельно',
+  'currently_open': 'Сейчас открыто',
+  'closed_opens_tomorrow': 'Закрыто — откроется завтра в',
+  'reviews': 'Отзывы',
+  'rate': 'Оценить',
+  'review_hint': 'Оставьте комментарий (необязательно)',
+  'submit': 'Отправить',
+  'review_submitted': 'Ваш отзыв принят!',
+  'review_error': 'Произошла ошибка. Сначала войдите в систему.',
+  'no_reviews': 'Пока нет отзывов',
+  'be_first_reviewer': 'Будьте первым!',
+  'see_all_reviews': 'Смотреть все отзывы',
+  'added_to_saved': 'Добавлено в избранное',
+  'removed_from_saved': 'Удалено из избранного',
+  'copied': 'Скопировано!',
+  'which_app': 'В каком приложении открыть?',
+  'go_back': 'Назад',
+
+  // Profile
+  'subscriber': 'ПОДПИСЧИК',
+  'visits_count': 'Посещения',
+  'saved_count': 'Избранное',
+  'privacy_policy': 'Политика конфиденциальности',
+  'help_center': 'Центр помощи',
+  'telegram_error': 'Не удалось открыть Telegram',
+  'no_visits': 'Посещений пока нет',
+
+  // Checkout
+  'checkout_title': 'Оплата',
+  'plan_details': 'Детали тарифа',
+  'duration': 'Длительность',
+  'price': 'Цена',
+  'total': 'Итого',
+  'pay_now': 'Оплатить',
+  'payment_secure': 'Безопасная оплата',
+
+  // Weather
+  'wash_rating': 'Рейтинг мойки',
+  'weather_forecast': 'Прогноз погоды',
+
+  // Visit History
+  'visit_history': 'История посещений',
+
+  // Days of week
+  'monday': 'Понедельник',
+  'tuesday': 'Вторник',
+  'wednesday': 'Среда',
+  'thursday': 'Четверг',
+  'friday': 'Пятница',
+  'saturday': 'Суббота',
+  'sunday': 'Воскресенье',
+  'mon_fri': 'Понедельник - Пятница',
+
+  // Checkout
+  'checkout_buy_sub': 'Купить подписку',
+  'activation_date': 'Дата активации подписки',
+  'promo_code': 'Промокод',
+  'promo_have': 'Есть промокод?',
+  'promo_enter': 'Введите промокод',
+  'promo_expired': 'Истек',
+  'payment_method': 'Способ оплаты',
+  'card_payment': 'Оплата картой',
+  'card_types': 'Uzcard, Humo, Visa, Mastercard',
+  'sub_price': 'Цена подписки',
+  'discount_label': 'Скидка',
+  'amount': 'Сумма',
+  'full_payment': 'Полная оплата',
+  'make_payment': 'Оплатить',
+  'payment_pending': 'Ожидание оплаты',
+  'payment_pending_desc': 'Страница оплаты открыта. Завершите оплату и вернитесь в приложение.',
+  'success_title': 'Успешно!',
+  'sub_activated': 'Подписка успешно активирована!',
+  'already_active_sub': 'У вас уже есть активная подписка!',
+  'login_first': 'Сначала войдите в систему',
+  'plan_not_found': 'Тариф не найден',
+  'payment_create_error': 'Ошибка создания платежа. Попробуйте снова.',
+  'sub_create_error': 'Ошибка создания подписки',
+
+  // Saved Screen
+  'saved_favorites': 'Избранное',
+
+  // Notifications
+  'notif_today': 'Сегодня',
+  'notif_earlier': 'Ранее',
+
+  // Visit History
+  'visit_no_visits': 'Посещений пока нет',
+  'visit_start': 'Начните пользоваться автомойками, чтобы увидеть историю',
+  'visit_find': 'Найти автомойки',
+
+  // Onboarding
+  'onboarding_skip': 'Пропустить',
+  'onboarding_start': 'Начать',
+
+  // Settings
+  'settings_app_language': 'Язык приложения',
 };
 
 // Uzbek Translations
@@ -727,4 +963,122 @@ const Map<String, String> _uzTranslations = {
   'home_subscribe_title': 'Obunaga maxsus\nchegirma!',
   'home_subscribe_desc': 'Obuna bo\'ling va avtomoykada tejang',
   'home_subscribe_btn': 'Obuna bo\'lish',
+
+  // My Subscription
+  'my_subscription': 'Mening obunam',
+  'guest_subscriber': 'Mehmon obunachi',
+  'sub_paid_info': 'Pullik obunalar haqida batafsil ma\'lumot',
+  'sub_buy': 'Obuna sotib oling',
+  'sub_save_desc': 'Bizning obuna orqali 50% gacha pul tejaysiz!',
+  'sub_expired': 'Obuna tugadi',
+  'sub_remaining': 'Qoldi:',
+  'days': 'kun',
+  'sub_renew_action': 'Obunani qayta rasmiylashtirish',
+  'sub_renewable': 'Qayta rasmiylashtirish mumkin',
+
+  // Subscription Plans
+  'sub_plans_title': 'Obunalar',
+  'sub_banner_title': 'YuvGO bilan\nxarajatlaringizni tejang!',
+  'sub_banner_desc': 'Sizga mos keladigan obuna turini tanlang',
+  'view_car_washes': 'Avtomoykalarni ko\'rish',
+  'car_wash_count': '+ 60 avtomoykalar',
+
+  // Car Wash Detail
+  'wash_prices': 'Moyka narxlari',
+  'services_note': 'Qo\'shimcha servislar obuna tarifiga kirmaydi va alohida to\'lov talab qilinadi',
+  'currently_open': 'Hozir ochiq',
+  'closed_opens_tomorrow': 'Yopiq — ertaga',
+  'reviews': 'Baholar',
+  'rate': 'Baholash',
+  'review_hint': 'Izoh qoldiring (ixtiyoriy)',
+  'submit': 'Yuborish',
+  'review_submitted': 'Bahoingiz qabul qilindi!',
+  'review_error': 'Xatolik yuz berdi. Avval tizimga kiring.',
+  'no_reviews': 'Hali baholar yo\'q',
+  'be_first_reviewer': 'Birinchi bo\'lib baholang!',
+  'see_all_reviews': 'Barcha baholarni ko\'rish',
+  'added_to_saved': 'Saqlanganlarga qo\'shildi',
+  'removed_from_saved': 'Saqlanganlardan o\'chirildi',
+  'copied': 'Nusxalandi!',
+  'which_app': 'Qaysi ilovada ko\'rishni xohlaysiz?',
+  'go_back': 'Ortga',
+
+  // Profile
+  'subscriber': 'OBUNACHI',
+  'visits_count': 'Tashriflar',
+  'saved_count': 'Saqlangan',
+  'privacy_policy': 'Maxfiylik siyosati',
+  'help_center': 'Yordam markazi',
+  'telegram_error': 'Telegram ochilmadi',
+  'no_visits': 'Tashriflar hali yo\'q',
+
+  // Checkout
+  'checkout_title': 'To\'lov',
+  'plan_details': 'Tarif tafsilotlari',
+  'duration': 'Muddat',
+  'price': 'Narx',
+  'total': 'Jami',
+  'pay_now': 'To\'lash',
+  'payment_secure': 'Xavfsiz to\'lov',
+
+  // Weather
+  'wash_rating': 'Yuvish reytingi',
+  'weather_forecast': 'Ob-havo prognozi',
+
+  // Visit History
+  'visit_history': 'Tashriflar tarixi',
+
+  // Days of week
+  'monday': 'Dushanba',
+  'tuesday': 'Seshanba',
+  'wednesday': 'Chorshanba',
+  'thursday': 'Payshanba',
+  'friday': 'Juma',
+  'saturday': 'Shanba',
+  'sunday': 'Yakshanba',
+  'mon_fri': 'Dushanba - Juma',
+
+  // Checkout
+  'checkout_buy_sub': 'Obunani sotib olish',
+  'activation_date': 'Obunani faollashtirish sanasi',
+  'promo_code': 'Promokod',
+  'promo_have': 'Promokod bormi?',
+  'promo_enter': 'Promokodni kiriting',
+  'promo_expired': 'Muddati o\'tgan',
+  'payment_method': 'To\'lov usuli',
+  'card_payment': 'Karta orqali to\'lov',
+  'card_types': 'Uzcard, Humo, Visa, Mastercard',
+  'sub_price': 'Obuna narxi',
+  'discount_label': 'Chegirma',
+  'amount': 'Summa',
+  'full_payment': 'To\'liq to\'lov',
+  'make_payment': 'To\'lov qilish',
+  'payment_pending': 'To\'lov kutilmoqda',
+  'payment_pending_desc': 'To\'lov sahifasi ochildi. To\'lovni amalga oshiring va ilovaga qayting.',
+  'success_title': 'Muvaffaqiyatli!',
+  'sub_activated': 'Obuna muvaffaqiyatli faollashtirildi!',
+  'already_active_sub': 'Sizda allaqachon faol obuna mavjud!',
+  'login_first': 'Iltimos, avval tizimga kiring',
+  'plan_not_found': 'Obuna rejasi topilmadi',
+  'payment_create_error': 'To\'lov yaratishda xatolik. Qayta urinib ko\'ring.',
+  'sub_create_error': 'Obuna yaratishda xatolik',
+
+  // Saved Screen
+  'saved_favorites': 'Sevimlilar',
+
+  // Notifications
+  'notif_today': 'Bugun',
+  'notif_earlier': 'Oldingi',
+
+  // Visit History
+  'visit_no_visits': 'Tashriflar hali yo\'q',
+  'visit_start': 'Tashriflar tarixini ko\'rish uchun avtomoykalardan foydalaning',
+  'visit_find': 'Avtomoykalarni topish',
+
+  // Onboarding
+  'onboarding_skip': 'O\'tkazib yuborish',
+  'onboarding_start': 'Boshlash',
+
+  // Settings
+  'settings_app_language': 'Ilova tili',
 };
