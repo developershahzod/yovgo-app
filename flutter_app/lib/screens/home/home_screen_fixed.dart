@@ -93,21 +93,24 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
 
     // Load subscription
     try {
-      final sub = await FullApiService.getSubscriptionStatus();
+      final res = await FullApiService.getSubscriptionStatus();
+      // API returns {success: true, subscription: {...}} or {subscription: null}
+      final sub = res['subscription'] as Map<String, dynamic>?;
       if (mounted && sub != null && sub['status'] == 'active') {
         setState(() {
           _hasSubscription = true;
-          _planName = sub['plan_name'] ?? '';
-          _usedVisits = sub['used_visits'] ?? 0;
-          _totalVisits = sub['total_visits'] ?? 0;
+          _planName = sub['plan_name'] ?? sub['name'] ?? '';
+          _usedVisits = sub['visits_used'] ?? sub['used_visits'] ?? 0;
+          _totalVisits = sub['visits_remaining'] ?? sub['total_visits'] ?? 0;
           _savedAmount = (_usedVisits * 15000);
-          if (sub['end_date'] != null) {
+          final endStr = sub['end_date']?.toString();
+          if (endStr != null && endStr.isNotEmpty) {
             try {
-              final dt = DateTime.parse(sub['end_date']);
+              final dt = DateTime.parse(endStr);
               final months = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
               _endDate = '${months[dt.month - 1]} ${dt.day}';
             } catch (_) {
-              _endDate = sub['end_date'] ?? '';
+              _endDate = endStr;
             }
           }
         });

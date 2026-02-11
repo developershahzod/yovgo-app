@@ -537,6 +537,13 @@ async def create_subscription(
     """Create a new subscription"""
     plan_id = request.plan_id
     
+    # Validate plan_id is a valid UUID
+    import uuid as _uuid
+    try:
+        _uuid.UUID(plan_id)
+    except (ValueError, AttributeError):
+        raise HTTPException(status_code=400, detail="Noto'g'ri tarif ID formati")
+    
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == plan_id).first()
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")

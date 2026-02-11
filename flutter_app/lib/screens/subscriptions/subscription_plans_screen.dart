@@ -30,12 +30,12 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
         return;
       }
     } catch (_) {}
-    // Fallback demo data
+    // Fallback with real plan IDs from DB
     setState(() {
       _plans = [
-        {'id': 1, 'name': '30 kunlik', 'duration_days': 30, 'price': 1200000, 'old_price': 18000000, 'discount': 20},
-        {'id': 2, 'name': '90 kunlik', 'duration_days': 90, 'price': 3150000, 'old_price': 4500000, 'discount': 30},
-        {'id': 3, 'name': '365 kunlik', 'duration_days': 365, 'price': 10800000, 'old_price': 18000000, 'discount': 40},
+        {'id': 'c62a8b3e-8c58-4c62-8ba1-b264c989b4dd', 'name': '30 kunlik', 'duration_days': 30, 'price': 1500000, 'old_price': 2500000, 'discount': 40, 'is_unlimited': true},
+        {'id': '87fcee77-82fb-4193-b0b6-bad7d9cb6899', 'name': '90 kunlik', 'duration_days': 90, 'price': 4050000, 'old_price': 6750000, 'discount': 40, 'is_unlimited': true},
+        {'id': 'b5f2d04f-cec8-439c-99fb-d292421ca509', 'name': 'Premium 30 kunlik', 'duration_days': 30, 'price': 3150000, 'old_price': 5250000, 'discount': 40, 'is_unlimited': true},
       ];
       _isLoading = false;
     });
