@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter/gestures.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../config/app_theme.dart';
@@ -300,9 +298,6 @@ class _MapScreenNewState extends State<MapScreenNew> {
       zoomGesturesEnabled: true,
       tiltGesturesEnabled: false,
       rotateGesturesEnabled: false,
-      gestureRecognizers: <Factory<OneSequenceGestureRecognizer>>{
-        Factory<OneSequenceGestureRecognizer>(() => EagerGestureRecognizer()),
-      },
     );
   }
 
