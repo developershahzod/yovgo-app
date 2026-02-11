@@ -874,7 +874,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                   final dist = distKm > 0
                       ? (distKm < 1 ? '${(distKm * 1000).toInt()} m' : '${distKm.toStringAsFixed(1)} km')
                       : '';
-                  final imageUrl = p['image_url'] ?? p['photo_url'] ?? '';
+                  final imageUrl = (p['banner_url'] ?? p['image_url'] ?? p['logo_url'] ?? p['photo_url'] ?? ((p['gallery_urls'] is List && (p['gallery_urls'] as List).isNotEmpty) ? (p['gallery_urls'] as List).first : '')).toString();
                   return Padding(
                     padding: const EdgeInsets.only(right: 12),
                     child: _buildCarWashCard(

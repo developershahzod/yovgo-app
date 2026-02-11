@@ -64,16 +64,17 @@ async def get_nearby_car_washes(
     # Get all active partners
     partners = db.query(Partner).filter(Partner.is_active == True).all()
     
+    # Build a set of partner IDs that already have their own coordinates
+    partner_ids_with_coords = set()
+    
     # Calculate distance and filter
     nearby_partners = []
     for partner in partners:
-        # Use partner's own lat/lng or fall back to first location
         p_lat = float(partner.latitude) if partner.latitude else None
         p_lng = float(partner.longitude) if partner.longitude else None
         p_addr = partner.address or ""
         
         if not p_lat or not p_lng:
-            # Try to get from first location
             loc = db.query(PartnerLocation).filter(
                 PartnerLocation.partner_id == partner.id,
                 PartnerLocation.is_active == True
@@ -84,6 +85,7 @@ async def get_nearby_car_washes(
                 p_addr = p_addr or loc.address or ""
         
         if p_lat and p_lng:
+            partner_ids_with_coords.add(str(partner.id))
             distance = calculate_distance(latitude, longitude, p_lat, p_lng)
             
             if distance <= radius_km:
@@ -109,6 +111,7 @@ async def get_nearby_car_washes(
                     "image_url": getattr(partner, 'logo_url', None) or '',
                     "logo_url": getattr(partner, 'logo_url', None) or '',
                     "gallery_urls": gallery,
+                    "banner_url": getattr(partner, 'logo_url', None) or '',
                     "amenities": partner.amenities if partner.amenities else [],
                     "additional_services": partner.additional_services if partner.additional_services else [],
                     "phone_number": partner.phone or partner.phone_number or "",
@@ -121,7 +124,89 @@ async def get_nearby_car_washes(
                     "description": partner.description or "",
                     "wash_time": getattr(partner, 'wash_time', 60) or 60,
                     "services": partner.additional_services if partner.additional_services else [],
+                    "service_prices": [],
                 })
+    
+    # Also include partner_locations (branches) as separate entries
+    locations = db.query(PartnerLocation).filter(PartnerLocation.is_active == True).all()
+    for loc in locations:
+        l_lat = float(loc.latitude) if loc.latitude else None
+        l_lng = float(loc.longitude) if loc.longitude else None
+        if not l_lat or not l_lng:
+            continue
+        distance = calculate_distance(latitude, longitude, l_lat, l_lng)
+        if distance > radius_km:
+            continue
+        # Get parent partner
+        partner = db.query(Partner).filter(Partner.id == loc.partner_id).first()
+        if not partner or not partner.is_active:
+            continue
+        # Build gallery
+        gallery = []
+        try:
+            if loc.gallery_urls:
+                gallery = list(loc.gallery_urls)
+            elif partner.gallery_urls:
+                gallery = list(partner.gallery_urls)
+        except Exception:
+            pass
+        # Build banner
+        banner = ''
+        try:
+            banner = loc.banner_url or getattr(partner, 'logo_url', '') or ''
+        except Exception:
+            pass
+        # Working hours: prefer location, fallback to partner
+        loc_hours = loc.working_hours if loc.working_hours else partner.working_hours
+        # Service prices from location
+        svc_prices = []
+        try:
+            if loc.service_prices:
+                svc_prices = list(loc.service_prices)
+        except Exception:
+            pass
+        rv = _get_partner_rating(db, partner.id)
+        nearby_partners.append({
+            "id": str(partner.id),
+            "location_id": str(loc.id),
+            "name": loc.name or partner.name,
+            "address": loc.address or partner.address or "",
+            "latitude": l_lat,
+            "longitude": l_lng,
+            "distance": round(distance, 1),
+            "rating": rv["rating"] if rv["review_count"] > 0 else (float(partner.rating) if partner.rating else 0),
+            "review_count": rv["review_count"],
+            "is_open": _is_location_open(loc_hours),
+            "status": _get_location_status(loc_hours),
+            "images": gallery,
+            "image_url": banner,
+            "logo_url": banner,
+            "gallery_urls": gallery,
+            "banner_url": banner,
+            "amenities": partner.amenities if partner.amenities else [],
+            "additional_services": partner.additional_services if partner.additional_services else [],
+            "phone_number": loc.phone_number or partner.phone or partner.phone_number or "",
+            "phone": loc.phone_number or partner.phone or partner.phone_number or "",
+            "opening_hours": _format_hours(loc_hours),
+            "working_hours": loc_hours,
+            "is_premium": partner.is_premium or False,
+            "is_24_hours": getattr(partner, 'is_24_hours', False) or False,
+            "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
+            "description": partner.description or "",
+            "wash_time": getattr(partner, 'wash_time', 60) or 60,
+            "services": partner.additional_services if partner.additional_services else [],
+            "service_prices": svc_prices,
+        })
+    
+    # Deduplicate: if a partner entry exists AND a location entry for same partner, remove duplicate partner entry
+    seen = set()
+    deduped = []
+    for p in nearby_partners:
+        key = (p.get("id", ""), p.get("latitude"), p.get("longitude"))
+        if key not in seen:
+            seen.add(key)
+            deduped.append(p)
+    nearby_partners = deduped
     
     # Sort by distance
     nearby_partners.sort(key=lambda x: x["distance"])
@@ -1397,6 +1482,43 @@ def get_status_text(partner: Partner) -> str:
         return f"{close_str} GACHA OCHIQ"
     else:
         return f"YOPIQ {open_str} GACHA"
+
+
+def _is_location_open(working_hours) -> bool:
+    """Check if a location is currently open based on working_hours dict"""
+    if not working_hours or not isinstance(working_hours, dict):
+        return True
+    now = datetime.utcnow() + timedelta(hours=5)
+    current_minutes = now.hour * 60 + now.minute
+    try:
+        parts = working_hours.get('open', '08:00').split(':')
+        open_m = int(parts[0]) * 60 + (int(parts[1]) if len(parts) > 1 else 0)
+    except:
+        open_m = 480
+    try:
+        parts = working_hours.get('close', '22:00').split(':')
+        close_m = int(parts[0]) * 60 + (int(parts[1]) if len(parts) > 1 else 0)
+    except:
+        close_m = 1320
+    return open_m <= current_minutes < close_m
+
+
+def _get_location_status(working_hours) -> str:
+    """Get status text for a location"""
+    if not working_hours or not isinstance(working_hours, dict):
+        return "OCHIQ"
+    open_time = working_hours.get('open', '08:00')
+    close_time = working_hours.get('close', '22:00')
+    if _is_location_open(working_hours):
+        return f"{close_time} GACHA OCHIQ"
+    return f"YOPIQ {open_time} GACHA"
+
+
+def _format_hours(working_hours) -> str:
+    """Format working hours dict to string"""
+    if not working_hours or not isinstance(working_hours, dict):
+        return "08:00 - 22:00"
+    return f"{working_hours.get('open', '08:00')} - {working_hours.get('close', '22:00')}"
 
 
 # ==================== VEHICLES ====================
