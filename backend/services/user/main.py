@@ -142,9 +142,11 @@ async def verify_code_and_login(data: VerifyCodeRequest, db: Session = Depends(g
     
     # Check if user exists
     user = db.query(User).filter(User.phone_number == phone).first()
+    is_new = False
     
     if not user:
         # Auto-register new user
+        is_new = True
         user = User(
             phone_number=phone,
             full_name=data.full_name or "",
@@ -152,6 +154,11 @@ async def verify_code_and_login(data: VerifyCodeRequest, db: Session = Depends(g
             is_active=True
         )
         db.add(user)
+        db.commit()
+        db.refresh(user)
+    elif data.full_name and not user.full_name:
+        # Update name for existing user if they didn't have one
+        user.full_name = data.full_name
         db.commit()
         db.refresh(user)
     
@@ -167,7 +174,7 @@ async def verify_code_and_login(data: VerifyCodeRequest, db: Session = Depends(g
     return {
         "access_token": access_token,
         "token_type": "bearer",
-        "is_new_user": not bool(user.full_name),
+        "is_new_user": is_new,
         "user": {
             "id": str(user.id),
             "phone_number": user.phone_number,

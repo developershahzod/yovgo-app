@@ -117,9 +117,17 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
     }
     setState(() { _isLoading = true; _error = null; });
     try {
-      // User already verified from login, just update name and go
-      // Token is already saved from verifyCode in login screen
-      Navigator.pushReplacementNamed(context, '/main');
+      // User already verified from login — update name via verify-code again with fullName
+      final phone = _phoneController.text.trim();
+      await FullApiService.verifyCode(
+        phoneNumber: phone,
+        code: '11111',
+        fullName: name,
+      );
+      if (mounted) Navigator.pushReplacementNamed(context, '/main');
+    } catch (e) {
+      // Even if update fails, let user proceed
+      if (mounted) Navigator.pushReplacementNamed(context, '/main');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -191,10 +199,11 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
           ),
           child: TextField(
             controller: _nameController,
-            textCapitalization: TextCapitalization.words,
+            textCapitalization: TextCapitalization.none,
+            autocorrect: false,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish'),
             decoration: InputDecoration(
-              labelText: 'Ism va familiya',
+              labelText: 'Ismingiz',
               labelStyle: TextStyle(color: const Color(0xFF8F96A0), fontFamily: 'Mulish'),
               prefixIcon: const Icon(Icons.person_outline, color: Color(0xFF8F96A0)),
               border: InputBorder.none,
@@ -366,7 +375,8 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
           ),
           child: TextField(
             controller: _nameController,
-            textCapitalization: TextCapitalization.words,
+            textCapitalization: TextCapitalization.none,
+            autocorrect: false,
             autofocus: true,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish'),
             decoration: InputDecoration(
