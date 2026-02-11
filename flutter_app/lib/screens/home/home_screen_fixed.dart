@@ -1689,36 +1689,55 @@ extension HomeScreenMethods on _HomeScreenFixedState {
         // Recent visits list
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Column(
-            children: [
-              _buildRecentVisitItem(
-                'Wash N Go Car Wash',
-                'Tutzor mahallasi, 35 uy, Choshtepa...',
-                'BMW',
-                '85',
-                'O 777 OO',
-                '14:00',
-              ),
-              const SizedBox(height: 12),
-              _buildRecentVisitItem(
-                'DJ Car Wash',
-                'Chimrobod ko\'chasi 28, Tashkent...',
-                'Tracker',
-                '85',
-                'O 555 OO',
-                '12:00',
-              ),
-              const SizedBox(height: 12),
-              _buildRecentVisitItem(
-                'Wash N Go Car Wash',
-                'Tutzor mahallasi, 35 uy, Choshtepa...',
-                'BMW',
-                '85',
-                'O 777 OO',
-                '14:00',
-              ),
-            ],
-          ),
+          child: _recentVisits.isEmpty
+              ? Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Tashriflar hali yo\'q',
+                      style: TextStyle(
+                        color: AppTheme.textSecondary,
+                        fontSize: 14,
+                        fontFamily: 'Mulish',
+                      ),
+                    ),
+                  ),
+                )
+              : Column(
+                  children: _recentVisits.asMap().entries.map((entry) {
+                    final i = entry.key;
+                    final v = entry.value;
+                    final name = (v['partner_name'] ?? v['car_wash_name'] ?? 'Avtomoyqa').toString();
+                    final address = (v['address'] ?? '').toString();
+                    final carBrand = (v['vehicle_brand'] ?? v['car_brand'] ?? '').toString();
+                    final region = (v['region'] ?? '').toString();
+                    final plate = (v['plate_number'] ?? v['license_plate'] ?? '').toString();
+                    final time = (v['visited_at'] ?? v['created_at'] ?? '').toString();
+                    // Format time to HH:mm if it's a full datetime
+                    String timeStr = time;
+                    if (time.contains('T')) {
+                      try {
+                        final dt = DateTime.parse(time);
+                        timeStr = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+                      } catch (_) {}
+                    }
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: i < _recentVisits.length - 1 ? 12 : 0),
+                      child: _buildRecentVisitItem(name, address, carBrand, region, plate, timeStr),
+                    );
+                  }).toList(),
+                ),
         ),
       ],
     );
