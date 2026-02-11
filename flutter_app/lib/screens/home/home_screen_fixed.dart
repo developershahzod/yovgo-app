@@ -270,7 +270,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
           height: 56,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.85),
+            color: const Color.fromRGBO(255, 255, 255, 0.85),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -318,7 +318,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                 color: const Color(0xFFFC3E3E),
                                 shape: BoxShape.circle,
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.85),
+                                  color: const Color.fromRGBO(255, 255, 255, 0.85),
                                   width: 1,
                                 ),
                               ),
@@ -360,13 +360,13 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: AppTheme.primaryCyan.withOpacity(0.3),
+                color: const Color.fromRGBO(0, 191, 254, 0.3),
                 blurRadius: 14,
                 offset: const Offset(0, 4),
                 spreadRadius: -4,
               ),
               BoxShadow(
-                color: const Color(0xFF007AFF).withOpacity(0.2),
+                color: const Color.fromRGBO(0, 122, 255, 0.2),
                 blurRadius: 15,
                 offset: const Offset(0, 10),
                 spreadRadius: -3,
@@ -384,7 +384,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [
-                        Colors.white.withOpacity(0.1),
+                        const Color.fromRGBO(255, 255, 255, 0.1),
                         Colors.transparent,
                       ],
                     ),
@@ -408,7 +408,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.1),
+                                color: const Color.fromRGBO(255, 255, 255, 0.1),
                                 borderRadius: BorderRadius.circular(100),
                               ),
                               child: Row(
@@ -477,10 +477,10 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
+                              color: const Color.fromRGBO(255, 255, 255, 0.15),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.05),
+                                color: const Color.fromRGBO(255, 255, 255, 0.05),
                                 width: 1,
                               ),
                             ),
@@ -542,10 +542,10 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
+                              color: const Color.fromRGBO(255, 255, 255, 0.15),
                               borderRadius: BorderRadius.circular(20),
                               border: Border.all(
-                                color: Colors.white.withOpacity(0.05),
+                                color: const Color.fromRGBO(255, 255, 255, 0.05),
                                 width: 1,
                               ),
                             ),
@@ -631,7 +631,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.08),
+                color: const Color.fromRGBO(0, 0, 0, 0.08),
                 blurRadius: 20,
                 offset: const Offset(0, 2),
               ),
@@ -817,7 +817,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: const Color.fromRGBO(0, 0, 0, 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -980,7 +980,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: const Color.fromRGBO(0, 0, 0, 0.04),
             blurRadius: 12,
             offset: const Offset(0, 2),
           ),
@@ -1068,7 +1068,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                     height: 6,
                     margin: const EdgeInsets.symmetric(horizontal: 2),
                     decoration: BoxDecoration(
-                      color: i == 0 ? Colors.white : Colors.white.withOpacity(0.5),
+                      color: i == 0 ? Colors.white : const Color.fromRGBO(255, 255, 255, 0.5),
                       borderRadius: BorderRadius.circular(3),
                     ),
                   )),
@@ -1086,7 +1086,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: isOpen ? const Color(0xFF5CCC27).withOpacity(0.1) : const Color(0xFFFC3E3E).withOpacity(0.1),
+                    color: isOpen ? const Color.fromRGBO(92, 204, 39, 0.1) : const Color.fromRGBO(252, 62, 62, 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -1257,7 +1257,7 @@ class CarWashDetailPage extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isOpen ? const Color(0xFF5CCC27).withOpacity(0.1) : const Color(0xFFFC3E3E).withOpacity(0.1),
+                      color: isOpen ? const Color.fromRGBO(92, 204, 39, 0.1) : const Color.fromRGBO(252, 62, 62, 0.1),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: Row(
@@ -1371,7 +1371,7 @@ class CarWashDetailPage extends StatelessWidget {
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: const Color.fromRGBO(0, 0, 0, 0.05),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -1443,7 +1443,7 @@ class CarWashDetailPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: AppTheme.primaryCyan.withOpacity(0.1),
+        color: const Color.fromRGBO(0, 191, 254, 0.1),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
@@ -1608,7 +1608,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                     Text(
                       name,
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: const Color.fromRGBO(255, 255, 255, 0.7),
                         fontSize: 13,
                         fontFamily: 'Mulish',
                       ),
@@ -1622,7 +1622,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.1),
+                      color: const Color.fromRGBO(255, 255, 255, 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: Center(
@@ -1703,7 +1703,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                     Text(
                       context.tr('home_subscribe_desc'),
                       style: TextStyle(
-                        color: Colors.white.withOpacity(0.7),
+                        color: const Color.fromRGBO(255, 255, 255, 0.7),
                         fontSize: 13,
                         fontFamily: 'Mulish',
                       ),
@@ -1781,7 +1781,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
+                        color: const Color.fromRGBO(0, 0, 0, 0.05),
                         blurRadius: 10,
                         offset: const Offset(0, 2),
                       ),
@@ -1842,7 +1842,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: const Color.fromRGBO(0, 0, 0, 0.05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -1855,7 +1855,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: AppTheme.primaryCyan.withOpacity(0.1),
+              color: const Color.fromRGBO(0, 191, 254, 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(
@@ -1896,7 +1896,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryCyan.withOpacity(0.1),
+                        color: const Color.fromRGBO(0, 191, 254, 0.1),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
