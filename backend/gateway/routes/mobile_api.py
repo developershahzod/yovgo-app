@@ -970,35 +970,22 @@ async def create_payment_link(
         "Authorization": f"Bearer {IPAKYULI_ACCESS_TOKEN}",
     }
 
-    # Use curl subprocess — isolated from uvicorn's event loop/connection handling
-    import asyncio, subprocess, json as _json, tempfile
-    def _call_ipakyuli():
-        payload_json = _json.dumps(payload)
-        # Write payload to temp file to avoid shell escaping issues
-        tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-        tmp.write(payload_json)
-        tmp.close()
-        try:
-            result = subprocess.run(
-                ["curl", "-s", "-X", "POST",
-                 f"{IPAKYULI_BASE_URL}/api/transfer",
-                 "-H", "Content-Type: application/json",
-                 "-H", f"Authorization: Bearer {IPAKYULI_ACCESS_TOKEN}",
-                 "-d", f"@{tmp.name}",
-                 "--connect-timeout", "15",
-                 "--max-time", "30"],
-                capture_output=True, text=True, timeout=35,
-            )
-            if result.returncode != 0:
-                raise Exception(f"curl error (exit {result.returncode}): {result.stderr[:200]}")
-            return result.stdout.strip()
-        finally:
-            os.unlink(tmp.name)
+    # Call IpakYuli via nginx reverse proxy (avoids outbound HTTPS issues from uvicorn)
+    import httpx
 
     try:
-        raw = await asyncio.to_thread(_call_ipakyuli)
-        print(f"[IPAKYULI] Response: {raw[:500]}")
-        data = _json.loads(raw)
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                "http://yuvgo_nginx:80/ipakyuli-proxy",
+                json=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {IPAKYULI_ACCESS_TOKEN}",
+                    "Host": "app.yuvgo.uz",
+                },
+            )
+            print(f"[IPAKYULI] Status: {resp.status_code}, Body: {resp.text[:500]}")
+            data = resp.json()
         if "error" in data:
             print(f"[IPAKYULI] Error: {data['error']}")
             payment.status = "failed"

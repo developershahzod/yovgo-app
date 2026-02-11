@@ -839,7 +839,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                 ],
               ),
               TextButton(
-                onPressed: () {},
+                onPressed: () => Navigator.pushNamed(context, '/map'),
                 child: Text(
                   context.tr('home_see_all'),
                   style: TextStyle(
@@ -892,9 +892,15 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                   );
                 }).toList()
               : [
-                  _buildCarWashCard('Black Star Car Wash', 'Matbuotchilar Street 32, Tashkent', '500 m', 4.6, '22:00 ${context.tr('open_until')}', true, ''),
-                  const SizedBox(width: 12),
-                  _buildCarWashCard('Wash N Go Car Wash', 'Tutzor mahallasi, 35 uy', '900 m', 4.6, context.tr('detail_closed'), false, ''),
+                  Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Center(
+                      child: Text(
+                        'Yaqin atrofda avtomoyqalar topilmadi',
+                        style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontFamily: 'Mulish'),
+                      ),
+                    ),
+                  ),
                 ],
           ),
         ),
