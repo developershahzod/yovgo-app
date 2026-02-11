@@ -89,8 +89,9 @@ const MerchantSettings = () => {
           description: data.description || prev.description,
           washTime: data.wash_time || prev.washTime,
         }));
-        setAmenities(data.amenities || []);
-        setAdditionalServices(data.additional_services || []);
+        setAmenities((data.amenities || []).map(a => typeof a === 'object' ? (a.name || JSON.stringify(a)) : String(a)));
+        // additional_services can be objects {name, price} or strings — normalize to strings
+        setAdditionalServices((data.additional_services || []).map(s => typeof s === 'object' ? (s.name || JSON.stringify(s)) : String(s)));
       }
     } catch (err) {
       console.log('Using default settings');
@@ -346,7 +347,7 @@ const MerchantSettings = () => {
             <div className="flex flex-wrap gap-2 mt-3">
               {amenities.filter(a => !AMENITY_OPTIONS.includes(a)).map((item, i) => (
                 <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-amber-50 text-amber-700 rounded-full text-sm">
-                  {item}
+                  {typeof item === 'object' ? (item.name || JSON.stringify(item)) : String(item)}
                   <button onClick={() => { setAmenities(prev => prev.filter(a => a !== item)); setSaved(false); }}>
                     <X size={14} />
                   </button>
@@ -407,7 +408,7 @@ const MerchantSettings = () => {
             <div className="flex flex-wrap gap-2 mt-3">
               {additionalServices.filter(s => !SERVICE_OPTIONS.includes(s)).map((item, i) => (
                 <span key={i} className="inline-flex items-center gap-1 px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm">
-                  {item}
+                  {typeof item === 'object' ? (item.name || JSON.stringify(item)) : String(item)}
                   <button onClick={() => { setAdditionalServices(prev => prev.filter(s => s !== item)); setSaved(false); }}>
                     <X size={14} />
                   </button>
