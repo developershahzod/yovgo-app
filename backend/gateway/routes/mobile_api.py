@@ -938,61 +938,68 @@ async def create_payment_link(
     IPAKYULI_BASE_URL = os.getenv("IPAKYULI_BASE_URL", "https://ecom.ipakyulibank.uz")
     IPAKYULI_ACCESS_TOKEN = os.getenv("IPAKYULI_ACCESS_TOKEN", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiIxODhjYWQyMS0zMGQwLTQyZDktODUxOC05ODFhYWNiNTVkOTUiLCJtZXJjaGFudElkIjoiYTBlZmUyNzgtNWUyZi00YzQ5LWIzZmItN2NlMjllOWM4ZmVkIiwiaWF0IjoxNzQ4ODYyNDI1LCJleHAiOjE3ODA0MjAwMjV9.JmfSQb_5Ei6fPLxTCCbQY6ECprq76NMJMnwT3CPFxP4")
 
+    payload = {
+        "jsonrpc": "2.0",
+        "id": str(_uuid.uuid4()),
+        "method": "transfer.create_token",
+        "params": {
+            "order_id": order_id,
+            "amount": int(amount),
+            "details": {
+                "description": "YuvGO obuna to'lovi",
+                "ofdInfo": {
+                    "Items": [
+                        {
+                            "Name": "YuvGO Subscription",
+                            "SPIC": "03304999067000000",
+                            "PackageCode": "1344094",
+                            "price": int(amount),
+                            "count": 1,
+                            "VATPercent": 0,
+                            "Discount": 0,
+                        }
+                    ]
+                },
+            },
+            "success_url": f"https://app.yuvgo.uz/api/mobile/payments/success?payment_id={str(payment.id)}",
+            "fail_url": "https://app.yuvgo.uz/#/main",
+        },
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {IPAKYULI_ACCESS_TOKEN}",
+    }
+
+    # Use sync requests in thread to avoid async ConnectError issues
+    import asyncio, requests as sync_requests
+    def _call_ipakyuli():
+        return sync_requests.post(
+            f"{IPAKYULI_BASE_URL}/api/transfer",
+            json=payload,
+            headers=headers,
+            timeout=30,
+        )
+
     try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            payload = {
-                "jsonrpc": "2.0",
-                "id": str(_uuid.uuid4()),
-                "method": "transfer.create_token",
-                "params": {
-                    "order_id": order_id,
-                    "amount": int(amount),
-                    "details": {
-                        "description": "YuvGO obuna to'lovi",
-                        "ofdInfo": {
-                            "Items": [
-                                {
-                                    "Name": "YuvGO Subscription",
-                                    "SPIC": "03304999067000000",
-                                    "PackageCode": "1344094",
-                                    "price": int(amount),
-                                    "count": 1,
-                                    "VATPercent": 0,
-                                    "Discount": 0,
-                                }
-                            ]
-                        },
-                    },
-                    "success_url": f"https://app.yuvgo.uz/api/mobile/payments/success?payment_id={str(payment.id)}",
-                    "fail_url": "https://app.yuvgo.uz/#/main",
-                },
-            }
-            resp = await client.post(
-                f"{IPAKYULI_BASE_URL}/api/transfer",
-                json=payload,
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {IPAKYULI_ACCESS_TOKEN}",
-                },
-            )
-            print(f"[IPAKYULI] Status: {resp.status_code}, Body: {resp.text[:500]}")
-            data = resp.json()
-            if "error" in data:
-                print(f"[IPAKYULI] Error: {data['error']}")
-                payment.status = "failed"
-                db.commit()
-                raise HTTPException(status_code=500, detail=f"IpakYuli xatolik: {data['error'].get('message', '')}")
-            result = data.get("result", {})
-            payment.transaction_id = result.get("transfer_id")
+        resp = await asyncio.to_thread(_call_ipakyuli)
+        print(f"[IPAKYULI] Status: {resp.status_code}, Body: {resp.text[:500]}")
+        data = resp.json()
+        if "error" in data:
+            print(f"[IPAKYULI] Error: {data['error']}")
+            payment.status = "failed"
             db.commit()
-            return {
-                "success": True,
-                "payment_id": str(payment.id),
-                "payment_url": result.get("payment_url"),
-                "transfer_id": result.get("transfer_id"),
-                "order_id": order_id,
-                "amount": amount,
-            }
+            raise HTTPException(status_code=500, detail=f"IpakYuli xatolik: {data['error'].get('message', '')}")
+        result = data.get("result", {})
+        payment.transaction_id = result.get("transfer_id")
+        db.commit()
+        return {
+            "success": True,
+            "payment_id": str(payment.id),
+            "payment_url": result.get("payment_url"),
+            "transfer_id": result.get("transfer_id"),
+            "order_id": order_id,
+            "amount": amount,
+        }
     except HTTPException:
         raise
     except Exception as e:
