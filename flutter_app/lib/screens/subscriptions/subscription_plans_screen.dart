@@ -165,11 +165,13 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
         ),
         child: Row(
           children: [
-            // Plan image thumbnail
+            // Plan image thumbnail (30 or 365 day 3D image)
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.asset(
-                'assets/images/72736a3105b93be09268e4ff3f9cf58a4e3a202e.png',
+                (plan['duration_days'] ?? 30) >= 365
+                    ? 'assets/images/dc39eda64d246726ea5621050f1a81b4f23f7d79.png'
+                    : 'assets/images/c22416c54393bfea53da65c75321cdc015b47ddb.png',
                 width: 60, height: 60, fit: BoxFit.cover,
                 errorBuilder: (_, __, ___) => Container(
                   width: 60, height: 60,

@@ -105,16 +105,18 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
               height: 200,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                gradient: const LinearGradient(colors: [Color(0xFF8E9AAF), Color(0xFFB0B8C8)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                color: const Color(0xFF2D2D2D),
               ),
               child: Stack(
                 children: [
-                  // Metallic shimmer overlay
+                  // Background image
                   Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        gradient: RadialGradient(center: Alignment.topRight, radius: 1.5, colors: [Colors.white.withOpacity(0.15), Colors.transparent]),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: Image.asset(
+                        'assets/images/cf60d18fa5d4a3f355d9680de472249a061f2d56.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                       ),
                     ),
                   ),
@@ -210,22 +212,21 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
               ),
               child: Stack(
                 children: [
-                  // Duration badge
+                  // 3D duration number image (30 or 365)
                   Positioned(
-                    top: 16, left: 20,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(20),
+                    top: 0, left: 0, bottom: 0,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        bottomLeft: Radius.circular(20),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.workspace_premium, color: Colors.white, size: 16),
-                          const SizedBox(width: 6),
-                          const Text('PREMIUM', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish', letterSpacing: 0.5)),
-                        ],
+                      child: Image.asset(
+                        _planName.contains('365') || _planName.contains('Yillik')
+                            ? 'assets/images/dc39eda64d246726ea5621050f1a81b4f23f7d79.png'
+                            : 'assets/images/c22416c54393bfea53da65c75321cdc015b47ddb.png',
+                        height: 200,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                       ),
                     ),
                   ),
@@ -234,7 +235,23 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const SizedBox(height: 80),
+                        // PREMIUM badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color.fromRGBO(255, 255, 255, 0.2),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.workspace_premium, color: Colors.white, size: 16),
+                              const SizedBox(width: 6),
+                              const Text('PREMIUM', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish', letterSpacing: 0.5)),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 40),
                         Text(_planName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
                         const SizedBox(height: 4),
                         Text(_endDate.isNotEmpty ? '${context.tr('sub_expires')}: ${_formatEndDate(_endDate)}' : '', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9), fontFamily: 'Mulish')),
