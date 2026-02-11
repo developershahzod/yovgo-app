@@ -87,10 +87,10 @@ async def send_verification_code(data: SendCodeRequest):
     """Send SMS verification code to phone number"""
     phone = format_phone_number(data.phone_number)
     
-    # Rate limiting: don't send if code was sent less than 60s ago
+    # Rate limiting: don't send if code was sent less than 10s ago
     existing = sms_codes.get(phone)
-    if existing and existing["expires_at"] > time.time() and (time.time() - (existing["expires_at"] - 300)) < 60:
-        raise HTTPException(status_code=429, detail="Iltimos, 60 soniya kuting")
+    if existing and existing.get("sent_at") and (time.time() - existing["sent_at"]) < 10:
+        raise HTTPException(status_code=429, detail="Iltimos, 10 soniya kuting")
     
     # Temporary: use fixed test code for all verifications
     code = "787856"
@@ -98,7 +98,8 @@ async def send_verification_code(data: SendCodeRequest):
     # Store code with 5 min expiry
     sms_codes[phone] = {
         "code": code,
-        "expires_at": time.time() + 300
+        "expires_at": time.time() + 300,
+        "sent_at": time.time(),
     }
     
     # Send SMS via Eskiz (must match approved template ID 39117 exactly)
