@@ -1,8 +1,9 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'dart:html' as html;
-import 'dart:ui_web' as ui_web;
+import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_theme.dart';
 import '../../l10n/language_provider.dart';
+import 'payment_webview_web.dart' if (dart.library.io) 'payment_webview_stub.dart' as platform;
 
 class PaymentWebViewScreen extends StatefulWidget {
   final String paymentUrl;
@@ -26,34 +27,42 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
   void initState() {
     super.initState();
     _viewId = 'payment-iframe-${DateTime.now().millisecondsSinceEpoch}';
-    _registerIframe();
+    if (kIsWeb) {
+      platform.registerIframe(_viewId, widget.paymentUrl, () {
+        if (mounted) setState(() => _isLoading = false);
+      });
+    } else {
+      // On iOS/Android, open in external browser and go back
+      _openExternal();
+    }
   }
 
-  void _registerIframe() {
-    ui_web.platformViewRegistry.registerViewFactory(
-      _viewId,
-      (int viewId) {
-        final iframe = html.IFrameElement()
-          ..src = widget.paymentUrl
-          ..style.border = 'none'
-          ..style.width = '100%'
-          ..style.height = '100%'
-          ..allow = 'payment'
-          ..setAttribute('allowfullscreen', 'true');
-
-        iframe.onLoad.listen((_) {
-          if (mounted) {
-            setState(() => _isLoading = false);
-          }
-        });
-
-        return iframe;
-      },
-    );
+  Future<void> _openExternal() async {
+    final uri = Uri.parse(widget.paymentUrl);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+    if (mounted) Navigator.pop(context, 'opened_external');
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!kIsWeb) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: AppTheme.primaryCyan),
+              const SizedBox(height: 16),
+              Text(context.tr('payment'), style: const TextStyle(fontSize: 16, fontFamily: 'Mulish')),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -82,18 +91,14 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
       ),
       body: Stack(
         children: [
-          // Iframe WebView
           SizedBox(
             width: double.infinity,
             height: double.infinity,
             child: HtmlElementView(viewType: _viewId),
           ),
-          // Loading indicator
           if (_isLoading)
             const Center(
-              child: CircularProgressIndicator(
-                color: AppTheme.primaryCyan,
-              ),
+              child: CircularProgressIndicator(color: AppTheme.primaryCyan),
             ),
         ],
       ),
@@ -107,45 +112,23 @@ class _PaymentWebViewScreenState extends State<PaymentWebViewScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           context.tr('payment_cancel_title'),
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
-            fontFamily: 'Mulish',
-          ),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish'),
         ),
         content: Text(
           context.tr('payment_cancel_desc'),
-          style: const TextStyle(
-            fontSize: 14,
-            fontFamily: 'Mulish',
-            color: Color(0xFF8F96A0),
-          ),
+          style: const TextStyle(fontSize: 14, fontFamily: 'Mulish', color: Color(0xFF8F96A0)),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text(
-              context.tr('cancel'),
-              style: const TextStyle(
-                color: Color(0xFF8F96A0),
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Mulish',
-              ),
-            ),
+            child: Text(context.tr('cancel'), style: const TextStyle(color: Color(0xFF8F96A0), fontWeight: FontWeight.w600, fontFamily: 'Mulish')),
           ),
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
               Navigator.pop(context, 'cancelled');
             },
-            child: Text(
-              context.tr('close'),
-              style: const TextStyle(
-                color: Color(0xFFFC3E3E),
-                fontWeight: FontWeight.w700,
-                fontFamily: 'Mulish',
-              ),
-            ),
+            child: Text(context.tr('close'), style: const TextStyle(color: Color(0xFFFC3E3E), fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
           ),
         ],
       ),
