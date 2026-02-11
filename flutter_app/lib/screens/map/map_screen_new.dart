@@ -52,6 +52,8 @@ class _MapScreenNewState extends State<MapScreenNew> {
             _currentPosition = LatLng(position.latitude, position.longitude);
           });
           _mapController?.animateCamera(CameraUpdate.newLatLng(_currentPosition));
+          // Reload car washes with actual location
+          _loadCarWashes();
         }
       }
     } catch (_) {}
@@ -59,7 +61,12 @@ class _MapScreenNewState extends State<MapScreenNew> {
 
   Future<void> _loadCarWashes() async {
     try {
-      final resp = await FullApiService.get('/api/mobile/car-washes/nearby', queryParameters: {'latitude': 41.311, 'longitude': 69.279});
+      final resp = await FullApiService.get('/api/mobile/car-washes/nearby', queryParameters: {
+        'latitude': _currentPosition.latitude,
+        'longitude': _currentPosition.longitude,
+        'radius_km': 50,
+        'limit': 50,
+      });
       if (mounted && resp.statusCode == 200) {
         final partners = (resp.data['partners'] as List?)?.cast<Map<String, dynamic>>() ?? [];
         setState(() {
@@ -277,9 +284,11 @@ class _MapScreenNewState extends State<MapScreenNew> {
       final lat = (p['latitude'] as num?)?.toDouble();
       final lng = (p['longitude'] as num?)?.toDouble();
       if (lat == null || lng == null) continue;
-      final id = p['id']?.toString() ?? '';
+      final locId = p['location_id']?.toString();
+      final id = locId ?? p['id']?.toString() ?? '';
+      final markerKey = '${id}_${lat}_${lng}';
       markers.add(Marker(
-        markerId: MarkerId(id),
+        markerId: MarkerId(markerKey),
         position: LatLng(lat, lng),
         infoWindow: InfoWindow(
           title: p['name'] ?? 'Car Wash',
@@ -386,17 +395,19 @@ class _MapScreenNewState extends State<MapScreenNew> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Image placeholder
+            // Image
             Container(
               height: 180,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: const Color(0xFF2A2A2A),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Stack(
                 children: [
-                  Center(child: Icon(Icons.local_car_wash, size: 60, color: Colors.white24)),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: _getCarWashImage(p),
+                  ),
                   // Rating badge
                   Positioned(
                     bottom: 12, left: 12,
@@ -454,6 +465,38 @@ class _MapScreenNewState extends State<MapScreenNew> {
               ),
             ],
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _getCarWashImage(Map<String, dynamic> p) {
+    final imageUrl = (p['banner_url'] ?? p['image_url'] ?? p['logo_url'] ?? p['photo_url'] ?? '').toString();
+    final gallery = p['gallery_urls'];
+    final firstGallery = (gallery is List && gallery.isNotEmpty) ? gallery.first.toString() : '';
+    final url = imageUrl.isNotEmpty ? imageUrl : firstGallery;
+
+    if (url.isNotEmpty && url.startsWith('http')) {
+      return Image.network(
+        url,
+        width: double.infinity,
+        height: 180,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _defaultCarWashImage(),
+      );
+    }
+    return _defaultCarWashImage();
+  }
+
+  Widget _defaultCarWashImage() {
+    return Container(
+      width: double.infinity,
+      height: 180,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1A2332),
+        image: DecorationImage(
+          image: AssetImage('assets/images/194b66145883c040db1229c8b27859f09f39f78f.png'),
+          fit: BoxFit.cover,
         ),
       ),
     );
