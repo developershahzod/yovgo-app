@@ -289,7 +289,6 @@ class _MapScreenNewState extends State<MapScreenNew> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
                     ),
                     child: Row(
                       children: [
@@ -350,7 +349,6 @@ class _MapScreenNewState extends State<MapScreenNew> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
                     ),
                     child: Icon(Icons.close, color: AppTheme.textPrimary, size: 20),
                   ),
