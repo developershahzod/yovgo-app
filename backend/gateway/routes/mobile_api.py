@@ -970,20 +970,19 @@ async def create_payment_link(
         "Authorization": f"Bearer {IPAKYULI_ACCESS_TOKEN}",
     }
 
-    # Use subprocess curl to avoid connection issues in uvicorn worker process
-    import asyncio, subprocess, json as _json
+    # Use urllib (stdlib) in a thread to avoid uvicorn async connection issues
+    import asyncio, json as _json
+    from urllib.request import Request, urlopen
     def _call_ipakyuli():
-        result = subprocess.run(
-            ["curl", "-s", "-X", "POST",
-             f"{IPAKYULI_BASE_URL}/api/transfer",
-             "-H", "Content-Type: application/json",
-             "-H", f"Authorization: Bearer {IPAKYULI_ACCESS_TOKEN}",
-             "-d", _json.dumps(payload),
-             "--connect-timeout", "15",
-             "--max-time", "30"],
-            capture_output=True, text=True, timeout=35,
+        body = _json.dumps(payload).encode("utf-8")
+        req = Request(
+            f"{IPAKYULI_BASE_URL}/api/transfer",
+            data=body,
+            headers=headers,
+            method="POST",
         )
-        return result.stdout
+        with urlopen(req, timeout=30) as resp:
+            return resp.read().decode("utf-8")
 
     try:
         raw = await asyncio.to_thread(_call_ipakyuli)
