@@ -44,6 +44,41 @@ const MerchantSettings = () => {
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [logoUrl, setLogoUrl] = useState('');
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoInputRef = React.useRef(null);
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Fayl hajmi 2MB dan oshmasligi kerak');
+      return;
+    }
+    setLogoUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', 'logo');
+      const resp = await axios.post(`${API_URL}/api/upload/image`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const url = resp.data.url;
+      const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
+      setLogoUrl(fullUrl);
+      // Save logo_url to partner
+      const partnerId = merchant?.partner?.id || merchant?.partner_id;
+      if (partnerId) {
+        await axios.put(`${API_URL}/api/partner/partners/${partnerId}`, { logo_url: fullUrl });
+      }
+      setSaved(false);
+    } catch (err) {
+      console.error('Logo upload failed:', err);
+      alert('Logo yuklashda xatolik yuz berdi');
+    } finally {
+      setLogoUploading(false);
+    }
+  };
 
   const handleProfileChange = (key, value) => {
     setProfile(prev => ({ ...prev, [key]: value }));
@@ -89,6 +124,7 @@ const MerchantSettings = () => {
           description: data.description || prev.description,
           washTime: data.wash_time || prev.washTime,
         }));
+        setLogoUrl(data.logo_url || '');
         setAmenities((data.amenities || []).map(a => typeof a === 'object' ? (a.name || JSON.stringify(a)) : String(a)));
         // additional_services can be objects {name, price} or strings — normalize to strings
         setAdditionalServices((data.additional_services || []).map(s => typeof s === 'object' ? (s.name || JSON.stringify(s)) : String(s)));
@@ -177,12 +213,27 @@ const MerchantSettings = () => {
 
           {/* Logo Upload */}
           <div className="flex items-center gap-4 mb-6">
-            <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center">
-              <Camera className="text-gray-400" size={32} />
+            <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center overflow-hidden">
+              {logoUrl ? (
+                <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                <Camera className="text-gray-400" size={32} />
+              )}
             </div>
             <div>
-              <button className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium">
-                Logo yuklash
+              <input
+                type="file"
+                ref={logoInputRef}
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={handleLogoUpload}
+              />
+              <button
+                onClick={() => logoInputRef.current?.click()}
+                disabled={logoUploading}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 font-medium disabled:opacity-50"
+              >
+                {logoUploading ? 'Yuklanmoqda...' : 'Logo yuklash'}
               </button>
               <p className="text-sm text-gray-500 mt-1">PNG, JPG (max 2MB)</p>
             </div>
