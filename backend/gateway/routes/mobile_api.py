@@ -935,8 +935,9 @@ async def create_payment_link(
     db.refresh(payment)
 
     # Create payment link directly via IpakYuli EPOS API (production)
-    IPAKYULI_BASE_URL = os.getenv("IPAKYULI_BASE_URL", "https://ecom.ipakyulibank.uz")
-    IPAKYULI_ACCESS_TOKEN = os.getenv("IPAKYULI_ACCESS_TOKEN", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiIxODhjYWQyMS0zMGQwLTQyZDktODUxOC05ODFhYWNiNTVkOTUiLCJtZXJjaGFudElkIjoiYTBlZmUyNzgtNWUyZi00YzQ5LWIzZmItN2NlMjllOWM4ZmVkIiwiaWF0IjoxNzQ4ODYyNDI1LCJleHAiOjE3ODA0MjAwMjV9.JmfSQb_5Ei6fPLxTCCbQY6ECprq76NMJMnwT3CPFxP4")
+    IPAKYULI_BASE_URL = "https://ecom.ipakyulibank.uz"
+    # Production token for YuvGO merchant (cashbox 188cad21, merchant a0efe278, exp ~2026-05-30)
+    IPAKYULI_ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiIxODhjYWQyMS0zMGQwLTQyZDktODUxOC05ODFhYWNiNTVkOTUiLCJtZXJjaGFudElkIjoiYTBlZmUyNzgtNWUyZi00YzQ5LWIzZmItN2NlMjllOWM4ZmVkIiwiaWF0IjoxNzQ4ODYyNDI1LCJleHAiOjE3ODA0MjAwMjV9.JmfSQb_5Ei6fPLxTCCbQY6ECprq76NMJMnwT3CPFxP4"
 
     payload = {
         "jsonrpc": "2.0",
