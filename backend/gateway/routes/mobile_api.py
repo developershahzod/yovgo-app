@@ -970,19 +970,35 @@ async def create_payment_link(
         "Authorization": f"Bearer {IPAKYULI_ACCESS_TOKEN}",
     }
 
-    # Use urllib (stdlib) in a thread to avoid uvicorn async connection issues
-    import asyncio, json as _json
-    from urllib.request import Request, urlopen
+    # Run in a separate Python process to avoid uvicorn worker connection issues
+    import asyncio, subprocess, json as _json, tempfile, os
     def _call_ipakyuli():
-        body = _json.dumps(payload).encode("utf-8")
-        req = Request(
-            f"{IPAKYULI_BASE_URL}/api/transfer",
-            data=body,
-            headers=headers,
-            method="POST",
-        )
-        with urlopen(req, timeout=30) as resp:
-            return resp.read().decode("utf-8")
+        # Write payload and config to temp file
+        tmp_in = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+        tmp_out = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+        _json.dump({"url": f"{IPAKYULI_BASE_URL}/api/transfer", "payload": payload, "headers": headers}, tmp_in)
+        tmp_in.close()
+        tmp_out.close()
+        script = f"""
+import json, sys
+from urllib.request import Request, urlopen
+with open("{tmp_in.name}") as f:
+    cfg = json.load(f)
+body = json.dumps(cfg["payload"]).encode("utf-8")
+req = Request(cfg["url"], data=body, headers=cfg["headers"], method="POST")
+with urlopen(req, timeout=30) as r:
+    with open("{tmp_out.name}", "w") as out:
+        out.write(r.read().decode("utf-8"))
+"""
+        try:
+            result = subprocess.run(["python3", "-c", script], capture_output=True, text=True, timeout=35)
+            if result.returncode != 0:
+                raise Exception(f"Process error: {result.stderr[:300]}")
+            with open(tmp_out.name) as f:
+                return f.read().strip()
+        finally:
+            os.unlink(tmp_in.name)
+            os.unlink(tmp_out.name)
 
     try:
         raw = await asyncio.to_thread(_call_ipakyuli)
