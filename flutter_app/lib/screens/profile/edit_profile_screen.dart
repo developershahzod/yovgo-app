@@ -127,7 +127,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                     : null,
               ),
               child: _selectedImage == null
-                  ? const Icon(Icons.person, size: 60, color: AppColors.textTertiary)
+                  ? ClipOval(
+                      child: Image.asset('assets/images/avatar-types.png', width: 120, height: 120, fit: BoxFit.cover),
+                    )
                   : null,
             ),
             Positioned(

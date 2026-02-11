@@ -171,11 +171,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 width: 72,
                 height: 72,
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFE8EDF2),
+                  image: DecorationImage(
+                    image: AssetImage('assets/images/avatar-types.png'),
+                    fit: BoxFit.cover,
+                  ),
                 ),
-                child: const Icon(Icons.person, size: 40, color: Color(0xFFB0B8C4)),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -247,8 +249,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
           child: const CircleAvatar(
             radius: 37,
+            backgroundImage: AssetImage('assets/images/avatar-types.png'),
             backgroundColor: Color(0xFFF0F4F9),
-            child: Icon(Icons.person, size: 40, color: Color(0xFFB0B8C4)),
           ),
         ),
         const SizedBox(width: 16),
