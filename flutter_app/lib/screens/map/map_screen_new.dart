@@ -44,8 +44,10 @@ class _MapScreenNewState extends State<MapScreenNew> {
   Future<void> _getCurrentLocation() async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
-      // Only request permission once per session
-      if (permission == LocationPermission.denied && !_locationAsked) {
+      // If already granted, just use it — don't ask again
+      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+        // Permission already granted, proceed
+      } else if (permission == LocationPermission.denied && !_locationAsked) {
         _locationAsked = true;
         permission = await Geolocator.requestPermission();
       }
@@ -119,7 +121,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final minHeight = screenHeight * 0.22;
-    final maxHeight = screenHeight * 0.92;
+    final maxHeight = screenHeight * 0.80;
 
     return Scaffold(
       body: SlidingUpPanel(
@@ -187,14 +189,15 @@ class _MapScreenNewState extends State<MapScreenNew> {
             child: Container(
               height: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F6F8),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE8ECF0), width: 1),
+                border: Border.all(color: AppTheme.borderGray, width: 1),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
               ),
               child: Row(
                 children: [
                   const SizedBox(width: 14),
-                  Icon(Icons.search_rounded, color: AppTheme.primaryCyan, size: 22),
+                  Icon(Icons.search_rounded, color: AppTheme.textSecondary, size: 22),
                   const SizedBox(width: 10),
                   Expanded(
                     child: TextField(
@@ -209,7 +212,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
                       style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w500),
                       decoration: InputDecoration(
                         hintText: context.tr('map_search'),
-                        hintStyle: TextStyle(color: const Color(0xFFADB5BD), fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w400),
+                        hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w400),
                         border: InputBorder.none,
                         isDense: true,
                         contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -218,7 +221,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
                   ),
                   if (_searchController.text.isNotEmpty)
                     IconButton(
-                      icon: Icon(Icons.close_rounded, color: AppTheme.textSecondary, size: 20),
+                      icon: Icon(Icons.close_rounded, color: AppTheme.textTertiary, size: 20),
                       onPressed: () { _searchController.clear(); _onSearch(''); },
                     ),
                 ],

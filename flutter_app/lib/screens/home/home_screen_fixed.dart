@@ -70,6 +70,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
 
     try {
       LocationPermission permission = await Geolocator.checkPermission();
+      // Only ask if not already granted and not yet asked this session
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
@@ -120,7 +121,17 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
           _hasSubscription = true;
           _planName = sub['plan_name'] ?? sub['name'] ?? '';
           _usedVisits = sub['visits_used'] ?? sub['used_visits'] ?? 0;
-          _totalVisits = sub['visits_remaining'] ?? sub['total_visits'] ?? 0;
+          final isUnlimited = sub['is_unlimited'] == true;
+          if (isUnlimited) {
+            _totalVisits = -1; // -1 means unlimited
+          } else {
+            _totalVisits = sub['total_visits'] ?? sub['visit_limit'] ?? 0;
+            if (_totalVisits == 0) {
+              // Fallback: total = used + remaining
+              final rem = sub['remaining_visits'] ?? sub['visits_remaining'] ?? 0;
+              _totalVisits = _usedVisits + (rem as int);
+            }
+          }
           _savedAmount = (_usedVisits * 15000);
           final endStr = sub['end_date']?.toString();
           if (endStr != null && endStr.isNotEmpty) {
@@ -547,10 +558,10 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                             ),
                                           ),
                                           TextSpan(
-                                            text: '$_totalVisits',
+                                            text: _totalVisits == -1 ? '∞' : '$_totalVisits',
                                             style: TextStyle(
                                               color: const Color(0xFFFFEEEA),
-                                              fontSize: 12,
+                                              fontSize: _totalVisits == -1 ? 18 : 12,
                                               fontWeight: FontWeight.w900,
                                               fontFamily: 'Mulish',
                                             ),
