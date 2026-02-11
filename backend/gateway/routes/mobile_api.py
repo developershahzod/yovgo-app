@@ -970,35 +970,30 @@ async def create_payment_link(
         "Authorization": f"Bearer {IPAKYULI_ACCESS_TOKEN}",
     }
 
-    # Run in a separate Python process to avoid uvicorn worker connection issues
+    # Use curl subprocess — isolated from uvicorn's event loop/connection handling
     import asyncio, subprocess, json as _json, tempfile
     def _call_ipakyuli():
-        # Write payload and config to temp file
-        tmp_in = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-        tmp_out = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-        _json.dump({"url": f"{IPAKYULI_BASE_URL}/api/transfer", "payload": payload, "headers": headers}, tmp_in)
-        tmp_in.close()
-        tmp_out.close()
-        script = f"""
-import json, sys
-from urllib.request import Request, urlopen
-with open("{tmp_in.name}") as f:
-    cfg = json.load(f)
-body = json.dumps(cfg["payload"]).encode("utf-8")
-req = Request(cfg["url"], data=body, headers=cfg["headers"], method="POST")
-with urlopen(req, timeout=30) as r:
-    with open("{tmp_out.name}", "w") as out:
-        out.write(r.read().decode("utf-8"))
-"""
+        payload_json = _json.dumps(payload)
+        # Write payload to temp file to avoid shell escaping issues
+        tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+        tmp.write(payload_json)
+        tmp.close()
         try:
-            result = subprocess.run(["python3", "-c", script], capture_output=True, text=True, timeout=35)
+            result = subprocess.run(
+                ["curl", "-s", "-X", "POST",
+                 f"{IPAKYULI_BASE_URL}/api/transfer",
+                 "-H", "Content-Type: application/json",
+                 "-H", f"Authorization: Bearer {IPAKYULI_ACCESS_TOKEN}",
+                 "-d", f"@{tmp.name}",
+                 "--connect-timeout", "15",
+                 "--max-time", "30"],
+                capture_output=True, text=True, timeout=35,
+            )
             if result.returncode != 0:
-                raise Exception(f"Process error: {result.stderr[:300]}")
-            with open(tmp_out.name) as f:
-                return f.read().strip()
+                raise Exception(f"curl error (exit {result.returncode}): {result.stderr[:200]}")
+            return result.stdout.strip()
         finally:
-            os.unlink(tmp_in.name)
-            os.unlink(tmp_out.name)
+            os.unlink(tmp.name)
 
     try:
         raw = await asyncio.to_thread(_call_ipakyuli)
