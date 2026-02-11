@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
+import 'payment_webview_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -103,9 +103,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         );
         final paymentUrl = paymentResult['payment_url']?.toString();
         if (paymentUrl != null && paymentUrl.isNotEmpty) {
-          final uri = Uri.parse(paymentUrl);
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-          if (mounted) _showPaymentPendingDialog();
+          if (mounted) {
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PaymentWebViewScreen(
+                  paymentUrl: paymentUrl,
+                  subscriptionId: subscriptionId,
+                ),
+              ),
+            );
+            // If user completed payment or came back, check subscription status
+            if (mounted) {
+              if (result == 'cancelled') {
+                _showPaymentPendingDialog();
+              } else {
+                _showPaymentPendingDialog();
+              }
+            }
+          }
         } else {
           // No payment URL returned — subscription was activated directly (test mode)
           if (mounted) _showSuccessDialog();

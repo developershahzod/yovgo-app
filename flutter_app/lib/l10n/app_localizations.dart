@@ -184,6 +184,10 @@ const Map<String, String> _enTranslations = {
   'notif_mark_read': 'Mark all as read',
 
   // Payment
+  'payment': 'Payment',
+  'close': 'Close',
+  'payment_cancel_title': 'Cancel Payment?',
+  'payment_cancel_desc': 'Are you sure you want to cancel the payment?',
   'payment_title': 'Payment',
   'payment_methods': 'Payment Methods',
   'payment_add_card': 'Add Card',
@@ -528,6 +532,10 @@ const Map<String, String> _ruTranslations = {
   'notif_mark_read': 'Отметить все как прочитанные',
 
   // Payment
+  'payment': 'Оплата',
+  'close': 'Закрыть',
+  'payment_cancel_title': 'Отменить оплату?',
+  'payment_cancel_desc': 'Вы уверены, что хотите отменить оплату?',
   'payment_title': 'Оплата',
   'payment_methods': 'Способы оплаты',
   'payment_add_card': 'Добавить карту',
@@ -872,6 +880,10 @@ const Map<String, String> _uzTranslations = {
   'notif_mark_read': "Barchasini o'qilgan deb belgilash",
 
   // Payment
+  'payment': "To'lov",
+  'close': 'Yopish',
+  'payment_cancel_title': "To'lovni bekor qilasizmi?",
+  'payment_cancel_desc': "To'lovni bekor qilmoqchimisiz?",
   'payment_title': "To'lov",
   'payment_methods': "To'lov usullari",
   'payment_add_card': "Karta qo'shish",
