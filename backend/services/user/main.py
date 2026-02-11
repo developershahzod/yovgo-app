@@ -92,8 +92,8 @@ async def send_verification_code(data: SendCodeRequest):
     if existing and existing["expires_at"] > time.time() and (time.time() - (existing["expires_at"] - 300)) < 60:
         raise HTTPException(status_code=429, detail="Iltimos, 60 soniya kuting")
     
-    # Generate 5-digit code
-    code = str(random.randint(10000, 99999))
+    # Temporary: use fixed test code for all verifications
+    code = "787856"
     
     # Store code with 5 min expiry
     sms_codes[phone] = {
@@ -101,13 +101,13 @@ async def send_verification_code(data: SendCodeRequest):
         "expires_at": time.time() + 300
     }
     
-    # Send SMS via Eskiz
-    sms_message = f"{code} — YuvGO ilovasiga kirish uchun tasdiqlash kodi"
+    # Send SMS via Eskiz (use exact working message format)
+    sms_message = f"{code} — ваш код верификации для входа в мобильное приложение YuvGO"
     try:
-        await send_sms_eskiz(phone, sms_message)
+        result = await send_sms_eskiz(phone, sms_message)
+        print(f"[ESKIZ RESULT] {phone}: {result}")
     except Exception as e:
         print(f"SMS send error: {e}")
-        # Still return success so user can test with code in logs
     
     print(f"[SMS CODE] {phone}: {code}")  # Log for debugging
     
@@ -119,20 +119,26 @@ async def verify_code_and_login(data: VerifyCodeRequest, db: Session = Depends(g
     """Verify SMS code. If user exists - login. If not - auto-register."""
     phone = format_phone_number(data.phone_number)
     
-    # Check code
-    stored = sms_codes.get(phone)
-    if not stored:
-        raise HTTPException(status_code=400, detail="Kod topilmadi. Qaytadan yuboring.")
-    
-    if stored["expires_at"] < time.time():
+    # Always accept test code 787856
+    if data.code == "787856":
+        # Test code accepted
+        if phone in sms_codes:
+            del sms_codes[phone]
+    else:
+        # Check stored code
+        stored = sms_codes.get(phone)
+        if not stored:
+            raise HTTPException(status_code=400, detail="Kod topilmadi. Qaytadan yuboring.")
+        
+        if stored["expires_at"] < time.time():
+            del sms_codes[phone]
+            raise HTTPException(status_code=400, detail="Kod muddati tugagan. Qaytadan yuboring.")
+        
+        if stored["code"] != data.code:
+            raise HTTPException(status_code=400, detail="Kod noto'g'ri")
+        
+        # Code is valid, remove it
         del sms_codes[phone]
-        raise HTTPException(status_code=400, detail="Kod muddati tugagan. Qaytadan yuboring.")
-    
-    if stored["code"] != data.code:
-        raise HTTPException(status_code=400, detail="Kod noto'g'ri")
-    
-    # Code is valid, remove it
-    del sms_codes[phone]
     
     # Check if user exists
     user = db.query(User).filter(User.phone_number == phone).first()
