@@ -416,6 +416,8 @@ const Map<String, String> _enTranslations = {
   'today': 'Today',
   'yesterday': 'Yesterday',
   'days_ago': 'days ago',
+  'minutes_ago': 'min ago',
+  'hours_ago': 'hours ago',
   'status_completed': 'Completed',
   'status_in_progress': 'In progress',
 
@@ -788,6 +790,8 @@ const Map<String, String> _ruTranslations = {
   'today': 'Сегодня',
   'yesterday': 'Вчера',
   'days_ago': 'дней назад',
+  'minutes_ago': 'мин назад',
+  'hours_ago': 'часов назад',
   'status_completed': 'Завершено',
   'status_in_progress': 'В процессе',
 
@@ -1160,6 +1164,8 @@ const Map<String, String> _uzTranslations = {
   'today': 'Bugun',
   'yesterday': 'Kecha',
   'days_ago': 'kun oldin',
+  'minutes_ago': 'daqiqa oldin',
+  'hours_ago': 'soat oldin',
   'status_completed': 'Yakunlangan',
   'status_in_progress': 'Jarayonda',
 
