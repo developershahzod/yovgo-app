@@ -88,6 +88,7 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
         _showCheckinSuccessDialog(
           result['partner_name'] ?? 'Avtomoyka',
           result['remaining_visits']?.toString() ?? '',
+          visitId: result['visit_id']?.toString(),
         );
       }
     } catch (e) {
@@ -238,49 +239,13 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
     );
   }
 
-  void _showCheckinSuccessDialog(String partnerName, String remaining) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 80, height: 80,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF5CCC27).withOpacity(0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.check_circle, size: 48, color: Color(0xFF5CCC27)),
-              ),
-              const SizedBox(height: 24),
-              const Text('Muvaffaqiyatli!', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 12),
-              Text(
-                '$partnerName da tashrif qayd etildi',
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary),
-              ),
-              if (remaining.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Qolgan tashriflar: $remaining',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.primaryCyan),
-                ),
-              ],
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity, height: 48,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('OK'),
-                ),
-              ),
-            ],
-          ),
+  void _showCheckinSuccessDialog(String partnerName, String remaining, {String? visitId}) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => _WashTimerScreen(
+          partnerName: partnerName,
+          remaining: remaining,
+          visitId: visitId,
         ),
       ),
     );
@@ -765,4 +730,155 @@ class CornerPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ─── Wash Timer Screen ───
+class _WashTimerScreen extends StatefulWidget {
+  final String partnerName;
+  final String remaining;
+  final String? visitId;
+
+  const _WashTimerScreen({required this.partnerName, required this.remaining, this.visitId});
+
+  @override
+  State<_WashTimerScreen> createState() => _WashTimerScreenState();
+}
+
+class _WashTimerScreenState extends State<_WashTimerScreen> {
+  late final Stopwatch _stopwatch;
+  late final Stream<int> _ticker;
+  bool _completed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _stopwatch = Stopwatch()..start();
+    _ticker = Stream.periodic(const Duration(seconds: 1), (i) => i);
+  }
+
+  @override
+  void dispose() {
+    _stopwatch.stop();
+    super.dispose();
+  }
+
+  String _fmt(Duration d) {
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = (d.inMinutes % 60).toString().padLeft(2, '0');
+    final s = (d.inSeconds % 60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
+  }
+
+  Future<void> _completeVisit() async {
+    if (widget.visitId == null) return;
+    try {
+      await FullApiService.post('/api/mobile/visits/${widget.visitId}/complete', data: {});
+    } catch (_) {}
+    setState(() => _completed = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A0C13),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Top bar
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                  const Spacer(),
+                  const Text('Moyka jarayoni', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                  const Spacer(),
+                  const SizedBox(width: 48),
+                ],
+              ),
+            ),
+
+            const Spacer(),
+
+            // Partner name
+            Text(widget.partnerName, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70, fontSize: 16, fontFamily: 'Mulish')),
+            const SizedBox(height: 24),
+
+            // Timer circle
+            Container(
+              width: 220, height: 220,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: _completed ? Colors.green : AppTheme.primaryCyan, width: 4),
+              ),
+              child: Center(
+                child: _completed
+                    ? const Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.green, size: 56),
+                          SizedBox(height: 8),
+                          Text('Yakunlandi!', style: TextStyle(color: Colors.green, fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                        ],
+                      )
+                    : StreamBuilder<int>(
+                        stream: _ticker,
+                        builder: (context, snapshot) {
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.local_car_wash, color: AppTheme.primaryCyan, size: 36),
+                              const SizedBox(height: 8),
+                              Text(_fmt(_stopwatch.elapsed), style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w700, fontFamily: 'Mulish', letterSpacing: 2)),
+                              const SizedBox(height: 4),
+                              const Text('Jarayonda...', style: TextStyle(color: Colors.white54, fontSize: 14, fontFamily: 'Mulish')),
+                            ],
+                          );
+                        },
+                      ),
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // Remaining visits
+            if (widget.remaining.isNotEmpty && widget.remaining != 'unlimited')
+              Text('Qolgan tashriflar: ${widget.remaining}', style: const TextStyle(color: AppTheme.primaryCyan, fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish'))
+            else if (widget.remaining == 'unlimited')
+              const Text('Cheksiz tashriflar', style: TextStyle(color: AppTheme.primaryCyan, fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish')),
+
+            const Spacer(),
+
+            // Complete button
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: SizedBox(
+                width: double.infinity, height: 56,
+                child: ElevatedButton(
+                  onPressed: _completed
+                      ? () => Navigator.of(context).popUntil((r) => r.isFirst)
+                      : () async {
+                          await _completeVisit();
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _completed ? Colors.green : AppTheme.primaryCyan,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    elevation: 0,
+                  ),
+                  child: Text(
+                    _completed ? 'Bosh sahifaga qaytish' : 'Moykani yakunlash',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish'),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

@@ -555,7 +555,7 @@ async def qr_checkin(
         subscription_id=subscription.id,
         vehicle_id=vehicle_id,
         check_in_time=datetime.utcnow(),
-        status="completed"
+        status="in_progress"
     )
     
     db.add(visit)
@@ -574,9 +574,29 @@ async def qr_checkin(
         "success": True,
         "message": "Tashrif muvaffaqiyatli ro'yxatdan o'tkazildi!",
         "partner_name": partner.name,
+        "partner_id": str(partner.id),
         "visit_id": str(visit.id),
+        "check_in_time": visit.check_in_time.isoformat(),
+        "status": "in_progress",
         "remaining_visits": subscription.visits_remaining if not subscription.is_unlimited else "unlimited"
     }
+
+
+@router.post("/visits/{visit_id}/complete")
+async def complete_visit(
+    visit_id: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    """Complete an in-progress visit"""
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+    visit = db.query(Visit).filter(Visit.id == visit_id, Visit.user_id == user_id).first()
+    if not visit:
+        raise HTTPException(status_code=404, detail="Visit not found")
+    visit.status = "completed"
+    visit.check_out_time = datetime.utcnow()
+    db.commit()
+    return {"success": True, "message": "Tashrif yakunlandi!", "visit_id": str(visit.id)}
 
 
 # ==================== USER ENDPOINTS ====================

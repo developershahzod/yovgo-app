@@ -556,7 +556,7 @@ class FullApiService {
     String? vehicleId,
   }) async {
     try {
-      final response = await _dio.post('/api/visit/qr/scan', data: {
+      final response = await _dio.post('/api/mobile/visits/checkin', data: {
         'qr_token': qrToken,
         if (vehicleId != null) 'vehicle_id': vehicleId,
       });
