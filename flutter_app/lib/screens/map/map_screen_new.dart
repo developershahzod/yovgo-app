@@ -49,7 +49,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
       if (_searchFocusNode.hasFocus) {
         setState(() => _isSearchActive = true);
         if (_panelController.isAttached) {
-          _panelController.animatePanelToPosition(1.0, duration: const Duration(milliseconds: 300));
+          _panelController.animatePanelToPosition(0.85, duration: const Duration(milliseconds: 300));
         }
       }
     });
@@ -216,7 +216,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
     final minHeight = screenHeight * 0.22;
-    final maxHeight = screenHeight * 0.80;
+    final maxHeight = screenHeight * 0.68;
 
     return Scaffold(
       body: SlidingUpPanel(
@@ -306,7 +306,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
                             onTap: () {
                               setState(() => _isSearchActive = true);
                               if (_panelController.isAttached) {
-                                _panelController.animatePanelToPosition(1.0, duration: const Duration(milliseconds: 300));
+                                _panelController.animatePanelToPosition(0.85, duration: const Duration(milliseconds: 300));
                               }
                             },
                             style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w500),
