@@ -975,7 +975,13 @@ async def create_payment_link(
                     "Authorization": f"Bearer {IPAKYULI_ACCESS_TOKEN}",
                 },
             )
+            print(f"[IPAKYULI] Status: {resp.status_code}, Body: {resp.text[:500]}")
             data = resp.json()
+            if "error" in data:
+                print(f"[IPAKYULI] Error: {data['error']}")
+                payment.status = "failed"
+                db.commit()
+                raise HTTPException(status_code=500, detail=f"IpakYuli xatolik: {data['error'].get('message', '')}")
             result = data.get("result", {})
             payment.transaction_id = result.get("transfer_id")
             db.commit()
@@ -987,10 +993,14 @@ async def create_payment_link(
                 "order_id": order_id,
                 "amount": amount,
             }
+    except HTTPException:
+        raise
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         payment.status = "failed"
         db.commit()
-        raise HTTPException(status_code=500, detail=f"To'lov yaratishda xatolik: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"To'lov yaratishda xatolik: {type(e).__name__}: {str(e)}")
 
 
 @router.get("/payments/success")
