@@ -29,14 +29,6 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
     _currentIndex = widget.initialIndex;
   }
 
-  final List<Widget> _screens = [
-    const HomeScreenFixed(),
-    const MapScreenNew(),
-    const QrScannerScreenFixed(),
-    const SubscriptionsScreen(),
-    const ProfileScreen(),
-  ];
-
   void _onTabTapped(int index) {
     setState(() {
       _currentIndex = index;
@@ -48,7 +40,14 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: _screens,
+        children: [
+          const HomeScreenFixed(),
+          const MapScreenNew(),
+          // Only build QR scanner when its tab is active to prevent camera on all pages
+          _currentIndex == 2 ? const QrScannerScreenFixed() : const SizedBox.shrink(),
+          const SubscriptionsScreen(),
+          const ProfileScreen(),
+        ],
       ),
       bottomNavigationBar: _buildBottomNav(),
     );
