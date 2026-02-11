@@ -32,44 +32,55 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   }
 
   Future<void> _loadPartnerData() async {
-    final args = ModalRoute.of(context)?.settings.arguments;
-    if (args is Map<String, dynamic>) {
-      setState(() { _partner = args; _isLoading = false; });
-      _fetchReviews(args['id']);
-      return;
-    }
-    String? partnerId;
-    if (args is String) partnerId = args;
-
-    // Try to get partner ID from URL query parameter (?id=...)
-    if (partnerId == null) {
-      final uri = Uri.base;
-      partnerId = uri.queryParameters['id'];
-    }
-
-    if (partnerId != null && partnerId.isNotEmpty) {
-      try {
-        final data = await FullApiService.get('/api/mobile/car-washes/$partnerId');
-        if (mounted && data.statusCode == 200) {
-          final pd = data.data is Map ? data.data['partner'] ?? data.data : null;
-          setState(() { _partner = pd; _isLoading = false; });
-          if (pd != null) _fetchReviews(pd['id']);
-          return;
-        }
-      } catch (_) {}
-    }
-    // Fallback: load first nearby partner
     try {
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Map<String, dynamic>) {
+        setState(() { _partner = args; _isLoading = false; });
+        _fetchReviews(args['id']?.toString());
+        return;
+      }
+      String? partnerId;
+      if (args is String) partnerId = args;
+
+      // Try to get partner ID from URL query/fragment parameter
+      if (partnerId == null) {
+        try {
+          final uri = Uri.base;
+          partnerId = uri.queryParameters['id'];
+          // Also check fragment for hash routing
+          if (partnerId == null && uri.fragment.contains('id=')) {
+            final fragUri = Uri.tryParse('/?${uri.fragment.split('?').last}');
+            partnerId = fragUri?.queryParameters['id'];
+          }
+        } catch (_) {}
+      }
+
+      if (partnerId != null && partnerId.isNotEmpty) {
+        try {
+          final data = await FullApiService.get('/api/mobile/car-washes/$partnerId');
+          if (mounted && data.statusCode == 200) {
+            final pd = data.data is Map ? data.data['partner'] ?? data.data : null;
+            if (pd != null) {
+              setState(() { _partner = pd; _isLoading = false; });
+              _fetchReviews(pd['id']?.toString());
+              return;
+            }
+          }
+        } catch (_) {}
+      }
+      // Fallback: load first nearby partner
       final data = await FullApiService.get('/api/mobile/car-washes/nearby', queryParameters: {'latitude': 41.311, 'longitude': 69.279});
       if (mounted && data.statusCode == 200) {
-        final partners = data.data['partners'] as List?;
-        if (partners != null && partners.isNotEmpty) {
-          setState(() { _partner = partners.first; _isLoading = false; });
-          _fetchReviews(partners.first['id']);
+        final partners = (data.data['partners'] as List?) ?? [];
+        if (partners.isNotEmpty) {
+          setState(() { _partner = Map<String, dynamic>.from(partners.first); _isLoading = false; });
+          _fetchReviews(partners.first['id']?.toString());
           return;
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Car wash detail load error: $e');
+    }
     if (mounted) setState(() => _isLoading = false);
   }
 

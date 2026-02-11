@@ -134,12 +134,7 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 16),
-        Image.asset('assets/images/Logo.png', height: 32, fit: BoxFit.contain,
-          errorBuilder: (c, e, s) => Row(children: [
-            Text('YUV', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: const Color(0xFF00BFFE), fontFamily: 'Mulish')),
-            Text('GO', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: const Color(0xFF0A0C13), fontFamily: 'Mulish')),
-          ]),
-        ),
+        Image.asset('assets/images/Light BG Default.png', height: 28, fit: BoxFit.contain),
         const SizedBox(height: 40),
         const Text(
           'Tizimga kirish',
@@ -225,12 +220,7 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 16),
-        Image.asset('assets/images/Logo.png', height: 32, fit: BoxFit.contain,
-          errorBuilder: (c, e, s) => Row(children: [
-            Text('YUV', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: const Color(0xFF00BFFE), fontFamily: 'Mulish')),
-            Text('GO', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: const Color(0xFF0A0C13), fontFamily: 'Mulish')),
-          ]),
-        ),
+        Image.asset('assets/images/Light BG Default.png', height: 28, fit: BoxFit.contain),
         const SizedBox(height: 40),
         const Text(
           'Kodni kiriting',

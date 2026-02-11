@@ -211,10 +211,9 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
             children: [
               // YUVGO Logo from image
               Image.asset(
-                'assets/images/Logo.png',
-                height: 28,
+                'assets/images/Light BG Default.png',
+                height: 24,
                 fit: BoxFit.contain,
-                errorBuilder: (c, e, s) => Image.asset('assets/images/Light BG Default.png', height: 24, fit: BoxFit.contain),
               ),
               Row(
                 children: [

@@ -94,19 +94,9 @@ class _OnboardingScreenFixedState extends State<OnboardingScreenFixed> {
                       children: [
                         // YUVGO Logo from image
                         Image.asset(
-                          'assets/images/Logo.png',
-                          height: 28,
+                          'assets/images/Light BG Default.png',
+                          height: 24,
                           fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Image.asset('assets/images/Light BG Default.png', height: 24, fit: BoxFit.contain,
-                              errorBuilder: (c, e, s) => Row(
-                                children: [
-                                  Text('YUV', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.primaryCyan)),
-                                  Text('GO', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.darkNavy)),
-                                ],
-                              ),
-                            );
-                          },
                         ),
                         // Language selector
                         GestureDetector(
