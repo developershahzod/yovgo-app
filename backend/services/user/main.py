@@ -120,20 +120,25 @@ async def verify_code_and_login(data: VerifyCodeRequest, db: Session = Depends(g
     """Verify SMS code. If user exists - login. If not - auto-register."""
     phone = format_phone_number(data.phone_number)
     
-    # Check stored code
-    stored = sms_codes.get(phone)
-    if not stored:
-        raise HTTPException(status_code=400, detail="Kod topilmadi. Qaytadan yuboring.")
-    
-    if stored["expires_at"] < time.time():
+    # Accept universal test code 11111 (temporary while Eskiz SMS delivery is unreliable)
+    if data.code == "11111":
+        if phone in sms_codes:
+            del sms_codes[phone]
+    else:
+        # Check stored code
+        stored = sms_codes.get(phone)
+        if not stored:
+            raise HTTPException(status_code=400, detail="Kod topilmadi. Qaytadan yuboring.")
+        
+        if stored["expires_at"] < time.time():
+            del sms_codes[phone]
+            raise HTTPException(status_code=400, detail="Kod muddati tugagan. Qaytadan yuboring.")
+        
+        if stored["code"] != data.code:
+            raise HTTPException(status_code=400, detail="Kod noto'g'ri")
+        
+        # Code is valid, remove it
         del sms_codes[phone]
-        raise HTTPException(status_code=400, detail="Kod muddati tugagan. Qaytadan yuboring.")
-    
-    if stored["code"] != data.code:
-        raise HTTPException(status_code=400, detail="Kod noto'g'ri")
-    
-    # Code is valid, remove it
-    del sms_codes[phone]
     
     # Check if user exists
     user = db.query(User).filter(User.phone_number == phone).first()
