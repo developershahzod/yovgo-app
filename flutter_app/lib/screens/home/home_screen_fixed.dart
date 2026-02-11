@@ -79,7 +79,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
       }
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.medium,
-      );
+      ).timeout(const Duration(seconds: 5));
       _cachedLat = position.latitude;
       _cachedLng = position.longitude;
       if (mounted) {
@@ -169,11 +169,14 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
       }
     } catch (_) {}
 
-    // Load nearby car washes with real location
+    // Load nearby car washes with real location (always use default if geo failed)
     try {
-      final resp = await FullApiService.get('/api/mobile/car-washes/nearby', queryParameters: {'latitude': _userLat, 'longitude': _userLng});
+      final lat = _userLat != 0 ? _userLat : 41.311;
+      final lng = _userLng != 0 ? _userLng : 69.279;
+      final resp = await FullApiService.get('/api/mobile/car-washes/nearby', queryParameters: {'latitude': lat, 'longitude': lng, 'radius': 50});
       if (mounted && resp.statusCode == 200) {
-        final partners = (resp.data['partners'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        final data = resp.data;
+        final partners = ((data['partners'] as List?) ?? (data['car_washes'] as List?) ?? []).cast<Map<String, dynamic>>();
         setState(() => _nearbyCarWashes = partners);
       }
     } catch (_) {}
