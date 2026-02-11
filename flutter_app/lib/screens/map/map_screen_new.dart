@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
+import 'dart:typed_data';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
@@ -412,25 +415,157 @@ class _MapScreenNewState extends State<MapScreenNew> {
     );
   }
 
-  void _buildMarkers() {
-    final markers = <Marker>{};
-    for (final p in _carWashes) {
-      final lat = (p['latitude'] as num?)?.toDouble();
-      final lng = (p['longitude'] as num?)?.toDouble();
-      if (lat == null || lng == null) continue;
-      final locId = p['location_id']?.toString();
-      final id = locId ?? p['id']?.toString() ?? '';
-      final markerKey = '${id}_${lat}_${lng}';
-      markers.add(Marker(
-        markerId: MarkerId(markerKey),
-        position: LatLng(lat, lng),
-        infoWindow: InfoWindow(
-          title: p['name'] ?? 'Car Wash',
-          snippet: p['address'] ?? '',
-          onTap: () => Navigator.pushNamed(context, '/car-wash-detail', arguments: p),
+  // Cache custom marker icons
+  BitmapDescriptor? _singleMarkerIcon;
+  final Map<int, BitmapDescriptor> _clusterIcons = {};
+
+  Future<BitmapDescriptor> _createSingleMarkerIcon() async {
+    if (_singleMarkerIcon != null) return _singleMarkerIcon!;
+    const size = 44.0;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    // Dark circle background
+    final bgPaint = Paint()..color = const Color(0xFF1A2332);
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, bgPaint);
+
+    // White border
+    final borderPaint = Paint()
+      ..color = const Color(0xFFFFFFFF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2 - 1, borderPaint);
+
+    // Location pin icon (draw a simple pin shape)
+    final iconPaint = Paint()..color = Colors.white;
+    // Pin body (circle)
+    canvas.drawCircle(const Offset(size / 2, size / 2 - 3), 7, iconPaint);
+    // Pin hole
+    final holePaint = Paint()..color = const Color(0xFF1A2332);
+    canvas.drawCircle(const Offset(size / 2, size / 2 - 3), 3.5, holePaint);
+    // Pin point (triangle)
+    final path = Path()
+      ..moveTo(size / 2 - 5, size / 2 + 2)
+      ..lineTo(size / 2, size / 2 + 10)
+      ..lineTo(size / 2 + 5, size / 2 + 2)
+      ..close();
+    canvas.drawPath(path, iconPaint);
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(size.toInt(), size.toInt());
+    final data = await img.toByteData(format: ui.ImageByteFormat.png);
+    _singleMarkerIcon = BitmapDescriptor.bytes(data!.buffer.asUint8List());
+    return _singleMarkerIcon!;
+  }
+
+  Future<BitmapDescriptor> _createClusterIcon(int count) async {
+    if (_clusterIcons.containsKey(count)) return _clusterIcons[count]!;
+    const size = 48.0;
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    // Dark circle background
+    final bgPaint = Paint()..color = const Color(0xFF1A2332);
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, bgPaint);
+
+    // White border
+    final borderPaint = Paint()
+      ..color = const Color(0xFFFFFFFF)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.5;
+    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2 - 1.25, borderPaint);
+
+    // Number text
+    final textPainter = TextPainter(
+      text: TextSpan(
+        text: '$count',
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 18,
+          fontWeight: FontWeight.w800,
+          fontFamily: 'Mulish',
         ),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
-      ));
+      ),
+      textDirection: TextDirection.ltr,
+    );
+    textPainter.layout();
+    textPainter.paint(
+      canvas,
+      Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
+    );
+
+    final picture = recorder.endRecording();
+    final img = await picture.toImage(size.toInt(), size.toInt());
+    final data = await img.toByteData(format: ui.ImageByteFormat.png);
+    _clusterIcons[count] = BitmapDescriptor.bytes(data!.buffer.asUint8List());
+    return _clusterIcons[count]!;
+  }
+
+  Future<void> _buildMarkers() async {
+    final singleIcon = await _createSingleMarkerIcon();
+
+    // Group nearby car washes (simple grid-based clustering)
+    const clusterThreshold = 0.003; // ~300m in lat/lng
+    final used = <int, bool>{};
+    final clusters = <List<Map<String, dynamic>>>[];
+
+    for (int i = 0; i < _carWashes.length; i++) {
+      if (used[i] == true) continue;
+      final lat = (_carWashes[i]['latitude'] as num?)?.toDouble();
+      final lng = (_carWashes[i]['longitude'] as num?)?.toDouble();
+      if (lat == null || lng == null) continue;
+
+      final cluster = <Map<String, dynamic>>[_carWashes[i]];
+      used[i] = true;
+
+      for (int j = i + 1; j < _carWashes.length; j++) {
+        if (used[j] == true) continue;
+        final lat2 = (_carWashes[j]['latitude'] as num?)?.toDouble();
+        final lng2 = (_carWashes[j]['longitude'] as num?)?.toDouble();
+        if (lat2 == null || lng2 == null) continue;
+        if ((lat - lat2).abs() < clusterThreshold && (lng - lng2).abs() < clusterThreshold) {
+          cluster.add(_carWashes[j]);
+          used[j] = true;
+        }
+      }
+      clusters.add(cluster);
+    }
+
+    final markers = <Marker>{};
+    for (final cluster in clusters) {
+      if (cluster.length == 1) {
+        final p = cluster.first;
+        final lat = (p['latitude'] as num).toDouble();
+        final lng = (p['longitude'] as num).toDouble();
+        final id = p['location_id']?.toString() ?? p['id']?.toString() ?? '';
+        markers.add(Marker(
+          markerId: MarkerId('single_${id}_${lat}_$lng'),
+          position: LatLng(lat, lng),
+          icon: singleIcon,
+          onTap: () => Navigator.pushNamed(context, '/car-wash-detail', arguments: p),
+        ));
+      } else {
+        // Cluster: average position, show count
+        double avgLat = 0, avgLng = 0;
+        for (final p in cluster) {
+          avgLat += (p['latitude'] as num).toDouble();
+          avgLng += (p['longitude'] as num).toDouble();
+        }
+        avgLat /= cluster.length;
+        avgLng /= cluster.length;
+        final clusterIcon = await _createClusterIcon(cluster.length);
+        markers.add(Marker(
+          markerId: MarkerId('cluster_${avgLat}_$avgLng'),
+          position: LatLng(avgLat, avgLng),
+          icon: clusterIcon,
+          onTap: () {
+            // Zoom in to see individual markers
+            _mapController?.animateCamera(
+              CameraUpdate.newLatLngZoom(LatLng(avgLat, avgLng), 16),
+            );
+          },
+        ));
+      }
     }
     if (mounted) setState(() => _markers = markers);
   }
