@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:sliding_up_panel/sliding_up_panel.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
@@ -19,11 +20,12 @@ class _MapScreenNewState extends State<MapScreenNew> {
   List<Map<String, dynamic>> _filteredCarWashes = [];
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
-  final DraggableScrollableController _sheetController = DraggableScrollableController();
+  final PanelController _panelController = PanelController();
   final FocusNode _searchFocusNode = FocusNode();
   GoogleMapController? _mapController;
   LatLng _currentPosition = const LatLng(41.2995, 69.2401);
   Set<Marker> _markers = {};
+  double _dragStartY = 0;
 
   @override
   void initState() {
@@ -31,18 +33,10 @@ class _MapScreenNewState extends State<MapScreenNew> {
     _getCurrentLocation();
     _loadCarWashes();
     _searchFocusNode.addListener(() {
-      if (_searchFocusNode.hasFocus) {
-        _expandToHalf();
+      if (_searchFocusNode.hasFocus && _panelController.isAttached) {
+        _panelController.animatePanelToPosition(0.5, duration: const Duration(milliseconds: 300));
       }
     });
-  }
-
-  void _expandToHalf() {
-    _sheetController.animateTo(
-      0.50,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOut,
-    );
   }
 
   Future<void> _getCurrentLocation() async {
@@ -112,148 +106,166 @@ class _MapScreenNewState extends State<MapScreenNew> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final minHeight = screenHeight * 0.22;
+    final maxHeight = screenHeight * 0.92;
+
     return Scaffold(
-      body: Stack(
+      body: SlidingUpPanel(
+        controller: _panelController,
+        minHeight: minHeight,
+        maxHeight: maxHeight,
+        parallaxEnabled: true,
+        parallaxOffset: 0.3,
+        isDraggable: true,
+        backdropEnabled: true,
+        backdropOpacity: 0.3,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, -5))],
+        panelBuilder: (scrollController) => _buildPanel(scrollController),
+        body: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onVerticalDragStart: (details) {
+            _dragStartY = details.globalPosition.dy;
+          },
+          onVerticalDragUpdate: (details) {
+            final dy = details.globalPosition.dy - _dragStartY;
+            if (dy < -40 && _panelController.isAttached && !_panelController.isPanelOpen) {
+              _panelController.animatePanelToPosition(0.5, duration: const Duration(milliseconds: 300));
+            } else if (dy > 40 && _panelController.isAttached && _panelController.isPanelOpen) {
+              _panelController.close();
+            }
+          },
+          child: Stack(
+            children: [
+              // Map
+              _buildMapView(),
+              // My Location Button
+              Positioned(
+                right: 16,
+                bottom: minHeight + 16,
+                child: Container(
+                  width: 48, height: 48,
+                  decoration: BoxDecoration(
+                    color: Colors.white, shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 2))],
+                  ),
+                  child: IconButton(
+                    icon: Icon(Icons.my_location, color: AppTheme.primaryCyan, size: 22),
+                    onPressed: () => _getCurrentLocation(),
+                  ),
+                ),
+              ),
+              // Location Permission Dialog
+              if (_showLocationDialog) _buildLocationDialog(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPanel(ScrollController scrollController) {
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: ListView(
+        controller: scrollController,
+        padding: EdgeInsets.zero,
         children: [
-          // Map background - interactive map placeholder
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            child: _buildMapView(),
+          // Handle bar
+          Center(
+            child: Container(
+              margin: const EdgeInsets.only(top: 12, bottom: 12),
+              width: 40, height: 4,
+              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+            ),
           ),
 
-          // My Location Button
-          Positioned(
-            right: 16,
-            bottom: MediaQuery.of(context).size.height * 0.22 + 16,
+          // Search bar
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Container(
-              width: 48, height: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: Colors.white, shape: BoxShape.circle,
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 2))],
+                color: AppTheme.lightGray,
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: IconButton(
-                icon: Icon(Icons.my_location, color: AppTheme.primaryCyan, size: 22),
-                onPressed: () => _getCurrentLocation(),
+              child: Row(
+                children: [
+                  const SizedBox(width: 12),
+                  Icon(Icons.search, color: AppTheme.textTertiary, size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      focusNode: _searchFocusNode,
+                      onChanged: _onSearch,
+                      onTap: () {
+                        if (_panelController.isAttached) {
+                          _panelController.animatePanelToPosition(0.5, duration: const Duration(milliseconds: 300));
+                        }
+                      },
+                      decoration: InputDecoration(
+                        hintText: context.tr('map_search'),
+                        hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 15, fontFamily: 'Mulish'),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  if (_searchController.text.isNotEmpty)
+                    IconButton(
+                      icon: Icon(Icons.close, color: AppTheme.textSecondary, size: 20),
+                      onPressed: () { _searchController.clear(); _onSearch(''); },
+                    ),
+                ],
               ),
             ),
           ),
 
-          // Bottom Draggable Sheet
-          DraggableScrollableSheet(
-            controller: _sheetController,
-            initialChildSize: 0.20,
-            minChildSize: 0.20,
-            maxChildSize: 0.92,
-            snap: true,
-            snapSizes: const [0.20, 0.50, 0.92],
-            builder: (context, scrollController) {
-              return Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20, offset: const Offset(0, -5))],
-                ),
-                child: ListView(
-                  controller: scrollController,
-                  padding: EdgeInsets.zero,
-                  children: [
-                    // Handle bar
-                    Center(
-                      child: Container(
-                        margin: const EdgeInsets.only(top: 12, bottom: 12),
-                        width: 40, height: 4,
-                        decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
-                      ),
-                    ),
+          const SizedBox(height: 12),
 
-                    // Search bar
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Container(
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: AppTheme.lightGray,
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Row(
-                          children: [
-                            const SizedBox(width: 12),
-                            Icon(Icons.search, color: AppTheme.textTertiary, size: 22),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: TextField(
-                                controller: _searchController,
-                                focusNode: _searchFocusNode,
-                                onChanged: _onSearch,
-                                onTap: _expandToHalf,
-                                decoration: InputDecoration(
-                                  hintText: context.tr('map_search'),
-                                  hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 15, fontFamily: 'Mulish'),
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                                ),
-                              ),
-                            ),
-                            if (_searchController.text.isNotEmpty)
-                              IconButton(
-                                icon: Icon(Icons.close, color: AppTheme.textSecondary, size: 20),
-                                onPressed: () { _searchController.clear(); _onSearch(''); },
-                              ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 12),
-
-                    // Filter chips
-                    SizedBox(
-                      height: 40,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        children: [
-                          _buildFilterChip('premium', 'Premium', Icons.workspace_premium, AppTheme.darkNavy),
-                          const SizedBox(width: 8),
-                          _buildFilterChip('24/7', '24/7', Icons.access_time, AppTheme.green),
-                          const SizedBox(width: 8),
-                          _buildFilterChip('open', context.tr('map_open_now'), Icons.schedule, AppTheme.primaryCyan),
-                          const SizedBox(width: 8),
-                          _buildFilterChip('nearest', context.tr('map_nearby'), Icons.near_me, AppTheme.primaryCyan),
-                          const SizedBox(width: 8),
-                          _buildFilterChip('rating', context.tr('detail_rating'), Icons.star, AppTheme.yellow),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Car wash list
-                    if (_isLoading)
-                      const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
-                    else if (_filteredCarWashes.isEmpty)
-                      Padding(
-                        padding: const EdgeInsets.all(40),
-                        child: Center(child: Text(context.tr('saved_empty'), style: TextStyle(color: AppTheme.textSecondary, fontSize: 15))),
-                      )
-                    else
-                      ..._filteredCarWashes.map((p) => Padding(
-                        padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-                        child: _buildCarWashCard(p),
-                      )),
-
-                    const SizedBox(height: 80),
-                  ],
-                ),
-              );
-            },
+          // Filter chips
+          SizedBox(
+            height: 40,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              children: [
+                _buildFilterChip('premium', 'Premium', Icons.workspace_premium, AppTheme.darkNavy),
+                const SizedBox(width: 8),
+                _buildFilterChip('24/7', '24/7', Icons.access_time, AppTheme.green),
+                const SizedBox(width: 8),
+                _buildFilterChip('open', context.tr('map_open_now'), Icons.schedule, AppTheme.primaryCyan),
+                const SizedBox(width: 8),
+                _buildFilterChip('nearest', context.tr('map_nearby'), Icons.near_me, AppTheme.primaryCyan),
+                const SizedBox(width: 8),
+                _buildFilterChip('rating', context.tr('detail_rating'), Icons.star, AppTheme.yellow),
+              ],
+            ),
           ),
 
-          // Location Permission Dialog
-          if (_showLocationDialog)
-            _buildLocationDialog(),
+          const SizedBox(height: 16),
+
+          // Car wash list
+          if (_isLoading)
+            const Padding(padding: EdgeInsets.all(40), child: Center(child: CircularProgressIndicator()))
+          else if (_filteredCarWashes.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(40),
+              child: Center(child: Text(context.tr('saved_empty'), style: TextStyle(color: AppTheme.textSecondary, fontSize: 15))),
+            )
+          else
+            ..._filteredCarWashes.map((p) => Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+              child: _buildCarWashCard(p),
+            )),
+
+          const SizedBox(height: 80),
         ],
       ),
     );
@@ -497,7 +509,6 @@ class _MapScreenNewState extends State<MapScreenNew> {
   void dispose() {
     _searchController.dispose();
     _searchFocusNode.dispose();
-    _sheetController.dispose();
     super.dispose();
   }
 }
