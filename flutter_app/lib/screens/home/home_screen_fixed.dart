@@ -553,7 +553,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
 
     return GestureDetector(
       onTap: () {
-        Navigator.pushNamed(context, '/wash-rating', arguments: _weatherData);
+        Navigator.pushNamed(context, '/weather', arguments: _weatherData);
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
