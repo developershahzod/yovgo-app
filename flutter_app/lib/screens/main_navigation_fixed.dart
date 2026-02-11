@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../config/app_theme.dart';
 import '../l10n/language_provider.dart';
 import 'home/home_screen_fixed.dart';
@@ -118,24 +119,7 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
     required int index,
   }) {
     final isActive = _currentIndex == index;
-    
-    IconData icon;
-    switch (svgType) {
-      case 'home':
-        icon = isActive ? Icons.home_rounded : Icons.home_outlined;
-        break;
-      case 'map':
-        icon = isActive ? Icons.map_rounded : Icons.map_outlined;
-        break;
-      case 'subscription':
-        icon = isActive ? Icons.confirmation_number : Icons.confirmation_number_outlined;
-        break;
-      case 'profile':
-        icon = isActive ? Icons.person_rounded : Icons.person_outline_rounded;
-        break;
-      default:
-        icon = Icons.home_outlined;
-    }
+    final color = isActive ? AppTheme.primaryCyan : const Color(0xFF2D3142);
     
     return GestureDetector(
       onTap: () => _onTabTapped(index),
@@ -146,10 +130,11 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
           mainAxisSize: MainAxisSize.min,
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              icon,
-              color: isActive ? AppTheme.primaryCyan : const Color(0xFF2D3142),
-              size: 26,
+            SvgPicture.asset(
+              'assets/icons/$svgType.svg',
+              width: 24,
+              height: 24,
+              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
             ),
             const SizedBox(height: 4),
             Text(
@@ -158,7 +143,7 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
                 fontSize: 11,
                 fontWeight: isActive ? FontWeight.w800 : FontWeight.w600,
                 fontFamily: 'Mulish',
-                color: isActive ? AppTheme.primaryCyan : const Color(0xFF2D3142),
+                color: color,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -212,11 +197,12 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
                   ),
                 ],
               ),
-              child: const Center(
-                child: Icon(
-                  Icons.qr_code_scanner_rounded,
-                  color: Colors.white,
-                  size: 26,
+              child: Center(
+                child: SvgPicture.asset(
+                  'assets/icons/qr.svg',
+                  width: 26,
+                  height: 26,
+                  colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
                 ),
               ),
             ),
