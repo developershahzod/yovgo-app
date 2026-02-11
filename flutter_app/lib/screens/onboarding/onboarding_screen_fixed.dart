@@ -94,15 +94,17 @@ class _OnboardingScreenFixedState extends State<OnboardingScreenFixed> {
                       children: [
                         // YUVGO Logo from image
                         Image.asset(
-                          'assets/images/Light BG Default.png',
-                          height: 24,
+                          'assets/images/Logo.png',
+                          height: 28,
                           fit: BoxFit.contain,
                           errorBuilder: (context, error, stackTrace) {
-                            return Row(
-                              children: [
-                                Text('YUV', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.primaryCyan)),
-                                Text('GO', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.darkNavy)),
-                              ],
+                            return Image.asset('assets/images/Light BG Default.png', height: 24, fit: BoxFit.contain,
+                              errorBuilder: (c, e, s) => Row(
+                                children: [
+                                  Text('YUV', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.primaryCyan)),
+                                  Text('GO', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, color: AppTheme.darkNavy)),
+                                ],
+                              ),
                             );
                           },
                         ),
@@ -353,9 +355,11 @@ class _OnboardingScreenFixedState extends State<OnboardingScreenFixed> {
   Widget _buildUzbekFlag() {
     return Column(
       children: [
-        Expanded(flex: 2, child: Container(color: const Color(0xFF0099B5))),
+        Expanded(flex: 3, child: Container(color: const Color(0xFF0099B5))),
         Expanded(flex: 1, child: Container(color: const Color(0xFFCE1126))),
-        Expanded(flex: 2, child: Container(color: const Color(0xFF1EB53A))),
+        Expanded(flex: 1, child: Container(color: Colors.white)),
+        Expanded(flex: 1, child: Container(color: const Color(0xFFCE1126))),
+        Expanded(flex: 3, child: Container(color: const Color(0xFF1EB53A))),
       ],
     );
   }

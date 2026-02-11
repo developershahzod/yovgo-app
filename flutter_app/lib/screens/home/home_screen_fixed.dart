@@ -41,6 +41,9 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
   double _userLat = 41.311;
   double _userLng = 69.279;
 
+  // Notification count
+  int _unreadNotifCount = 0;
+
   @override
   void initState() {
     super.initState();
@@ -139,6 +142,16 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
         if (mounted) setState(() => _recentVisits = visits.cast<Map<String, dynamic>>());
       } catch (_) {}
     }
+
+    // Load unread notification count
+    try {
+      final resp = await FullApiService.get('/api/mobile/notifications');
+      if (mounted && resp.statusCode == 200) {
+        final notifs = resp.data['notifications'] as List? ?? [];
+        final unread = notifs.where((n) => n['is_read'] != true).length;
+        setState(() => _unreadNotifCount = unread);
+      }
+    } catch (_) {}
   }
 
   String _formatNumber(int n) {
@@ -198,9 +211,10 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
             children: [
               // YUVGO Logo from image
               Image.asset(
-                'assets/images/Light BG Default.png',
-                height: 24,
+                'assets/images/Logo.png',
+                height: 28,
                 fit: BoxFit.contain,
+                errorBuilder: (c, e, s) => Image.asset('assets/images/Light BG Default.png', height: 24, fit: BoxFit.contain),
               ),
               Row(
                 children: [
@@ -228,6 +242,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                             size: 24,
                             color: AppTheme.textPrimary,
                           ),
+                          if (_unreadNotifCount > 0)
                           Positioned(
                             right: 4,
                             top: 4,
@@ -242,10 +257,10 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                   width: 1,
                                 ),
                               ),
-                              child: const Center(
+                              child: Center(
                                 child: Text(
-                                  '10',
-                                  style: TextStyle(
+                                  _unreadNotifCount > 99 ? '99+' : '$_unreadNotifCount',
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 10,
                                     fontWeight: FontWeight.w900,

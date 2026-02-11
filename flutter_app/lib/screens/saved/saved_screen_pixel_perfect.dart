@@ -13,34 +13,25 @@ class SavedScreenPixelPerfect extends StatelessWidget {
           children: [
             // Top bar
             _buildTopBar(context),
-            // Saved car washes list
+            // Empty state
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                children: [
-                  _buildSavedCarWashCard(
-                    name: 'Black Star Car Wash',
-                    address: 'Matbuotchilar Street 32, Tashkent',
-                    distance: '500 m',
-                    rating: 4.6,
-                    status: '22:00 gacha ochiq',
-                    statusColor: AppTheme.primaryCyan,
-                    statusBgColor: AppTheme.lightCyan,
-                    context: context,
-                  ),
-                  const SizedBox(height: 16),
-                  _buildSavedCarWashCard(
-                    name: 'Wash N Go Car Wash',
-                    address: 'Tutzor mahallasi, 35 uy, Choshtepa, 100114, Tashkent',
-                    distance: '900 m',
-                    rating: 4.6,
-                    status: 'Yopiq 8:00 gacha',
-                    statusColor: AppTheme.red,
-                    statusBgColor: AppTheme.lightRed,
-                    context: context,
-                  ),
-                  const SizedBox(height: 100),
-                ],
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.bookmark_border, size: 64, color: Colors.grey.shade300),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Saqlanganlar yo\'q',
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textPrimary, fontFamily: 'Mulish'),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Sevimli avtomoykalarni saqlang',
+                      style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish'),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
