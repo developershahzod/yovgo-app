@@ -277,8 +277,8 @@ class _MapScreenNewState extends State<MapScreenNew> {
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: _isSearchActive ? AppTheme.primaryCyan : const Color(0xFFE8ECF0),
-                        width: _isSearchActive ? 1.5 : 1,
+                        color: const Color(0xFFE8ECF0),
+                        width: 1,
                       ),
                       boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 8, offset: const Offset(0, 2))],
                     ),
