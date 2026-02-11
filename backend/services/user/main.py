@@ -101,8 +101,8 @@ async def send_verification_code(data: SendCodeRequest):
         "expires_at": time.time() + 300
     }
     
-    # Send SMS via Eskiz (use exact working message format)
-    sms_message = f"{code} — ваш код верификации для входа в мобильное приложение YuvGO"
+    # Send SMS via Eskiz (must match approved template ID 39117 exactly)
+    sms_message = f"{code} — ваш код верификации для входа в мобильное приложение Õsma"
     try:
         result = await send_sms_eskiz(phone, sms_message)
         print(f"[ESKIZ RESULT] {phone}: {result}")
