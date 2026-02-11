@@ -66,6 +66,15 @@ const MerchantSettings = () => {
       const response = await axios.get(`${API_URL}/api/partner/partners/${partnerId}`);
       const data = response.data;
       if (data) {
+        // working_hours can be object {open, close} or string — normalize to string
+        let wh = null;
+        if (data.working_hours) {
+          if (typeof data.working_hours === 'string') {
+            wh = data.working_hours;
+          } else if (typeof data.working_hours === 'object') {
+            wh = `${data.working_hours.open || '08:00'} - ${data.working_hours.close || '22:00'}`;
+          }
+        }
         setProfile(prev => ({
           ...prev,
           businessName: data.name || prev.businessName,
@@ -74,7 +83,7 @@ const MerchantSettings = () => {
           phone: data.phone_number || data.phone || merchant?.phone || prev.phone,
           address: data.address || prev.address,
           city: data.city || prev.city,
-          workingHours: data.working_hours || prev.workingHours,
+          workingHours: wh || prev.workingHours,
           description: data.description || prev.description,
           washTime: data.wash_time || prev.washTime,
         }));
