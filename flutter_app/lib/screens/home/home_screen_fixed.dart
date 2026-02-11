@@ -229,6 +229,8 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
               const SizedBox(height: 16),
               if (!_hasSubscription) _buildSubscriptionBanner(),
               if (!_hasSubscription) const SizedBox(height: 16),
+              _buildCategoriesSection(),
+              const SizedBox(height: 24),
               _buildNearestCarWashesSection(),
               if (_isLoggedIn) const SizedBox(height: 24),
               if (_isLoggedIn) _buildRecentVisitsSection(),
@@ -847,40 +849,25 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.tr('home_nearest'),
-                    style: TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      fontFamily: 'Mulish',
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Row(
-                    children: [
-                      Icon(Icons.my_location, size: 12, color: AppTheme.primaryCyan),
-                      const SizedBox(width: 4),
-                      Text(
-                        (_userLat != 41.311) ? 'Sizning joylashuvingiz aniqlandi' : 'Toshkent (standart)',
-                        style: TextStyle(fontSize: 11, color: AppTheme.textSecondary, fontFamily: 'Mulish'),
-                      ),
-                    ],
-                  ),
-                ],
+              Text(
+                context.tr('home_nearest'),
+                style: TextStyle(
+                  color: AppTheme.textPrimary,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  fontFamily: 'Mulish',
+                ),
               ),
-              TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/map'),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/map'),
                 child: Text(
                   context.tr('home_see_all'),
                   style: TextStyle(
-                    color: AppTheme.primaryCyan,
+                    color: AppTheme.textPrimary,
                     fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     fontFamily: 'Mulish',
+                    decoration: TextDecoration.underline,
                   ),
                 ),
               ),
@@ -1746,15 +1733,16 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                   fontFamily: 'Mulish',
                 ),
               ),
-              TextButton(
-                onPressed: () {},
+              GestureDetector(
+                onTap: () {},
                 child: Text(
                   context.tr('home_see_all'),
                   style: TextStyle(
-                    color: AppTheme.primaryCyan,
+                    color: AppTheme.textPrimary,
                     fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    fontWeight: FontWeight.w600,
                     fontFamily: 'Mulish',
+                    decoration: TextDecoration.underline,
                   ),
                 ),
               ),
