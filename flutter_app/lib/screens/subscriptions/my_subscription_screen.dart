@@ -32,15 +32,26 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
       if (res.statusCode == 200 && res.data != null) {
         final sub = res.data is Map ? (res.data['subscription'] ?? res.data) : null;
         if (sub != null && sub['status'] != null) {
+          // Calculate days remaining from end_date
+          int daysLeft = 0;
+          final endDateStr = sub['end_date']?.toString() ?? '';
+          if (endDateStr.isNotEmpty) {
+            try {
+              final endDt = DateTime.parse(endDateStr);
+              daysLeft = endDt.difference(DateTime.now()).inDays;
+              if (daysLeft < 0) daysLeft = 0;
+            } catch (_) {}
+          }
+          final usedVisits = sub['used_visits'] ?? sub['visits_used'] ?? 0;
           setState(() {
             _status = sub['status'];
             _planName = sub['plan_name'] ?? '${sub['duration_days'] ?? 90} kunlik obuna';
-            _daysLeft = sub['days_remaining'] ?? 0;
-            _endDate = sub['end_date'] ?? '';
-            _visitsUsed = sub['visits_used'] ?? 0;
-            _visitsLimit = sub['visit_limit'] ?? 0;
-            _isUnlimited = sub['is_unlimited'] == true || _visitsLimit == 0;
-            _savedAmount = sub['saved_amount'] ?? 0;
+            _daysLeft = sub['days_remaining'] ?? daysLeft;
+            _endDate = endDateStr;
+            _visitsUsed = usedVisits;
+            _visitsLimit = sub['total_visits'] ?? sub['visit_limit'] ?? 0;
+            _isUnlimited = sub['is_unlimited'] == true;
+            _savedAmount = sub['saved_amount'] ?? (usedVisits * 15000);
           });
         }
       }
@@ -215,7 +226,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
                         const SizedBox(height: 80),
                         Text(_planName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
                         const SizedBox(height: 4),
-                        Text(_endDate.isNotEmpty ? 'Tugaydi: $_endDate' : '', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9), fontFamily: 'Mulish')),
+                        Text(_endDate.isNotEmpty ? 'Tugaydi: ${_formatEndDate(_endDate)}' : '', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9), fontFamily: 'Mulish')),
                         const SizedBox(height: 12),
                         Align(
                           alignment: Alignment.centerRight,
@@ -301,6 +312,16 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
         ],
       ),
     );
+  }
+
+  String _formatEndDate(String dateStr) {
+    try {
+      final dt = DateTime.parse(dateStr);
+      const months = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+      return '${months[dt.month - 1]} ${dt.day}';
+    } catch (_) {
+      return dateStr;
+    }
   }
 
   String _formatPrice(int price) {
