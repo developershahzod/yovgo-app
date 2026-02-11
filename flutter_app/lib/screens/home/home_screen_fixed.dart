@@ -14,6 +14,11 @@ class HomeScreenFixed extends StatefulWidget {
 }
 
 class _HomeScreenFixedState extends State<HomeScreenFixed> {
+  // Static: only ask permission once per app session
+  static bool _locationPermissionAsked = false;
+  static double _cachedLat = 41.311;
+  static double _cachedLng = 69.279;
+
   // Auth state
   bool _isLoggedIn = false;
 
@@ -51,6 +56,18 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
   }
 
   Future<void> _getUserLocation() async {
+    // If we already have cached coords from this session, use them
+    if (_locationPermissionAsked) {
+      if (mounted) {
+        setState(() {
+          _userLat = _cachedLat;
+          _userLng = _cachedLng;
+        });
+      }
+      return;
+    }
+    _locationPermissionAsked = true;
+
     try {
       LocationPermission permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
@@ -62,6 +79,8 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.medium,
       );
+      _cachedLat = position.latitude;
+      _cachedLng = position.longitude;
       if (mounted) {
         setState(() {
           _userLat = position.latitude;

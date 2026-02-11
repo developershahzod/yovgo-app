@@ -39,10 +39,14 @@ class _MapScreenNewState extends State<MapScreenNew> {
     });
   }
 
+  static bool _locationAsked = false;
+
   Future<void> _getCurrentLocation() async {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied) {
+      // Only request permission once per session
+      if (permission == LocationPermission.denied && !_locationAsked) {
+        _locationAsked = true;
         permission = await Geolocator.requestPermission();
       }
       if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {

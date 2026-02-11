@@ -558,7 +558,13 @@ async def create_subscription(
     ).first()
     
     if existing:
-        raise HTTPException(status_code=400, detail="You already have an active subscription")
+        # Return existing active subscription instead of blocking
+        return {
+            "success": True,
+            "message": "Active subscription found",
+            "subscription_id": str(existing.id),
+            "already_active": True
+        }
     
     # Create new subscription
     subscription = Subscription(
