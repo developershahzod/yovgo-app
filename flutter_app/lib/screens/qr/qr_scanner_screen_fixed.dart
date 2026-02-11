@@ -37,7 +37,8 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
 
       // Check subscription
       try {
-        final sub = await FullApiService.getSubscriptionStatus();
+        final res = await FullApiService.getSubscriptionStatus();
+        final sub = res['subscription'] as Map<String, dynamic>?;
         if (mounted && sub != null && sub['status'] == 'active') {
           setState(() => _hasSubscription = true);
         }

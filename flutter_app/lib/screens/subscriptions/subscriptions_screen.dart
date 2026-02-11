@@ -26,7 +26,11 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
       final plans = await FullApiService.getSubscriptionPlans();
       Map<String, dynamic>? activeSub;
       try {
-        activeSub = await FullApiService.getSubscriptionStatus();
+        final res = await FullApiService.getSubscriptionStatus();
+        final sub = res['subscription'] as Map<String, dynamic>?;
+        if (sub != null && sub['status'] == 'active') {
+          activeSub = sub;
+        }
       } catch (_) {}
       
       if (mounted) {
@@ -48,27 +52,27 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
 
   static final List<Map<String, dynamic>> _defaultPlans = [
     {
-      'id': '1',
+      'id': 'c62a8b3e-8c58-4c62-8ba1-b264c989b4dd',
       'name': '30 kunlik',
       'duration_days': 30,
       'price': 1500000,
-      'old_price': 1800000,
-      'discount': 20,
+      'old_price': 2500000,
+      'discount': 40,
     },
     {
-      'id': '2',
+      'id': '87fcee77-82fb-4193-b0b6-bad7d9cb6899',
       'name': '90 kunlik',
       'duration_days': 90,
-      'price': 3150000,
-      'old_price': 4500000,
-      'discount': 30,
+      'price': 4050000,
+      'old_price': 6750000,
+      'discount': 40,
     },
     {
-      'id': '3',
-      'name': '365 kunlik',
-      'duration_days': 365,
-      'price': 10800000,
-      'old_price': 18000000,
+      'id': 'b5f2d04f-cec8-439c-99fb-d292421ca509',
+      'name': 'Premium 30 kunlik',
+      'duration_days': 30,
+      'price': 3150000,
+      'old_price': 5250000,
       'discount': 40,
     },
   ];
@@ -114,17 +118,21 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
           : ListView(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
               children: [
-                // Blue gradient banner
-                _buildBanner(),
-                const SizedBox(height: 16),
+                // Active subscription card (if exists)
+                if (_activeSubscription != null) _buildActiveSubscriptionCard(),
+                if (_activeSubscription != null) const SizedBox(height: 16),
+                // Blue gradient banner (only if no active sub)
+                if (_activeSubscription == null) _buildBanner(),
+                if (_activeSubscription == null) const SizedBox(height: 16),
                 // View car washes row
                 _buildViewCarWashesRow(),
                 const SizedBox(height: 16),
                 // Plan cards
-                ..._getDisplayPlans().map((plan) => Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: _buildPlanCard(plan),
-                )),
+                if (_activeSubscription == null)
+                  ..._getDisplayPlans().map((plan) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _buildPlanCard(plan),
+                  )),
               ],
             ),
     );
@@ -133,6 +141,92 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   List<Map<String, dynamic>> _getDisplayPlans() {
     if (_plans.isNotEmpty) return _plans.cast<Map<String, dynamic>>();
     return _defaultPlans;
+  }
+
+  Widget _buildActiveSubscriptionCard() {
+    final sub = _activeSubscription!;
+    final planName = sub['plan_name'] ?? 'Obuna';
+    final remaining = sub['remaining_visits'] ?? sub['visits_remaining'] ?? 0;
+    final used = sub['used_visits'] ?? sub['visits_used'] ?? 0;
+    final isUnlimited = sub['is_unlimited'] == true;
+    String endStr = '';
+    try {
+      final dt = DateTime.parse(sub['end_date'].toString());
+      final months = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+      endStr = '${dt.day} ${months[dt.month - 1]}, ${dt.year}';
+    } catch (_) {
+      endStr = sub['end_date']?.toString() ?? '';
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0A0C13), Color(0xFF1A2332)],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF5CCC27),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Text('FAOL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
+              ),
+              const Spacer(),
+              Icon(Icons.workspace_premium, color: const Color(0xFF00BFFE), size: 28),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(planName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, fontFamily: 'Mulish')),
+          const SizedBox(height: 16),
+          // Stats row
+          Row(
+            children: [
+              _buildSubStat(isUnlimited ? '∞' : '$remaining', 'Qolgan\ntashriflar'),
+              const SizedBox(width: 20),
+              _buildSubStat('$used', 'Ishlatilgan\ntashriflar'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // End date
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.calendar_today, size: 16, color: Colors.white70),
+                const SizedBox(width: 8),
+                Text('Amal qilish muddati: $endStr', style: TextStyle(fontSize: 13, color: Colors.white70, fontFamily: 'Mulish')),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubStat(String value, String label) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(value, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
+        const SizedBox(height: 2),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.white60, fontFamily: 'Mulish', height: 1.3)),
+      ],
+    );
   }
 
   Widget _buildBanner() {
