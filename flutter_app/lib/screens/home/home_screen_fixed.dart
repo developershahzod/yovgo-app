@@ -200,6 +200,26 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
     } catch (_) {}
   }
 
+  String _getCarWashStatus(Map<String, dynamic> p) {
+    final apiStatus = p['status']?.toString() ?? '';
+    if (apiStatus.isNotEmpty) return apiStatus;
+    final isOpen = p['is_open'] == true;
+    final is24h = p['is_24_hours'] == true;
+    if (is24h) return '24/7 OCHIQ';
+    final wh = p['working_hours'];
+    final closeTime = (wh is Map ? wh['close'] : null)?.toString() ?? '';
+    final openTime = (wh is Map ? wh['open'] : null)?.toString() ?? '';
+    if (isOpen && closeTime.isNotEmpty) {
+      final t = closeTime.length >= 5 ? closeTime.substring(0, 5) : closeTime;
+      return '$t GACHA OCHIQ';
+    }
+    if (!isOpen && openTime.isNotEmpty) {
+      final t = openTime.length >= 5 ? openTime.substring(0, 5) : openTime;
+      return 'YOPIQ $t GACHA';
+    }
+    return isOpen ? 'OCHIQ' : 'YOPIQ';
+  }
+
   String _formatNumber(int n) {
     final str = n.toString();
     final buffer = StringBuffer();
@@ -905,7 +925,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                       p['address'] ?? '',
                       dist,
                       (p['rating'] ?? 4.5).toDouble(),
-                      p['is_open'] == true ? '22:00 ${context.tr('open_until')}' : context.tr('detail_closed'),
+                      _getCarWashStatus(p),
                       p['is_open'] == true,
                       imageUrl,
                       partnerData: p,
@@ -1734,7 +1754,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                 ),
               ),
               GestureDetector(
-                onTap: () {},
+                onTap: () => Navigator.pushNamed(context, '/visit-history'),
                 child: Text(
                   context.tr('home_see_all'),
                   style: TextStyle(
