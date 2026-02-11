@@ -945,8 +945,8 @@ async def create_payment_link(
                     "subscription_id": str(subscription.id),
                     "amount": amount,
                     "description": f"YuvGO obuna to'lovi",
-                    "success_url": "https://app.yuvgo.uz/#/payment-success",
-                    "fail_url": "https://app.yuvgo.uz/#/payment-fail",
+                    "success_url": "https://yuvgo.uz/",
+                    "fail_url": "https://yuvgo.uz/",
                 },
                 headers={"Authorization": f"Bearer {_get_token_from_user(current_user)}"},
             )
@@ -997,8 +997,8 @@ async def create_payment_link(
                             ]
                         },
                     },
-                    "success_url": "https://app.yuvgo.uz/#/payment-success",
-                    "fail_url": "https://app.yuvgo.uz/#/payment-fail",
+                    "success_url": "https://yuvgo.uz/",
+                    "fail_url": "https://yuvgo.uz/",
                 },
             }
             resp = await client.post(

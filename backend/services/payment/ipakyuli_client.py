@@ -19,8 +19,8 @@ IPAKYULI_CASHBOX_ID = os.getenv("IPAKYULI_CASHBOX_ID", "")
 IPAKYULI_MERCHANT_ID = os.getenv("IPAKYULI_MERCHANT_ID", "")
 
 # Success/Fail URLs
-SUCCESS_URL = os.getenv("PAYMENT_SUCCESS_URL", "https://yuvgo.uz/payment/success")
-FAIL_URL = os.getenv("PAYMENT_FAIL_URL", "https://yuvgo.uz/payment/fail")
+SUCCESS_URL = os.getenv("PAYMENT_SUCCESS_URL", "https://yuvgo.uz/")
+FAIL_URL = os.getenv("PAYMENT_FAIL_URL", "https://yuvgo.uz/")
 
 
 class IpakYuliError(Exception):
