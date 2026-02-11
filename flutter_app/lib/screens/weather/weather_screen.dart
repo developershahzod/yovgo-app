@@ -33,12 +33,13 @@ class _WeatherScreenState extends State<WeatherScreen> {
       if (mounted && resp.statusCode == 200) {
         final data = resp.data;
         setState(() {
-          _washRating = data['wash_rating'] ?? 0;
-          _recommendation = data['recommendation'] ?? '';
-          _current = Map<String, dynamic>.from(data['current'] ?? {});
-          _forecast = (data['forecast'] as List?)
-              ?.map((e) => Map<String, dynamic>.from(e))
-              .toList() ?? [];
+          _washRating = int.tryParse(data['wash_rating']?.toString() ?? '') ?? 0;
+          _recommendation = (data['recommendation'] ?? '').toString();
+          _current = data['current'] is Map ? Map<String, dynamic>.from(data['current']) : {};
+          final fc = data['forecast'];
+          _forecast = (fc is List)
+              ? fc.map((e) => e is Map ? Map<String, dynamic>.from(e) : <String, dynamic>{}).toList()
+              : [];
           _isLoading = false;
         });
         return;
@@ -85,10 +86,10 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final curTemp = _current['temperature'] ?? 0;
-    final curType = _current['weather_type'] ?? 'sunny';
-    final curWind = _current['wind_speed'] ?? 0;
-    final curHumidity = _current['humidity'] ?? 0;
+    final curTemp = int.tryParse(_current['temperature']?.toString() ?? '') ?? 0;
+    final curType = (_current['weather_type'] ?? 'sunny').toString();
+    final curWind = int.tryParse(_current['wind_speed']?.toString() ?? '') ?? 0;
+    final curHumidity = int.tryParse(_current['humidity']?.toString() ?? '') ?? 0;
 
     return Scaffold(
       backgroundColor: AppTheme.lightBackground,
@@ -347,11 +348,11 @@ class _WeatherScreenState extends State<WeatherScreen> {
                     ..._forecast.asMap().entries.map((entry) {
                       final i = entry.key;
                       final day = entry.value;
-                      final weekday = i == 0 ? 'Bugun' : (day['weekday'] ?? '');
-                      final rating = day['wash_rating'] ?? 0;
-                      final temp = day['temp'] ?? '';
-                      final tempMin = day['temp_min'] ?? '';
-                      final weather = day['weather'] ?? 'sunny';
+                      final weekday = i == 0 ? 'Bugun' : (day['weekday'] ?? '').toString();
+                      final rating = int.tryParse(day['wash_rating']?.toString() ?? '') ?? 0;
+                      final temp = (day['temp'] ?? '').toString();
+                      final tempMin = (day['temp_min'] ?? '').toString();
+                      final weather = (day['weather'] ?? 'sunny').toString();
                       return Padding(
                         padding: EdgeInsets.only(bottom: i < _forecast.length - 1 ? 12 : 0),
                         child: _buildForecastItem(weekday, rating, temp, tempMin, _weatherEmoji(weather)),

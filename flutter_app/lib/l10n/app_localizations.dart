@@ -525,7 +525,7 @@ const Map<String, String> _uzTranslations = {
   'retry': 'Qayta urinish',
 
   // Navigation
-  'nav_home': 'Bosh sahifa',
+  'nav_home': 'Asosiy',
   'nav_map': 'Xarita',
   'nav_scan': 'Skanerlash',
   'nav_saved': 'Saqlangan',

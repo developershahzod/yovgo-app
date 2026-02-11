@@ -230,7 +230,11 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     final lat = p['latitude'];
     final lng = p['longitude'];
     final imageUrl = (p['image_url'] ?? p['photo_url'] ?? p['logo_url'] ?? '').toString();
-    final galleryUrls = (p['gallery_urls'] as List?)?.map((e) => e.toString()).toList() ?? (p['images'] as List?)?.map((e) => e.toString()).toList() ?? [];
+    List<String> galleryUrls = [];
+    try {
+      final gu = p['gallery_urls'] ?? p['images'];
+      if (gu is List) galleryUrls = gu.map((e) => e.toString()).toList();
+    } catch (_) {}
     final allImages = <String>[
       if (imageUrl.isNotEmpty && imageUrl.startsWith('http')) imageUrl,
       ...galleryUrls.where((u) => u.startsWith('http')),
@@ -845,7 +849,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   }
 
   String _formatPrice(dynamic price) {
-    final p = (price is int) ? price : (price as num).toInt();
+    final p = (price is int) ? price : (int.tryParse(price.toString()) ?? 0);
     final str = p.toString();
     final buf = StringBuffer();
     int c = 0;
@@ -1145,13 +1149,13 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   // ─── Amenities & Services helpers ───
   List<String> _getAmenities(Map p) {
     final raw = p['amenities'];
-    if (raw is List) return raw.cast<String>();
+    if (raw is List) return raw.map((e) => e.toString()).toList();
     return [];
   }
 
   List<String> _getAdditionalServices(Map p) {
     final raw = p['additional_services'];
-    if (raw is List) return raw.cast<String>();
+    if (raw is List) return raw.map((e) => e.toString()).toList();
     return [];
   }
 
