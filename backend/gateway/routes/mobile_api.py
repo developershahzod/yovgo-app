@@ -934,43 +934,9 @@ async def create_payment_link(
     db.commit()
     db.refresh(payment)
 
-    # Call IpakYuli via payment service
-    PAYMENT_SERVICE = os.getenv("PAYMENT_SERVICE_URL", "http://payment_service:8005")
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            # Forward auth header
-            resp = await client.post(
-                f"{PAYMENT_SERVICE}/ipakyuli/create-payment",
-                json={
-                    "subscription_id": str(subscription.id),
-                    "amount": amount,
-                    "description": f"YuvGO obuna to'lovi",
-                    "success_url": "https://yuvgo.uz/",
-                    "fail_url": "https://yuvgo.uz/",
-                },
-                headers={"Authorization": f"Bearer {_get_token_from_user(current_user)}"},
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                payment.transaction_id = data.get("transfer_id")
-                db.commit()
-                return {
-                    "success": True,
-                    "payment_id": str(payment.id),
-                    "payment_url": data.get("payment_url"),
-                    "transfer_id": data.get("transfer_id"),
-                    "order_id": order_id,
-                    "amount": amount,
-                }
-            else:
-                # Payment service error — return payment link directly
-                pass
-    except Exception as e:
-        print(f"Payment service error: {e}")
-
-    # Fallback: create payment link directly via IpakYuli API
-    IPAKYULI_BASE_URL = os.getenv("IPAKYULI_BASE_URL", "https://partner.ecomm.staging.ipakyulibank.uz")
-    IPAKYULI_ACCESS_TOKEN = os.getenv("IPAKYULI_ACCESS_TOKEN", "")
+    # Create payment link directly via IpakYuli EPOS API (production)
+    IPAKYULI_BASE_URL = os.getenv("IPAKYULI_BASE_URL", "https://ecom.ipakyulibank.uz")
+    IPAKYULI_ACCESS_TOKEN = os.getenv("IPAKYULI_ACCESS_TOKEN", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiIxODhjYWQyMS0zMGQwLTQyZDktODUxOC05ODFhYWNiNTVkOTUiLCJtZXJjaGFudElkIjoiYTBlZmUyNzgtNWUyZi00YzQ5LWIzZmItN2NlMjllOWM4ZmVkIiwiaWF0IjoxNzQ4ODYyNDI1LCJleHAiOjE3ODA0MjAwMjV9.JmfSQb_5Ei6fPLxTCCbQY6ECprq76NMJMnwT3CPFxP4")
 
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
@@ -997,8 +963,8 @@ async def create_payment_link(
                             ]
                         },
                     },
-                    "success_url": "https://yuvgo.uz/",
-                    "fail_url": "https://yuvgo.uz/",
+                    "success_url": f"https://app.yuvgo.uz/api/mobile/payments/success?payment_id={str(payment.id)}",
+                    "fail_url": "https://app.yuvgo.uz/#/main",
                 },
             }
             resp = await client.post(
@@ -1025,6 +991,31 @@ async def create_payment_link(
         payment.status = "failed"
         db.commit()
         raise HTTPException(status_code=500, detail=f"To'lov yaratishda xatolik: {str(e)}")
+
+
+@router.get("/payments/success")
+async def payment_success_callback(
+    payment_id: str = None,
+    db: Session = Depends(get_db),
+):
+    """Called by IpakYuli after successful payment — activate subscription and redirect to app"""
+    from starlette.responses import RedirectResponse
+    if payment_id:
+        payment = db.query(Payment).filter(Payment.id == payment_id).first()
+        if payment and payment.status == "pending":
+            payment.status = "completed"
+            # Activate the subscription
+            subscription = db.query(Subscription).filter(Subscription.id == payment.subscription_id).first()
+            if subscription:
+                plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == subscription.plan_id).first()
+                subscription.status = "active"
+                subscription.start_date = datetime.utcnow()
+                if plan:
+                    subscription.end_date = datetime.utcnow() + timedelta(days=plan.duration_days)
+                    subscription.visits_remaining = plan.visit_limit or 0
+                    subscription.is_unlimited = plan.is_unlimited if hasattr(plan, 'is_unlimited') else False
+            db.commit()
+    return RedirectResponse(url="https://app.yuvgo.uz/#/main", status_code=302)
 
 
 @router.get("/payments/status/{payment_id}")

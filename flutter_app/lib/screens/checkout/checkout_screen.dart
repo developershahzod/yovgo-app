@@ -36,7 +36,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   String _fmt(dynamic price) {
-    final p = (price is int) ? price : (price as num).toInt();
+    final p = (price is int) ? price : (int.tryParse(price.toString()) ?? 0);
     final str = p.toString();
     final buf = StringBuffer();
     int c = 0;
@@ -86,7 +86,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       // Step 2: Create payment link via mobile API (handles IpakYuli integration)
       final price = _plan!['price'] ?? 0;
-      final amount = (price is int) ? price.toDouble() : (price as num).toDouble();
+      final amount = double.tryParse(price.toString()) ?? 0.0;
       try {
         final paymentResult = await FullApiService.createMobilePayment(
           subscriptionId: subscriptionId,
