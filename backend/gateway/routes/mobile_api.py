@@ -969,7 +969,7 @@ async def create_payment_link(
         print(f"Payment service error: {e}")
 
     # Fallback: create payment link directly via IpakYuli API
-    IPAKYULI_BASE_URL = os.getenv("IPAKYULI_BASE_URL", "https://ecom.ipakyulibank.uz")
+    IPAKYULI_BASE_URL = os.getenv("IPAKYULI_BASE_URL", "https://partner.ecomm.staging.ipakyulibank.uz")
     IPAKYULI_ACCESS_TOKEN = os.getenv("IPAKYULI_ACCESS_TOKEN", "")
 
     try:
