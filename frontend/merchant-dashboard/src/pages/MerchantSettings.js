@@ -105,6 +105,15 @@ const MerchantSettings = () => {
         alert('Xatolik: Partner ID topilmadi. Qayta login qiling.');
         return;
       }
+      // Convert working hours string "08:00 - 22:00" to dict format
+      let whPayload = profile.workingHours;
+      if (typeof whPayload === 'string') {
+        const parts = whPayload.split('-').map(s => s.trim());
+        const open = parts[0] || '08:00';
+        const close = parts[1] || '22:00';
+        whPayload = { open, close };
+      }
+
       await axios.put(`${API_URL}/api/partner/partners/${partnerId}`, {
         name: profile.businessName,
         owner_name: profile.ownerName,
@@ -112,7 +121,7 @@ const MerchantSettings = () => {
         phone_number: profile.phone,
         address: profile.address,
         city: profile.city,
-        working_hours: profile.workingHours,
+        working_hours: whPayload,
         description: profile.description,
         wash_time: parseInt(profile.washTime) || 60,
         amenities: amenities,
