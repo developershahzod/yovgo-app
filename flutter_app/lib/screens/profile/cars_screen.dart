@@ -6,29 +6,46 @@ import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
 
 const _carBrands = [
-  'Chevrolet', 'Kia', 'Hyundai', 'Toyota', 'BYD', 'Daewoo',
-  'Lada (VAZ)', 'Ravon', 'Nissan', 'Honda', 'Mercedes-Benz',
-  'BMW', 'Audi', 'Volkswagen', 'Lexus', 'Mazda', 'Mitsubishi',
-  'Geely', 'Chery', 'Haval', 'Changan', 'Jetour', 'Exeed',
-  'Ford', 'Renault', 'Peugeot', 'Skoda', 'Subaru', 'Suzuki',
-  'Volvo', 'Porsche', 'Land Rover', 'Isuzu', 'GAZ', 'UAZ',
+  // Popular in Uzbekistan
+  'Chevrolet', 'BYD', 'Kia', 'Hyundai', 'Toyota', 'Daewoo', 'Ravon', 'Lada (VAZ)',
+  // Chinese
+  'Geely', 'Chery', 'Haval', 'Changan', 'Jetour', 'Exeed', 'Zeekr', 'Li Auto',
+  'NIO', 'XPeng', 'Hongqi', 'Dongfeng', 'JAC', 'FAW', 'Great Wall', 'Tank',
+  'Omoda', 'Jaecoo', 'Voyah', 'Avatr', 'Lynk & Co', 'GAC', 'BAIC', 'Wuling',
+  'Cheryexeed', 'Forthing', 'Skywell', 'Denza',
+  // Japanese
+  'Nissan', 'Honda', 'Mazda', 'Mitsubishi', 'Subaru', 'Suzuki', 'Lexus',
+  'Infiniti', 'Acura', 'Daihatsu', 'Isuzu',
+  // Korean
+  'Genesis', 'SsangYong',
+  // German
+  'Mercedes-Benz', 'BMW', 'Audi', 'Volkswagen', 'Porsche', 'Opel',
+  // European
+  'Volvo', 'Skoda', 'Renault', 'Peugeot', 'Citroën', 'FIAT', 'SEAT', 'Cupra',
+  'Alfa Romeo', 'Maserati', 'Ferrari', 'Lamborghini', 'Jaguar', 'Land Rover',
+  'Mini', 'Bentley', 'Rolls-Royce', 'Aston Martin',
+  // American
+  'Ford', 'Dodge', 'Jeep', 'Cadillac', 'Lincoln', 'GMC', 'RAM',
+  'Tesla', 'Rivian', 'Lucid',
+  // Russian / CIS
+  'GAZ', 'UAZ', 'ZAZ',
 ];
 
-class _UzPlateFormatter extends TextInputFormatter {
-  @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    final raw = newValue.text.replaceAll(' ', '').toUpperCase();
-    final buf = StringBuffer();
-    for (int i = 0; i < raw.length && i < 9; i++) {
-      final c = raw[i];
-      if (i < 2) { if (RegExp(r'\d').hasMatch(c)) buf.write(c); else continue; }
-      else if (i == 2) { if (RegExp(r'[A-Z]').hasMatch(c)) { buf.write(' '); buf.write(c); } else continue; }
-      else if (i < 6) { if (RegExp(r'\d').hasMatch(c)) { if (i == 3) buf.write(' '); buf.write(c); } else continue; }
-      else { if (RegExp(r'[A-Z]').hasMatch(c)) { if (i == 6) buf.write(' '); buf.write(c); } else continue; }
-    }
-    final text = buf.toString();
-    return TextEditingValue(text: text, selection: TextSelection.collapsed(offset: text.length));
-  }
+const _carColors = [
+  'Oq', 'Qora', 'Kumush', 'Kulrang', 'Ko\'k', 'Qizil',
+  'Yashil', 'Sariq', 'Jigarrang', 'Oltin', 'Binafsha',
+  'To\'q ko\'k', 'Pushti', 'Apelsin',
+];
+
+bool _isValidUzPlate(String plate) {
+  final clean = plate.replaceAll(' ', '').toUpperCase();
+  // Format 1: 01A777AA (gos nomer — 2dig 1let 3dig 2let = 8 chars)
+  if (RegExp(r'^\d{2}[A-Z]\d{3}[A-Z]{2}$').hasMatch(clean)) return true;
+  // Format 2: 01011AAA (firma nomer — 2dig 3dig 3let = 8 chars)
+  if (RegExp(r'^\d{5}[A-Z]{3}$').hasMatch(clean)) return true;
+  // Format 3: 01A0123456 (special — 2dig 1let 7dig = 10 chars)
+  if (RegExp(r'^\d{2}[A-Z]\d{7}$').hasMatch(clean)) return true;
+  return false;
 }
 
 class CarsScreen extends StatefulWidget {
@@ -101,14 +118,51 @@ class _CarsScreenState extends State<CarsScreen> {
     );
   }
 
+  void _showBrandPicker(BuildContext dCtx, void Function(void Function()) ss, String? cur, void Function(String) onPick) {
+    final searchCtrl = TextEditingController();
+    final sorted = List<String>.from(_carBrands)..sort();
+    showModalBottomSheet(
+      context: dCtx, isScrollControlled: true, backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sc) {
+        var filtered = sorted;
+        return StatefulBuilder(builder: (sc, setSS) => SizedBox(
+          height: MediaQuery.of(sc).size.height * 0.7,
+          child: Column(children: [
+            Container(margin: const EdgeInsets.only(top: 12), width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))),
+            Padding(padding: const EdgeInsets.fromLTRB(16, 16, 16, 8), child: TextField(
+              controller: searchCtrl, autofocus: true,
+              style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w600),
+              decoration: InputDecoration(hintText: 'Qidirish...', prefixIcon: const Icon(Icons.search, size: 20),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
+                focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.primaryCyan, width: 2))),
+              onChanged: (q) => setSS(() => filtered = sorted.where((b) => b.toLowerCase().contains(q.toLowerCase())).toList()),
+            )),
+            Expanded(child: ListView.builder(
+              itemCount: filtered.length,
+              itemBuilder: (_, i) {
+                final b = filtered[i]; final sel = b == cur;
+                return ListTile(
+                  title: Text(b, style: TextStyle(fontFamily: 'Mulish', fontWeight: sel ? FontWeight.w800 : FontWeight.w500, color: sel ? AppTheme.primaryCyan : AppTheme.textPrimary)),
+                  trailing: sel ? Icon(Icons.check_circle, color: AppTheme.primaryCyan, size: 20) : null,
+                  onTap: () { Navigator.pop(sc); onPick(b); },
+                );
+              },
+            )),
+          ]),
+        ));
+      },
+    );
+  }
+
   Future<void> _showAddDialog() async {
     final modelCtrl = TextEditingController();
     final plateCtrl = TextEditingController();
-    final colorCtrl = TextEditingController();
     final yearCtrl = TextEditingController();
     String selectedType = 'sedan';
-    String? selectedBrand;
-    String? plateErr, yearErr, brandErr;
+    String? selectedBrand, selectedColor;
+    String? plateErr, yearErr, brandErr, colorErr;
     final curYear = DateTime.now().year;
 
     final result = await showDialog<bool>(
@@ -129,21 +183,26 @@ class _CarsScreenState extends State<CarsScreen> {
                   TextField(
                     controller: plateCtrl,
                     textCapitalization: TextCapitalization.characters,
-                    inputFormatters: [_UzPlateFormatter()],
+                    inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 ]')), LengthLimitingTextInputFormatter(14)],
                     style: const TextStyle(fontSize: 16, fontFamily: 'Mulish', fontWeight: FontWeight.w700, letterSpacing: 1.5),
                     decoration: _inputDeco('01 A 777 AA', error: plateErr),
                     onChanged: (_) { if (plateErr != null) ss(() => plateErr = null); },
                   ),
+                  Padding(padding: const EdgeInsets.only(top: 4), child: Text('01 A 777 AA · 01 011 AAA · 01 A 0123456', style: TextStyle(fontSize: 10, color: Colors.grey[400], fontFamily: 'Mulish'))),
                   const SizedBox(height: 12),
                   _label(context.tr('vehicle_brand')),
-                  DropdownButtonFormField<String>(
-                    value: selectedBrand,
-                    isExpanded: true,
-                    style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w600, color: Color(0xFF0A0C13)),
-                    decoration: _inputDeco('Tanlang', error: brandErr),
-                    items: _carBrands.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
-                    onChanged: (v) => ss(() { selectedBrand = v; brandErr = null; }),
+                  GestureDetector(
+                    onTap: () => _showBrandPicker(ctx, ss, selectedBrand, (b) => ss(() { selectedBrand = b; brandErr = null; })),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: brandErr != null ? Colors.red : Colors.grey[300]!)),
+                      child: Row(children: [
+                        Expanded(child: Text(selectedBrand ?? 'Tanlang', style: TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: selectedBrand != null ? FontWeight.w600 : FontWeight.w400, color: selectedBrand != null ? const Color(0xFF0A0C13) : Colors.grey[400]))),
+                        Icon(Icons.arrow_drop_down, color: Colors.grey[400]),
+                      ]),
+                    ),
                   ),
+                  if (brandErr != null) Padding(padding: const EdgeInsets.only(top: 4, left: 4), child: Text(brandErr!, style: const TextStyle(fontSize: 12, color: Colors.red))),
                   const SizedBox(height: 12),
                   _label(context.tr('vehicle_model')),
                   TextField(
@@ -196,7 +255,13 @@ class _CarsScreenState extends State<CarsScreen> {
                     children: [
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         _label(context.tr('vehicle_color')),
-                        TextField(controller: colorCtrl, style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w600), decoration: _inputDeco('')),
+                        DropdownButtonFormField<String>(
+                          value: selectedColor, isExpanded: true,
+                          style: const TextStyle(fontSize: 14, fontFamily: 'Mulish', fontWeight: FontWeight.w600, color: Color(0xFF0A0C13)),
+                          decoration: _inputDeco('Rang', error: colorErr),
+                          items: _carColors.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                          onChanged: (v) => ss(() { selectedColor = v; colorErr = null; }),
+                        ),
                       ])),
                       const SizedBox(width: 12),
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -224,21 +289,22 @@ class _CarsScreenState extends State<CarsScreen> {
                       Expanded(child: ElevatedButton(
                         onPressed: () async {
                           bool hasErr = false;
-                          final plate = plateCtrl.text.trim();
-                          if (plate.length < 11) { ss(() => plateErr = 'Format: 01 A 777 AA'); hasErr = true; }
+                          final plate = plateCtrl.text.trim().toUpperCase();
+                          if (!_isValidUzPlate(plate)) { ss(() => plateErr = '01 A 777 AA / 01 011 AAA / 01 A 0123456'); hasErr = true; }
                           if (selectedBrand == null) { ss(() => brandErr = 'Markani tanlang'); hasErr = true; }
                           if (yearCtrl.text.isNotEmpty) {
                             final y = int.tryParse(yearCtrl.text) ?? 0;
                             if (y < 1990 || y > curYear) { ss(() => yearErr = '1990-$curYear'); hasErr = true; }
-                          }
+                          } else { ss(() => yearErr = 'Yilni kiriting'); hasErr = true; }
+                          if (selectedColor == null) { ss(() => colorErr = 'Rangni tanlang'); hasErr = true; }
                           if (hasErr) return;
                           try {
                             await FullApiService.post('/api/mobile/vehicles', data: {
                               'license_plate': plate,
                               'brand': selectedBrand,
                               'model': modelCtrl.text.trim().isNotEmpty ? modelCtrl.text.trim() : null,
-                              'color': colorCtrl.text.trim().isNotEmpty ? colorCtrl.text.trim() : null,
-                              'year': yearCtrl.text.isNotEmpty ? int.tryParse(yearCtrl.text) : null,
+                              'color': selectedColor,
+                              'year': int.tryParse(yearCtrl.text),
                               'vehicle_type': selectedType,
                             });
                             Navigator.pop(ctx, true);
