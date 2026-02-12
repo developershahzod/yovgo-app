@@ -416,9 +416,9 @@ class FullApiService {
     }
   }
 
-  // IpakYuli Staging constants
-  static const _ipakYuliUrl = 'http://partner.ecomm.staging.ipakyulibank.uz/api/transfer';
-  static const _ipakYuliToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiI1ODM1YWVkNS05ZjkwLTQ3ZWEtYmVhMS1kNzE5MzI1NGY5N2QiLCJtZXJjaGFudElkIjoiMjE2YjQzNjItOGM4Yi00MjlkLWJlOGItNTJkYmVlZTAzYTNhIiwiaWF0IjoxNzcwNzcwMjUwLCJleHAiOjE4MDIzMjc4NTB9.o9l2mUjYe2_igfgyoDGovwgnZImvOF09RRgRzQ2-Ge8';
+  // IpakYuli Production constants (staging is broken - SSL errors, unreachable from server)
+  static const _ipakYuliUrl = 'https://ecom.ipakyulibank.uz/api/transfer';
+  static const _ipakYuliToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiIxODhjYWQyMS0zMGQwLTQyZDktODUxOC05ODFhYWNiNTVkOTUiLCJtZXJjaGFudElkIjoiYTBlZmUyNzgtNWUyZi00YzQ5LWIzZmItN2NlMjllOWM4ZmVkIiwiaWF0IjoxNzQ4ODYyNDI1LCJleHAiOjE3ODA0MjAwMjV9.JmfSQb_5Ei6fPLxTCCbQY6ECprq76NMJMnwT3CPFxP4';
 
   /// Call IpakYuli Production API directly from Flutter app
   static Future<Map<String, dynamic>> createIpakYuliPaymentDirect({

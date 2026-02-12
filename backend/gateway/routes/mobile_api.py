@@ -1193,8 +1193,8 @@ async def get_payment_status(
 
     # If payment is still pending and has a transfer_id, check IpakYuli
     if payment.status == "pending" and payment.transaction_id:
-        IPAKYULI_ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiI1ODM1YWVkNS05ZjkwLTQ3ZWEtYmVhMS1kNzE5MzI1NGY5N2QiLCJtZXJjaGFudElkIjoiMjE2YjQzNjItOGM4Yi00MjlkLWJlOGItNTJkYmVlZTAzYTNhIiwiaWF0IjoxNzcwNzcwMjUwLCJleHAiOjE4MDIzMjc4NTB9.o9l2mUjYe2_igfgyoDGovwgnZImvOF09RRgRzQ2-Ge8"
-        IPAKYULI_URL = "http://partner.ecomm.staging.ipakyulibank.uz/api/transfer"
+        IPAKYULI_ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiIxODhjYWQyMS0zMGQwLTQyZDktODUxOC05ODFhYWNiNTVkOTUiLCJtZXJjaGFudElkIjoiYTBlZmUyNzgtNWUyZi00YzQ5LWIzZmItN2NlMjllOWM4ZmVkIiwiaWF0IjoxNzQ4ODYyNDI1LCJleHAiOjE3ODA0MjAwMjV9.JmfSQb_5Ei6fPLxTCCbQY6ECprq76NMJMnwT3CPFxP4"
+        IPAKYULI_URL = "https://ecom.ipakyulibank.uz/api/transfer"
         try:
             import uuid as _uuid
             payload = {
