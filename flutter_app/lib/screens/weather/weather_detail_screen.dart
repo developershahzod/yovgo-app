@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../../config/app_theme.dart';
+import '../../widgets/ios_weather_icon.dart';
 
 class WeatherDetailScreen extends StatelessWidget {
   const WeatherDetailScreen({Key? key}) : super(key: key);
@@ -121,7 +122,7 @@ class WeatherDetailScreen extends StatelessWidget {
                             const SizedBox(height: 8),
                             Row(
                               children: [
-                                Text('☀️', style: TextStyle(fontSize: 20)),
+                                const IosWeatherIcon(type: 'sunny', size: 24),
                                 const SizedBox(width: 8),
                                 Text(
                                   'Quyoshli',
@@ -219,9 +220,9 @@ class WeatherDetailScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildWeatherStat('🌬️', '24 km/h', 'Shamol'),
-                    _buildWeatherStat('💧', '10%', 'Yomg\'ir'),
-                    _buildWeatherStat('🌊', '10%', 'Chang'),
+                    _buildWeatherStatIcon(const IosWeatherIcon(type: 'cloudy', size: 28), '24 km/h', 'Shamol'),
+                    _buildWeatherStatIcon(const IosWeatherIcon(type: 'rain', size: 28), '10%', 'Yomg\'ir'),
+                    _buildWeatherStatIcon(const IosWeatherIcon(type: 'fog', size: 28), '10%', 'Chang'),
                   ],
                 ),
               ),
@@ -248,13 +249,13 @@ class WeatherDetailScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
-                  _buildForecastRow('Bugun', 92, '+24°', '+10°', '☀️', true),
-                  _buildForecastRow('Sesh', 85, '+22°', '+5°', '☀️', false),
-                  _buildForecastRow('Chor', 72, '+16°', '+4°', '⛅', false),
-                  _buildForecastRow('Pay', 22, '+24°', '+10°', '🌧️', false),
-                  _buildForecastRow('Jum', 48, '+10°', '+3°', '🌬️', false),
-                  _buildForecastRow('Shan', 70, '+16°', '+4°', '☁️', false),
-                  _buildForecastRow('Yak', 12, '+3°', '-2°', '☁️', false),
+                  _buildForecastRowIcon('Bugun', 92, '+24°', '+10°', 'sunny', true),
+                  _buildForecastRowIcon('Sesh', 85, '+22°', '+5°', 'sunny', false),
+                  _buildForecastRowIcon('Chor', 72, '+16°', '+4°', 'partly_cloudy', false),
+                  _buildForecastRowIcon('Pay', 22, '+24°', '+10°', 'rain', false),
+                  _buildForecastRowIcon('Jum', 48, '+10°', '+3°', 'cloudy', false),
+                  _buildForecastRowIcon('Shan', 70, '+16°', '+4°', 'cloudy', false),
+                  _buildForecastRowIcon('Yak', 12, '+3°', '-2°', 'snow', false),
                 ],
               ),
             ),
@@ -265,10 +266,10 @@ class WeatherDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildWeatherStat(String emoji, String value, String label) {
+  Widget _buildWeatherStatIcon(Widget icon, String value, String label) {
     return Column(
       children: [
-        Text(emoji, style: TextStyle(fontSize: 24)),
+        icon,
         const SizedBox(height: 8),
         Text(
           value,
@@ -292,7 +293,7 @@ class WeatherDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildForecastRow(String day, int percent, String high, String low, String emoji, bool isToday) {
+  Widget _buildForecastRowIcon(String day, int percent, String high, String low, String weatherType, bool isToday) {
     Color progressColor;
     if (percent >= 70) {
       progressColor = const Color(0xFF5CCC27);
@@ -378,8 +379,8 @@ class WeatherDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          // Emoji
-          Text(emoji, style: TextStyle(fontSize: 20)),
+          // Weather icon
+          IosWeatherIcon(type: weatherType, size: 22),
         ],
       ),
     );

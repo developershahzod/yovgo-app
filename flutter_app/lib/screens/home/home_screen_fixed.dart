@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
+import '../../widgets/ios_weather_icon.dart';
 
 class HomeScreenFixed extends StatefulWidget {
   const HomeScreenFixed({Key? key}) : super(key: key);
@@ -793,27 +794,8 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
     );
   }
 
-  Widget _buildWeatherIcon(String type) {
-    switch (type) {
-      case 'sunny':
-        return Icon(Icons.wb_sunny, color: Colors.amber, size: 24);
-      case 'partly_cloudy':
-        return Icon(Icons.wb_cloudy, color: Colors.orange, size: 24);
-      case 'cloudy':
-        return Icon(Icons.cloud, color: Colors.grey, size: 24);
-      case 'drizzle':
-        return Icon(Icons.grain, color: Colors.blueGrey, size: 24);
-      case 'rain':
-        return Icon(Icons.water_drop, color: AppTheme.primaryCyan, size: 24);
-      case 'snow':
-        return Icon(Icons.ac_unit, color: Colors.lightBlue, size: 24);
-      case 'thunderstorm':
-        return Icon(Icons.flash_on, color: Colors.deepOrange, size: 24);
-      case 'fog':
-        return Icon(Icons.blur_on, color: Colors.grey, size: 24);
-      default:
-        return Icon(Icons.wb_sunny, color: Colors.amber, size: 24);
-    }
+  Widget _buildWeatherIcon(String type, {double size = 24}) {
+    return IosWeatherIcon(type: type, size: size);
   }
 
   Widget _buildCategoriesSection() {
@@ -1994,3 +1976,4 @@ class SharedLocationState {
   static bool get locationObtained => _HomeScreenFixedState._locationObtained;
   static bool get permissionAsked => _HomeScreenFixedState._locationPermissionAsked;
 }
+
