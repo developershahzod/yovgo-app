@@ -3,6 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
+import '../../l10n/language_provider.dart';
 
 class QrScannerScreenFixed extends StatefulWidget {
   const QrScannerScreenFixed({Key? key}) : super(key: key);
@@ -124,7 +125,7 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
       if (mounted) {
         setState(() => _isScanning = false);
         _showCheckinSuccessDialog(
-          result['partner_name'] ?? 'Avtomoyka',
+          result['partner_name'] ?? context.tr('qr_car_wash'),
           result['remaining_visits']?.toString() ?? '',
           visitId: result['visit_id']?.toString(),
         );
@@ -135,14 +136,14 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
         if (msg.contains('No active subscription') || msg.contains('subscription')) {
           _showSubscriptionRequiredDialog();
         } else if (msg.contains('Visit limit reached')) {
-          msg = 'Tashrif limiti tugadi.';
+          msg = context.tr('qr_visit_limit');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(msg), backgroundColor: Colors.red),
           );
         } else if (msg.contains('401') || msg.contains('Unauthorized')) {
           _showAuthRequiredDialog();
         } else {
-          msg = 'Xatolik yuz berdi. Qayta urinib ko\'ring.';
+          msg = context.tr('qr_error_retry');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(msg), backgroundColor: Colors.red),
           );
@@ -177,12 +178,12 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
                 child: const Icon(Icons.person_add_alt_1, size: 36, color: AppTheme.primaryCyan),
               ),
               const SizedBox(height: 20),
-              const Text('Ro\'yxatdan o\'ting', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, fontFamily: 'Mulish')),
+              Text(context.tr('qr_register_title'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, fontFamily: 'Mulish')),
               const SizedBox(height: 10),
-              const Text(
-                'QR kodni skanerlash uchun avval tizimga kiring yoki ro\'yxatdan o\'ting.',
+              Text(
+                context.tr('qr_register_desc'),
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish'),
+                style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish'),
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -197,7 +198,7 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text('Tizimga kirish', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                  child: Text(context.tr('qr_login_btn'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                 ),
               ),
               const SizedBox(height: 10),
@@ -213,13 +214,13 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
                     side: const BorderSide(color: AppTheme.primaryCyan),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text('Ro\'yxatdan o\'tish', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                  child: Text(context.tr('qr_register_btn'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                 ),
               ),
               const SizedBox(height: 10),
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(),
-                child: const Text('Keyinroq', style: TextStyle(color: AppTheme.textSecondary, fontFamily: 'Mulish')),
+                child: Text(context.tr('qr_later'), style: const TextStyle(color: AppTheme.textSecondary, fontFamily: 'Mulish')),
               ),
             ],
           ),
@@ -247,12 +248,12 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
                 child: const Icon(Icons.workspace_premium, size: 36, color: Colors.orange),
               ),
               const SizedBox(height: 20),
-              const Text('Obuna kerak', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, fontFamily: 'Mulish')),
+              Text(context.tr('qr_sub_required'), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, fontFamily: 'Mulish')),
               const SizedBox(height: 10),
-              const Text(
-                'Avtomoykalarga tashrif buyurish uchun obuna sotib oling.',
+              Text(
+                context.tr('qr_sub_desc'),
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish'),
+                style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish'),
               ),
               const SizedBox(height: 24),
               SizedBox(
@@ -267,13 +268,13 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  child: const Text('Obunalarni ko\'rish', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                  child: Text(context.tr('qr_view_plans'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                 ),
               ),
               const SizedBox(height: 10),
               TextButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Keyinroq', style: TextStyle(color: AppTheme.textSecondary, fontFamily: 'Mulish')),
+                child: Text(context.tr('qr_later'), style: const TextStyle(color: AppTheme.textSecondary, fontFamily: 'Mulish')),
               ),
             ],
           ),
@@ -368,10 +369,10 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
                 const SizedBox(height: 40),
 
                 // Scan text
-                const Text(
-                  'Scan For Our\nCar Washing Area',
+                Text(
+                  context.tr('qr_scan_title'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
@@ -383,7 +384,7 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
 
                 // Subtitle
                 Text(
-                  'Mashinani almashtirish',
+                  context.tr('qr_change_car'),
                   style: TextStyle(
                     color: Colors.white.withOpacity(0.7),
                     fontSize: 14,
@@ -507,10 +508,10 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('Tizimga kiring', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
-                  SizedBox(height: 2),
-                  Text('QR skanerlash uchun ro\'yxatdan o\'ting', style: TextStyle(fontSize: 13, color: Colors.white70, fontFamily: 'Mulish')),
+                children: [
+                  Text(context.tr('qr_login_btn'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
+                  const SizedBox(height: 2),
+                  Text(context.tr('qr_login_prompt_desc'), style: const TextStyle(fontSize: 13, color: Colors.white70, fontFamily: 'Mulish')),
                 ],
               ),
             ),
@@ -545,10 +546,10 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text('Obuna sotib oling', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
-                  SizedBox(height: 2),
-                  Text('Avtomoykalarga tashrif uchun obuna kerak', style: TextStyle(fontSize: 13, color: Colors.white70, fontFamily: 'Mulish')),
+                children: [
+                  Text(context.tr('qr_sub_buy'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
+                  const SizedBox(height: 2),
+                  Text(context.tr('qr_sub_desc'), style: const TextStyle(fontSize: 13, color: Colors.white70, fontFamily: 'Mulish')),
                 ],
               ),
             ),
@@ -645,8 +646,8 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Mashinani tanlang',
-                    style: TextStyle(
+                    context.tr('qr_select_car'),
+                    style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.w700,
                     ),
@@ -662,8 +663,8 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
               Padding(
                 padding: const EdgeInsets.all(20),
                 child: Text(
-                  'Mashina topilmadi. Avval mashina qo\'shing.',
-                  style: TextStyle(color: AppTheme.textSecondary, fontSize: 14),
+                  context.tr('qr_no_cars'),
+                  style: const TextStyle(color: AppTheme.textSecondary, fontSize: 14),
                 ),
               ),
             ..._vehicles.map((vehicle) {
@@ -706,7 +707,7 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
                     Navigator.pushNamed(context, '/cars');
                   },
                   icon: Icon(Icons.add),
-                  label: Text('Yangi mashina qo\'shish'),
+                  label: Text(context.tr('qr_add_car')),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.primaryCyan,
                     side: BorderSide(color: AppTheme.primaryCyan),
@@ -729,15 +730,15 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('QR kod skaneri'),
-        content: const Text(
-          'Avtomoykalardagi QR kodni skanerlang va tashrifingizni qayd eting.',
+        title: Text(context.tr('qr_info_title')),
+        content: Text(
+          context.tr('qr_info_desc'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'Tushundim',
+              context.tr('qr_understood'),
               style: TextStyle(color: AppTheme.primaryCyan),
             ),
           ),
@@ -857,7 +858,7 @@ class _WashTimerScreenState extends State<_WashTimerScreen> {
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                   const Spacer(),
-                  const Text('Moyka jarayoni', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                  Text(context.tr('qr_wash_process'), style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                   const Spacer(),
                   const SizedBox(width: 48),
                 ],
@@ -879,12 +880,12 @@ class _WashTimerScreenState extends State<_WashTimerScreen> {
               ),
               child: Center(
                 child: _completed
-                    ? const Column(
+                    ? Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.check_circle, color: Colors.green, size: 56),
-                          SizedBox(height: 8),
-                          Text('Yakunlandi!', style: TextStyle(color: Colors.green, fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                          const Icon(Icons.check_circle, color: Colors.green, size: 56),
+                          const SizedBox(height: 8),
+                          Text(context.tr('qr_wash_done'), style: const TextStyle(color: Colors.green, fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                         ],
                       )
                     : StreamBuilder<int>(
@@ -897,7 +898,7 @@ class _WashTimerScreenState extends State<_WashTimerScreen> {
                               const SizedBox(height: 8),
                               Text(_fmt(_stopwatch.elapsed), style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w700, fontFamily: 'Mulish', letterSpacing: 2)),
                               const SizedBox(height: 4),
-                              const Text('Jarayonda...', style: TextStyle(color: Colors.white54, fontSize: 14, fontFamily: 'Mulish')),
+                              Text(context.tr('qr_wash_in_progress'), style: const TextStyle(color: Colors.white54, fontSize: 14, fontFamily: 'Mulish')),
                             ],
                           );
                         },
@@ -909,9 +910,9 @@ class _WashTimerScreenState extends State<_WashTimerScreen> {
 
             // Remaining visits
             if (widget.remaining.isNotEmpty && widget.remaining != 'unlimited')
-              Text('Qolgan tashriflar: ${widget.remaining}', style: const TextStyle(color: AppTheme.primaryCyan, fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish'))
+              Text('${context.tr('qr_remaining_visits')}: ${widget.remaining}', style: const TextStyle(color: AppTheme.primaryCyan, fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish'))
             else if (widget.remaining == 'unlimited')
-              const Text('Cheksiz tashriflar', style: TextStyle(color: AppTheme.primaryCyan, fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish')),
+              Text(context.tr('qr_unlimited_visits'), style: const TextStyle(color: AppTheme.primaryCyan, fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish')),
 
             const Spacer(),
 
@@ -933,7 +934,7 @@ class _WashTimerScreenState extends State<_WashTimerScreen> {
                     elevation: 0,
                   ),
                   child: Text(
-                    _completed ? 'Bosh sahifaga qaytish' : 'Moykani yakunlash',
+                    _completed ? context.tr('qr_go_home') : context.tr('qr_finish_wash'),
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish'),
                   ),
                 ),
