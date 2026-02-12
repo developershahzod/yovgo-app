@@ -204,12 +204,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final planName = _plan?['name'] ?? '${_plan?['duration_days'] ?? 365} kunlik';
-    final price = _plan?['price'] ?? 10800000;
-    final oldPrice = _plan?['old_price'] ?? 18000000;
-    final discount = _plan?['discount'] ?? 40;
-    final discountAmount = (oldPrice is num && price is num) ? (oldPrice - price).toInt() : 0;
-    final installmentPrice = price is num ? (price / _installmentMonths).round() : 0;
+    final planName = _plan?['name'] ?? '${_plan?['duration_days'] ?? 90} kunlik';
+    final price = _plan?['price'] ?? 0;
+    final durationDays = _plan?['duration_days'] ?? 0;
+    final visitLimit = _plan?['visit_limit'] ?? 0;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -227,7 +225,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ─── Plan Card ───
-            _buildPlanCard(planName, price, oldPrice, discount),
+            _buildPlanCard(planName, price, durationDays, visitLimit),
 
             // ─── Activation Date ───
             _buildSection(context.tr('activation_date'), _buildDateField()),
@@ -239,7 +237,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             _buildSection(context.tr('payment_method'), _buildPaymentInfo()),
 
             // ─── Narxi ───
-            _buildSection(context.tr('price'), _buildPriceBreakdown(oldPrice, discountAmount, price, installmentPrice)),
+            _buildSection(context.tr('price'), _buildPriceBreakdown(price)),
           ],
         ),
       ),
@@ -248,7 +246,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   // ─── Plan Card ───
-  Widget _buildPlanCard(String name, dynamic price, dynamic oldPrice, dynamic discount) {
+  Widget _buildPlanCard(String name, dynamic price, dynamic durationDays, dynamic visitLimit) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
       child: Column(
@@ -274,40 +272,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                    const SizedBox(height: 4),
+                    Text('${_fmt(price)} so\'m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
                     const SizedBox(height: 2),
-                    Row(
-                      children: [
-                        if (oldPrice != null && oldPrice != price)
-                          Text(
-                            '${_fmt(oldPrice)} so\'m',
-                            style: const TextStyle(fontSize: 13, color: Color(0xFF8F96A0), decoration: TextDecoration.lineThrough, fontFamily: 'Mulish'),
-                          ),
-                      ],
-                    ),
-                    Row(
-                      children: [
-                        if (discount != null && discount > 0)
-                          Container(
-                            margin: const EdgeInsets.only(right: 8),
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(color: const Color(0xFF00BFFE), borderRadius: BorderRadius.circular(6)),
-                            child: Text('-$discount%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
-                          ),
-                        Text('${_fmt(price)} so\'m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
-                      ],
-                    ),
+                    Text('$durationDays kun · $visitLimit ta tashrif', style: const TextStyle(fontSize: 13, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
                   ],
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.refresh, size: 14, color: const Color(0xFF8F96A0)),
-              const SizedBox(width: 4),
-              Text(context.tr('sub_renewable'), style: TextStyle(fontSize: 12, color: const Color(0xFF8F96A0), fontFamily: 'Mulish')),
             ],
           ),
           const SizedBox(height: 16),
@@ -475,14 +446,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   // ─── Price Breakdown ───
-  Widget _buildPriceBreakdown(dynamic oldPrice, int discountAmount, dynamic price, int installmentPrice) {
+  Widget _buildPriceBreakdown(dynamic price) {
     return Column(
       children: [
-        _buildPriceLine(context.tr('sub_price'), '${_fmt(oldPrice)} ${context.tr('currency')}'),
-        const SizedBox(height: 8),
-        _buildPriceLine(context.tr('discount_label'), '${_fmt(discountAmount)} ${context.tr('currency')}', color: const Color(0xFF00BFFE)),
-        const SizedBox(height: 8),
-        _buildPriceLine(context.tr('amount'), '${_fmt(price)} ${context.tr('currency')}'),
+        _buildPriceLine(context.tr('sub_price'), '${_fmt(price)} ${context.tr('currency')}'),
         const SizedBox(height: 8),
         _buildPriceLine(context.tr('promo_code'), '0 ${context.tr('currency')}'),
         const SizedBox(height: 12),

@@ -43,39 +43,12 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _plans = _defaultPlans;
+          _plans = [];
           _loading = false;
         });
       }
     }
   }
-
-  static final List<Map<String, dynamic>> _defaultPlans = [
-    {
-      'id': 'c62a8b3e-8c58-4c62-8ba1-b264c989b4dd',
-      'name': '30 kunlik',
-      'duration_days': 30,
-      'price': 1500000,
-      'old_price': 2500000,
-      'discount': 40,
-    },
-    {
-      'id': '87fcee77-82fb-4193-b0b6-bad7d9cb6899',
-      'name': '90 kunlik',
-      'duration_days': 90,
-      'price': 4050000,
-      'old_price': 6750000,
-      'discount': 40,
-    },
-    {
-      'id': 'b5f2d04f-cec8-439c-99fb-d292421ca509',
-      'name': 'Premium 30 kunlik',
-      'duration_days': 30,
-      'price': 3150000,
-      'old_price': 5250000,
-      'discount': 40,
-    },
-  ];
 
   String _formatPrice(dynamic price) {
     final p = (price is int) ? price : (price as num).toInt();
@@ -139,8 +112,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   }
 
   List<Map<String, dynamic>> _getDisplayPlans() {
-    if (_plans.isNotEmpty) return _plans.cast<Map<String, dynamic>>();
-    return _defaultPlans;
+    return _plans.cast<Map<String, dynamic>>();
   }
 
   Widget _buildActiveSubscriptionCard() {
@@ -338,8 +310,8 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   Widget _buildPlanCard(Map<String, dynamic> plan) {
     final name = plan['name'] ?? '${plan['duration_days']} kunlik';
     final price = plan['price'] ?? 0;
-    final oldPrice = plan['old_price'] ?? plan['price'] ?? 0;
-    final discount = plan['discount'] ?? 0;
+    final durationDays = plan['duration_days'] ?? 0;
+    final visitLimit = plan['visit_limit'] ?? 0;
 
     return GestureDetector(
       onTap: () {
@@ -354,7 +326,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
         ),
         child: Row(
           children: [
-            // Plan icon/image placeholder
+            // Plan icon
             Container(
               width: 56,
               height: 56,
@@ -364,7 +336,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
               ),
               child: Center(
                 child: Text(
-                  '${plan['duration_days'] ?? 30}',
+                  '$durationDays',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
@@ -375,7 +347,6 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            // Plan details
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -389,67 +360,25 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                       color: AppTheme.textPrimary,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  // Old price
-                  if (oldPrice > price)
-                    Text(
-                      '${_formatPrice(oldPrice)} so\'m',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        fontFamily: 'Mulish',
-                        color: AppTheme.textTertiary,
-                        decoration: TextDecoration.lineThrough,
-                      ),
-                    ),
-                  const SizedBox(height: 2),
-                  // Discount + new price
-                  Row(
-                    children: [
-                      if (discount > 0)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          margin: const EdgeInsets.only(right: 6),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryCyan,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '-$discount%',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              fontFamily: 'Mulish',
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      Text(
-                        '${_formatPrice(price)} so\'m',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          fontFamily: 'Mulish',
-                          color: AppTheme.primaryCyan,
-                        ),
-                      ),
-                    ],
-                  ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.refresh, size: 14, color: AppTheme.textSecondary),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Qayta rasmiylashtirish mumkin',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                          fontFamily: 'Mulish',
-                          color: AppTheme.textSecondary,
-                        ),
-                      ),
-                    ],
+                  Text(
+                    '${_formatPrice(price)} so\'m',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: 'Mulish',
+                      color: AppTheme.primaryCyan,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '$durationDays kun \u00b7 $visitLimit ta tashrif',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w400,
+                      fontFamily: 'Mulish',
+                      color: AppTheme.textSecondary,
+                    ),
                   ),
                 ],
               ),

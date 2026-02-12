@@ -31,13 +31,9 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
         return;
       }
     } catch (_) {}
-    // Fallback with real plan IDs from DB
+    // Fallback: show empty state if API failed
     setState(() {
-      _plans = [
-        {'id': 'c62a8b3e-8c58-4c62-8ba1-b264c989b4dd', 'name': '30 kunlik', 'duration_days': 30, 'price': 1500000, 'old_price': 2500000, 'discount': 40, 'is_unlimited': true},
-        {'id': '87fcee77-82fb-4193-b0b6-bad7d9cb6899', 'name': '90 kunlik', 'duration_days': 90, 'price': 4050000, 'old_price': 6750000, 'discount': 40, 'is_unlimited': true},
-        {'id': 'b5f2d04f-cec8-439c-99fb-d292421ca509', 'name': 'Premium 30 kunlik', 'duration_days': 30, 'price': 3150000, 'old_price': 5250000, 'discount': 40, 'is_unlimited': true},
-      ];
+      _plans = [];
       _isLoading = false;
     });
   }
@@ -152,8 +148,8 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   Widget _buildPlanCard(Map<String, dynamic> plan) {
     final name = plan['name'] ?? '${plan['duration_days']} kunlik';
     final price = plan['price'] ?? 0;
-    final oldPrice = plan['old_price'] ?? price;
-    final discount = plan['discount'] ?? 0;
+    final durationDays = plan['duration_days'] ?? 0;
+    final visitLimit = plan['visit_limit'] ?? 0;
 
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/checkout', arguments: plan),
@@ -165,11 +161,11 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
         ),
         child: Row(
           children: [
-            // Plan image thumbnail (30 or 365 day 3D image)
+            // Plan image thumbnail
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.asset(
-                (plan['duration_days'] ?? 30) >= 365
+                (durationDays >= 365)
                     ? 'assets/images/dc39eda64d246726ea5621050f1a81b4f23f7d79.png'
                     : 'assets/images/c22416c54393bfea53da65c75321cdc015b47ddb.png',
                 width: 60, height: 60, fit: BoxFit.cover,
@@ -179,7 +175,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                     gradient: const LinearGradient(colors: [Color(0xFF1A3A7A), Color(0xFF3B7DDD)]),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Center(child: Text('${plan['duration_days'] ?? ''}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white))),
+                  child: Center(child: Text('$durationDays', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white))),
                 ),
               ),
             ),
@@ -189,29 +185,10 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
-                  const SizedBox(height: 2),
-                  if (oldPrice != price)
-                    Text('${_fmt(oldPrice)} so\'m', style: const TextStyle(fontSize: 13, color: Color(0xFF8F96A0), decoration: TextDecoration.lineThrough, fontFamily: 'Mulish')),
-                  Row(
-                    children: [
-                      if (discount > 0)
-                        Container(
-                          margin: const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                          decoration: BoxDecoration(color: const Color(0xFF00BFFE), borderRadius: BorderRadius.circular(6)),
-                          child: Text('-$discount%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
-                        ),
-                      Text('${_fmt(price)} so\'m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
-                    ],
-                  ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Icon(Icons.refresh, size: 14, color: const Color(0xFF8F96A0)),
-                      const SizedBox(width: 4),
-                      Text(context.tr('sub_renewable'), style: const TextStyle(fontSize: 12, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
-                    ],
-                  ),
+                  Text('${_fmt(price)} so\'m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
+                  const SizedBox(height: 2),
+                  Text('$durationDays kun · $visitLimit ta tashrif', style: const TextStyle(fontSize: 13, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
                 ],
               ),
             ),
