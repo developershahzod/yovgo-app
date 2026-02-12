@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
+import '../../l10n/language_provider.dart';
 
 class NotificationsScreenPixelPerfect extends StatefulWidget {
   const NotificationsScreenPixelPerfect({Key? key}) : super(key: key);
@@ -67,9 +68,9 @@ class _NotificationsScreenState extends State<NotificationsScreenPixelPerfect> {
       final dt = DateTime.parse(dateStr);
       final now = DateTime.now();
       final diff = now.difference(dt);
-      if (diff.inDays == 0) return 'Bugun, ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-      if (diff.inDays == 1) return 'Kecha, ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-      if (diff.inDays < 7) return '${diff.inDays} kun oldin';
+      if (diff.inDays == 0) return '${context.tr('day_today')}, ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      if (diff.inDays == 1) return '${context.tr('day_yesterday')}, ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
+      if (diff.inDays < 7) return '${diff.inDays} ${context.tr('notif_days_ago')}';
       return '${dt.day.toString().padLeft(2, '0')}.${dt.month.toString().padLeft(2, '0')}.${dt.year}';
     } catch (_) {
       return dateStr;
@@ -129,9 +130,9 @@ class _NotificationsScreenState extends State<NotificationsScreenPixelPerfect> {
             child: const Icon(Icons.notifications_off_outlined, size: 56, color: AppTheme.primaryCyan),
           ),
           const SizedBox(height: 20),
-          const Text('Bildirishnomalar yo\'q', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: AppTheme.textPrimary)),
+          Text(context.tr('notif_empty'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: AppTheme.textPrimary)),
           const SizedBox(height: 8),
-          const Text('Yangi bildirishnomalar bu yerda ko\'rinadi', style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
+          Text(context.tr('notif_empty_desc'), style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
         ],
       ),
     );
@@ -151,8 +152,8 @@ class _NotificationsScreenState extends State<NotificationsScreenPixelPerfect> {
               child: const Center(child: Icon(Icons.arrow_back, size: 24, color: AppTheme.textPrimary)),
             ),
           ),
-          const Center(
-            child: Text('Bildirishnomalar', style: TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+          Center(
+            child: Text(context.tr('notif_title'), style: const TextStyle(color: AppTheme.textPrimary, fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
           ),
           if (unreadCount > 0)
             Positioned(
@@ -293,7 +294,7 @@ class _NotificationDetailScreen extends StatelessWidget {
           icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Bildirishnoma', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: AppTheme.textPrimary)),
+        title: Text(context.tr('notif_detail'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: AppTheme.textPrimary)),
         centerTitle: true,
       ),
       body: SingleChildScrollView(

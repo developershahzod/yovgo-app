@@ -122,7 +122,7 @@ class _CarsScreenState extends State<CarsScreen> {
     final searchCtrl = TextEditingController();
     final sorted = List<String>.from(_carBrands)..sort();
     showModalBottomSheet(
-      context: dCtx, isScrollControlled: true, backgroundColor: Colors.white,
+      context: dCtx, isScrollControlled: true, useRootNavigator: true, backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (sc) {
         var filtered = sorted;
@@ -256,7 +256,7 @@ class _CarsScreenState extends State<CarsScreen> {
                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                         _label(context.tr('vehicle_color')),
                         DropdownButtonFormField<String>(
-                          value: selectedColor, isExpanded: true,
+                          value: selectedColor, isExpanded: true, menuMaxHeight: 200,
                           style: const TextStyle(fontSize: 14, fontFamily: 'Mulish', fontWeight: FontWeight.w600, color: Color(0xFF0A0C13)),
                           decoration: _inputDeco('Rang', error: colorErr),
                           items: _carColors.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),

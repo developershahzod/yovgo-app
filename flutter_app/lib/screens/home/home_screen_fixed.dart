@@ -6,6 +6,7 @@ import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
 import '../../widgets/ios_weather_icon.dart';
+import '../main_navigation_fixed.dart';
 
 class HomeScreenFixed extends StatefulWidget {
   const HomeScreenFixed({Key? key}) : super(key: key);
@@ -377,7 +378,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: GestureDetector(
-        onTap: () => Navigator.pushNamed(context, '/subscriptions'),
+        onTap: () => MainNavigationFixed.switchToTab(3),
         child: Container(
           width: double.infinity,
           decoration: BoxDecoration(
@@ -1677,7 +1678,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
   Widget _buildStaticBanner() {
     return GestureDetector(
       onTap: () {
-        Navigator.pushNamed(context, '/subscriptions');
+        MainNavigationFixed.switchToTab(3);
       },
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16),

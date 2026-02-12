@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
+import '../../l10n/language_provider.dart';
+import '../../widgets/ios_weather_icon.dart';
 
 class WeatherScreen extends StatefulWidget {
   const WeatherScreen({Key? key}) : super(key: key);
@@ -50,38 +52,22 @@ class _WeatherScreenState extends State<WeatherScreen> {
     if (mounted) setState(() => _isLoading = false);
   }
 
-  String _weatherEmoji(String type) {
-    switch (type) {
-      case 'sunny': return '☀️';
-      case 'cloudy': return '☁️';
-      case 'rain': return '🌧️';
-      case 'drizzle': return '🌦️';
-      case 'snow': return '❄️';
-      case 'thunderstorm': return '⛈️';
-      case 'fog': return '🌫️';
-      default: return '☀️';
-    }
-  }
-
   String _weatherLabel(String type) {
-    switch (type) {
-      case 'sunny': return 'Quyoshli';
-      case 'cloudy': return 'Bulutli';
-      case 'rain': return 'Yomg\'irli';
-      case 'drizzle': return 'Mayda yomg\'ir';
-      case 'snow': return 'Qorli';
-      case 'thunderstorm': return 'Momaqaldiroq';
-      case 'fog': return 'Tumanli';
-      default: return 'Quyoshli';
-    }
+    final labels = {
+      'sunny': 'weather_sunny', 'cloudy': 'weather_cloudy',
+      'rain': 'weather_rainy', 'drizzle': 'weather_drizzle',
+      'snow': 'weather_snowy', 'thunderstorm': 'weather_thunder',
+      'fog': 'weather_foggy',
+    };
+    return context.tr(labels[type] ?? 'weather_sunny');
   }
 
   String _ratingLabel(int rating) {
-    if (rating >= 80) return 'Holat: A\'lo';
-    if (rating >= 60) return 'Holat: Yaxshi';
-    if (rating >= 40) return 'Holat: O\'rtacha';
-    if (rating >= 20) return 'Holat: Yomon';
-    return 'Holat: Juda yomon';
+    if (rating >= 80) return context.tr('rating_excellent');
+    if (rating >= 60) return context.tr('rating_good');
+    if (rating >= 40) return context.tr('rating_average');
+    if (rating >= 20) return context.tr('rating_bad');
+    return context.tr('rating_very_bad');
   }
 
   @override
@@ -101,7 +87,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Yuvish reytingi',
+          context.tr('wash_rating'),
           style: TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 18,
@@ -120,33 +106,26 @@ class _WeatherScreenState extends State<WeatherScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Circular Gauge
+                    // Half-circle gauge
                     Center(
                       child: SizedBox(
                         width: 200,
-                        height: 200,
+                        height: 130,
                         child: CustomPaint(
-                          painter: CircularGaugePainter(percentage: _washRating),
-                          child: Center(
+                          painter: _HalfCircleGaugePainter(percentage: _washRating),
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 30),
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
                                   _ratingLabel(_washRating),
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: AppTheme.textSecondary,
-                                  ),
+                                  style: TextStyle(fontSize: 12, color: AppTheme.textSecondary, fontFamily: 'Mulish'),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 2),
                                 Text(
                                   '$_washRating%',
-                                  style: TextStyle(
-                                    fontSize: 56,
-                                    fontWeight: FontWeight.w900,
-                                    color: AppTheme.textPrimary,
-                                    height: 1.0,
-                                  ),
+                                  style: TextStyle(fontSize: 44, fontWeight: FontWeight.w900, color: AppTheme.textPrimary, fontFamily: 'Mulish', height: 1.0),
                                 ),
                               ],
                             ),
@@ -192,7 +171,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
-                                    'Tavfsiya',
+                                    context.tr('weather_recommendation'),
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
@@ -235,7 +214,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Hozirgi havo harorati:',
+                            context.tr('weather_current_temp'),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
@@ -251,10 +230,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                   children: [
                                     Row(
                                       children: [
-                                        Text(
-                                          _weatherEmoji(curType),
-                                          style: const TextStyle(fontSize: 20),
-                                        ),
+                                        IosWeatherIcon(type: curType, size: 24),
                                         const SizedBox(width: 8),
                                         Text(
                                           _weatherLabel(curType),
@@ -267,7 +243,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
-                                      'Harorat: ${curTemp >= 0 ? "+" : ""}$curTemp°',
+                                      '${context.tr("weather_temp")}: ${curTemp >= 0 ? "+" : ""}$curTemp°',
                                       style: TextStyle(
                                         fontSize: 13,
                                         color: AppTheme.textSecondary,
@@ -323,11 +299,11 @@ class _WeatherScreenState extends State<WeatherScreen> {
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          _buildConditionItem('💨', '$curWind km/h', 'Shamol'),
+                          _buildConditionItemIcon(const IosWeatherIcon(type: 'cloudy', size: 28), '$curWind km/h', context.tr('weather_wind')),
                           Container(width: 1, height: 40, color: AppTheme.borderGray),
-                          _buildConditionItem('💧', '$curHumidity%', 'Namlik'),
+                          _buildConditionItemIcon(const IosWeatherIcon(type: 'rain', size: 28), '$curHumidity%', context.tr('weather_dust')),
                           Container(width: 1, height: 40, color: AppTheme.borderGray),
-                          _buildConditionItem(_weatherEmoji(curType), _weatherLabel(curType), 'Havo'),
+                          _buildConditionItemIcon(IosWeatherIcon(type: curType, size: 28), _weatherLabel(curType), context.tr('weather_current_temp')),
                         ],
                       ),
                     ),
@@ -336,7 +312,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
                     
                     // Weekly Forecast
                     Text(
-                      'Haftalik prognoz',
+                      context.tr('weather_weekly'),
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -348,14 +324,14 @@ class _WeatherScreenState extends State<WeatherScreen> {
                     ..._forecast.asMap().entries.map((entry) {
                       final i = entry.key;
                       final day = entry.value;
-                      final weekday = i == 0 ? 'Bugun' : (day['weekday'] ?? '').toString();
+                      final weekday = i == 0 ? context.tr('day_today') : (day['weekday'] ?? '').toString();
                       final rating = int.tryParse(day['wash_rating']?.toString() ?? '') ?? 0;
                       final temp = (day['temp'] ?? '').toString();
                       final tempMin = (day['temp_min'] ?? '').toString();
                       final weather = (day['weather'] ?? 'sunny').toString();
                       return Padding(
                         padding: EdgeInsets.only(bottom: i < _forecast.length - 1 ? 12 : 0),
-                        child: _buildForecastItem(weekday, rating, temp, tempMin, _weatherEmoji(weather)),
+                        child: _buildForecastItem(weekday, rating, temp, tempMin, weather),
                       );
                     }),
                   ],
@@ -365,10 +341,10 @@ class _WeatherScreenState extends State<WeatherScreen> {
     );
   }
 
-  Widget _buildConditionItem(String emoji, String value, String label) {
+  Widget _buildConditionItemIcon(Widget icon, String value, String label) {
     return Column(
       children: [
-        Text(emoji, style: const TextStyle(fontSize: 28)),
+        icon,
         const SizedBox(height: 8),
         Text(
           value,
@@ -390,7 +366,7 @@ class _WeatherScreenState extends State<WeatherScreen> {
     );
   }
 
-  Widget _buildForecastItem(String day, int percentage, String high, String low, String emoji) {
+  Widget _buildForecastItem(String day, int percentage, String high, String low, String weatherType) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -491,95 +467,90 @@ class _WeatherScreenState extends State<WeatherScreen> {
             ],
           ),
           const SizedBox(width: 8),
-          Text(emoji, style: const TextStyle(fontSize: 20)),
+          IosWeatherIcon(type: weatherType, size: 22),
         ],
       ),
     );
   }
 }
 
-class CircularGaugePainter extends CustomPainter {
+/// Half-circle gauge painter matching the home screen style
+class _HalfCircleGaugePainter extends CustomPainter {
   final int percentage;
 
-  CircularGaugePainter({required this.percentage});
+  _HalfCircleGaugePainter({required this.percentage});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 20;
-    final strokeWidth = 16.0;
+    final center = Offset(size.width / 2, size.height - 8);
+    final radius = size.width / 2 - 16;
+    const strokeWidth = 14.0;
 
-    // Background arc
-    final backgroundPaint = Paint()
-      ..color = Colors.grey.shade200
+    // Background arc (light gray half-circle)
+    final bgPaint = Paint()
+      ..color = const Color(0xFFF2F2F2)
       ..style = PaintingStyle.stroke
       ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      math.pi * 0.75,
-      math.pi * 1.5,
+      math.pi,
+      math.pi,
       false,
-      backgroundPaint,
+      bgPaint,
     );
 
-    // Gradient arc
-    final gradientColors = [
-      Colors.red,
-      Colors.orange,
-      Colors.yellow,
-      Colors.green,
-    ];
+    // Gradient arc (red → orange → yellow → green)
+    final sweepAngle = (percentage / 100) * math.pi;
+    if (sweepAngle > 0) {
+      final rect = Rect.fromCircle(center: center, radius: radius);
+      final gradient = SweepGradient(
+        startAngle: math.pi,
+        endAngle: math.pi * 2,
+        colors: const [
+          Color(0xFFFC3E3E),
+          Color(0xFFFF8C00),
+          Color(0xFFFFD600),
+          Color(0xFF5CCC27),
+        ],
+      );
 
-    final sweepAngle = (percentage / 100) * math.pi * 1.5;
+      final progressPaint = Paint()
+        ..shader = gradient.createShader(rect)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
 
-    for (int i = 0; i < gradientColors.length - 1; i++) {
-      final startAngle = math.pi * 0.75 + (i / (gradientColors.length - 1)) * math.pi * 1.5;
-      final endAngle = math.pi * 0.75 + ((i + 1) / (gradientColors.length - 1)) * math.pi * 1.5;
-      
-      if (startAngle < math.pi * 0.75 + sweepAngle) {
-        final paint = Paint()
-          ..shader = LinearGradient(
-            colors: [gradientColors[i], gradientColors[i + 1]],
-          ).createShader(Rect.fromCircle(center: center, radius: radius))
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = strokeWidth
-          ..strokeCap = StrokeCap.round;
-
-        final actualEndAngle = endAngle > math.pi * 0.75 + sweepAngle
-            ? math.pi * 0.75 + sweepAngle
-            : endAngle;
-
-        canvas.drawArc(
-          Rect.fromCircle(center: center, radius: radius),
-          startAngle,
-          actualEndAngle - startAngle,
-          false,
-          paint,
-        );
-      }
+      canvas.drawArc(rect, math.pi, sweepAngle, false, progressPaint);
     }
 
     // End indicator dot
-    final endAngle = math.pi * 0.75 + sweepAngle;
-    final endX = center.dx + radius * math.cos(endAngle);
-    final endY = center.dy + radius * math.sin(endAngle);
+    final endAngle = math.pi + sweepAngle;
+    final dotX = center.dx + radius * math.cos(endAngle);
+    final dotY = center.dy + radius * math.sin(endAngle);
 
-    final dotPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
+    canvas.drawCircle(Offset(dotX, dotY), 7, Paint()..color = Colors.white);
 
-    canvas.drawCircle(Offset(endX, endY), 10, dotPaint);
-
-    final dotBorderPaint = Paint()
-      ..color = Colors.green
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 4;
-
-    canvas.drawCircle(Offset(endX, endY), 10, dotBorderPaint);
+    // Dot border color based on percentage
+    Color dotColor;
+    if (percentage >= 70) {
+      dotColor = const Color(0xFF5CCC27);
+    } else if (percentage >= 40) {
+      dotColor = const Color(0xFFFFD600);
+    } else {
+      dotColor = const Color(0xFFFC3E3E);
+    }
+    canvas.drawCircle(
+      Offset(dotX, dotY),
+      7,
+      Paint()
+        ..color = dotColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3,
+    );
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(_HalfCircleGaugePainter old) => old.percentage != percentage;
 }

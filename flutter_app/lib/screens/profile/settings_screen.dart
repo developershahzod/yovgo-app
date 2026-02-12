@@ -199,17 +199,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Versiya: 1.0.0',
+              '${context.tr('about_version')}: 1.0.0',
               style: TextStyle(fontSize: 14, color: AppTheme.textSecondary),
             ),
             const SizedBox(height: 12),
             Text(
-              'YuvGO - O\'zbekistondagi eng qulay avtomobil yuvish xizmati. Obuna orqali barcha hamkor avtomoykalardan foydalaning.',
+              context.tr('about_description'),
               style: TextStyle(fontSize: 14, color: AppTheme.textPrimary, height: 1.5),
             ),
             const SizedBox(height: 16),
             Text(
-              '© 2024 YuvGO. Barcha huquqlar himoyalangan.',
+              context.tr('about_copyright'),
               style: TextStyle(fontSize: 12, color: AppTheme.textSecondary),
             ),
           ],

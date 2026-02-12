@@ -25,9 +25,9 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    // Wave animation — continuous flowing motion (fast)
+    // Wave animation — smooth continuous flowing motion
     _waveController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 2500),
       vsync: this,
     )..repeat();
     _waveSlide = Tween<double>(begin: 0.0, end: 1.0).animate(

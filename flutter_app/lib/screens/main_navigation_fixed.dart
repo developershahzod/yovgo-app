@@ -10,6 +10,13 @@ import 'profile/profile_screen.dart';
 
 class MainNavigationFixed extends StatefulWidget {
   final int initialIndex;
+
+  static _MainNavigationFixedState? _instance;
+
+  /// Switch tab from anywhere inside the main navigation
+  static void switchToTab(int index) {
+    _instance?._onTabTapped(index);
+  }
   
   const MainNavigationFixed({
     Key? key,
@@ -27,6 +34,15 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
+    MainNavigationFixed._instance = this;
+  }
+
+  @override
+  void dispose() {
+    if (MainNavigationFixed._instance == this) {
+      MainNavigationFixed._instance = null;
+    }
+    super.dispose();
   }
 
   void _onTabTapped(int index) {

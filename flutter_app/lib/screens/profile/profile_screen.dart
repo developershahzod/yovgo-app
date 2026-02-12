@@ -523,9 +523,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 children: [
-                  _buildHelpItem('Obuna haqida', 'Obuna rejalari va to\'lovlar haqida'),
-                  _buildHelpItem('QR kod skanerlash', 'QR kodni qanday skanerlash kerak'),
-                  _buildHelpItem('Biz bilan bog\'lanish', 'Telefon: +998 71 123 45 67\nEmail: support@yuvgo.uz'),
+                  _buildHelpItem(context.tr('help_about_sub'), context.tr('help_about_sub_desc')),
+                  _buildHelpItem(context.tr('help_qr_scan'), context.tr('help_qr_scan_desc')),
+                  _buildHelpItem(context.tr('help_contact'), context.tr('help_contact_desc')),
                 ],
               ),
             ),
