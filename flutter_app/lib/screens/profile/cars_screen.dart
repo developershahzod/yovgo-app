@@ -1,8 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
+
+const _carBrands = [
+  'Chevrolet', 'Kia', 'Hyundai', 'Toyota', 'BYD', 'Daewoo',
+  'Lada (VAZ)', 'Ravon', 'Nissan', 'Honda', 'Mercedes-Benz',
+  'BMW', 'Audi', 'Volkswagen', 'Lexus', 'Mazda', 'Mitsubishi',
+  'Geely', 'Chery', 'Haval', 'Changan', 'Jetour', 'Exeed',
+  'Ford', 'Renault', 'Peugeot', 'Skoda', 'Subaru', 'Suzuki',
+  'Volvo', 'Porsche', 'Land Rover', 'Isuzu', 'GAZ', 'UAZ',
+];
+
+class _UzPlateFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final raw = newValue.text.replaceAll(' ', '').toUpperCase();
+    final buf = StringBuffer();
+    for (int i = 0; i < raw.length && i < 9; i++) {
+      final c = raw[i];
+      if (i < 2) { if (RegExp(r'\d').hasMatch(c)) buf.write(c); else continue; }
+      else if (i == 2) { if (RegExp(r'[A-Z]').hasMatch(c)) { buf.write(' '); buf.write(c); } else continue; }
+      else if (i < 6) { if (RegExp(r'\d').hasMatch(c)) { if (i == 3) buf.write(' '); buf.write(c); } else continue; }
+      else { if (RegExp(r'[A-Z]').hasMatch(c)) { if (i == 6) buf.write(' '); buf.write(c); } else continue; }
+    }
+    final text = buf.toString();
+    return TextEditingValue(text: text, selection: TextSelection.collapsed(offset: text.length));
+  }
+}
 
 class CarsScreen extends StatefulWidget {
   const CarsScreen({Key? key}) : super(key: key);
@@ -55,18 +82,39 @@ class _CarsScreenState extends State<CarsScreen> {
     }
   }
 
+  InputDecoration _inputDeco(String hint, {String? error}) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.w400),
+      errorText: error,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
+      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
+      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.primaryCyan, width: 2)),
+    );
+  }
+
+  Widget _label(String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Text(text, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
+    );
+  }
+
   Future<void> _showAddDialog() async {
-    final brandCtrl = TextEditingController();
     final modelCtrl = TextEditingController();
     final plateCtrl = TextEditingController();
     final colorCtrl = TextEditingController();
     final yearCtrl = TextEditingController();
     String selectedType = 'sedan';
+    String? selectedBrand;
+    String? plateErr, yearErr, brandErr;
+    final curYear = DateTime.now().year;
 
     final result = await showDialog<bool>(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDialogState) => Dialog(
+        builder: (ctx, ss) => Dialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -77,127 +125,130 @@ class _CarsScreenState extends State<CarsScreen> {
                 children: [
                   Text(context.tr('vehicle_add'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                   const SizedBox(height: 20),
-                  _buildInput(context.tr('vehicle_plate'), plateCtrl, '01 A 777 AA'),
+                  _label(context.tr('vehicle_plate')),
+                  TextField(
+                    controller: plateCtrl,
+                    textCapitalization: TextCapitalization.characters,
+                    inputFormatters: [_UzPlateFormatter()],
+                    style: const TextStyle(fontSize: 16, fontFamily: 'Mulish', fontWeight: FontWeight.w700, letterSpacing: 1.5),
+                    decoration: _inputDeco('01 A 777 AA', error: plateErr),
+                    onChanged: (_) { if (plateErr != null) ss(() => plateErr = null); },
+                  ),
                   const SizedBox(height: 12),
-                  _buildInput(context.tr('vehicle_brand'), brandCtrl, 'Chevrolet'),
+                  _label(context.tr('vehicle_brand')),
+                  DropdownButtonFormField<String>(
+                    value: selectedBrand,
+                    isExpanded: true,
+                    style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w600, color: Color(0xFF0A0C13)),
+                    decoration: _inputDeco('Tanlang', error: brandErr),
+                    items: _carBrands.map((b) => DropdownMenuItem(value: b, child: Text(b))).toList(),
+                    onChanged: (v) => ss(() { selectedBrand = v; brandErr = null; }),
+                  ),
                   const SizedBox(height: 12),
-                  _buildInput(context.tr('vehicle_model'), modelCtrl, 'Malibu 2'),
+                  _label(context.tr('vehicle_model')),
+                  TextField(
+                    controller: modelCtrl,
+                    style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w600),
+                    decoration: _inputDeco('Malibu 2'),
+                  ),
                   const SizedBox(height: 12),
-                  // Vehicle type selector
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Text(context.tr('vehicle_type'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
+                  const SizedBox(height: 8),
+                  Row(
                     children: [
-                      Text(context.tr('vehicle_type'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => setDialogState(() => selectedType = 'sedan'),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: selectedType == 'sedan' ? AppTheme.primaryCyan : Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: selectedType == 'sedan' ? AppTheme.primaryCyan : Colors.grey[300]!,
-                                    width: selectedType == 'sedan' ? 2 : 1,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Icon(Icons.directions_car, size: 28, color: selectedType == 'sedan' ? Colors.white : AppTheme.textSecondary),
-                                    const SizedBox(height: 4),
-                                    Text('Yengil', style: TextStyle(
-                                      fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Mulish',
-                                      color: selectedType == 'sedan' ? Colors.white : AppTheme.textPrimary,
-                                    )),
-                                  ],
-                                ),
-                              ),
-                            ),
+                      Expanded(child: GestureDetector(
+                        onTap: () => ss(() => selectedType = 'sedan'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: selectedType == 'sedan' ? AppTheme.primaryCyan : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: selectedType == 'sedan' ? AppTheme.primaryCyan : Colors.grey[300]!, width: selectedType == 'sedan' ? 2 : 1),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: GestureDetector(
-                              onTap: () => setDialogState(() => selectedType = 'crossover'),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                decoration: BoxDecoration(
-                                  color: selectedType == 'crossover' ? AppTheme.primaryCyan : Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: selectedType == 'crossover' ? AppTheme.primaryCyan : Colors.grey[300]!,
-                                    width: selectedType == 'crossover' ? 2 : 1,
-                                  ),
-                                ),
-                                child: Column(
-                                  children: [
-                                    Icon(Icons.airport_shuttle, size: 28, color: selectedType == 'crossover' ? Colors.white : AppTheme.textSecondary),
-                                    const SizedBox(height: 4),
-                                    Text('Krossover', style: TextStyle(
-                                      fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Mulish',
-                                      color: selectedType == 'crossover' ? Colors.white : AppTheme.textPrimary,
-                                    )),
-                                  ],
-                                ),
-                              ),
-                            ),
+                          child: Column(children: [
+                            Icon(Icons.directions_car, size: 28, color: selectedType == 'sedan' ? Colors.white : AppTheme.textSecondary),
+                            const SizedBox(height: 4),
+                            Text('Yengil', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: selectedType == 'sedan' ? Colors.white : AppTheme.textPrimary)),
+                          ]),
+                        ),
+                      )),
+                      const SizedBox(width: 12),
+                      Expanded(child: GestureDetector(
+                        onTap: () => ss(() => selectedType = 'crossover'),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: selectedType == 'crossover' ? AppTheme.primaryCyan : Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: selectedType == 'crossover' ? AppTheme.primaryCyan : Colors.grey[300]!, width: selectedType == 'crossover' ? 2 : 1),
                           ),
-                        ],
-                      ),
+                          child: Column(children: [
+                            Icon(Icons.airport_shuttle, size: 28, color: selectedType == 'crossover' ? Colors.white : AppTheme.textSecondary),
+                            const SizedBox(height: 4),
+                            Text('Krossover', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: selectedType == 'crossover' ? Colors.white : AppTheme.textPrimary)),
+                          ]),
+                        ),
+                      )),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _buildInput(context.tr('vehicle_color'), colorCtrl, '')),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        _label(context.tr('vehicle_color')),
+                        TextField(controller: colorCtrl, style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w600), decoration: _inputDeco('')),
+                      ])),
                       const SizedBox(width: 12),
-                      Expanded(child: _buildInput(context.tr('vehicle_year'), yearCtrl, '2024', isNumber: true)),
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        _label(context.tr('vehicle_year')),
+                        TextField(
+                          controller: yearCtrl,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly, LengthLimitingTextInputFormatter(4)],
+                          style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w600),
+                          decoration: _inputDeco('$curYear', error: yearErr),
+                          onChanged: (_) { if (yearErr != null) ss(() => yearErr = null); },
+                        ),
+                      ])),
                     ],
                   ),
                   const SizedBox(height: 24),
                   Row(
                     children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                          child: Text(context.tr('cancel'), style: const TextStyle(fontFamily: 'Mulish', fontWeight: FontWeight.w600)),
-                        ),
-                      ),
+                      Expanded(child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                        child: Text(context.tr('cancel'), style: const TextStyle(fontFamily: 'Mulish', fontWeight: FontWeight.w600)),
+                      )),
                       const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () async {
-                            if (plateCtrl.text.trim().isEmpty || brandCtrl.text.trim().isEmpty) return;
-                            try {
-                              await FullApiService.post('/api/mobile/vehicles', data: {
-                                'license_plate': plateCtrl.text.trim(),
-                                'brand': brandCtrl.text.trim().isNotEmpty ? brandCtrl.text.trim() : null,
-                                'model': modelCtrl.text.trim().isNotEmpty ? modelCtrl.text.trim() : null,
-                                'color': colorCtrl.text.trim().isNotEmpty ? colorCtrl.text.trim() : null,
-                                'year': yearCtrl.text.trim().isNotEmpty ? int.tryParse(yearCtrl.text.trim()) : null,
-                                'vehicle_type': selectedType,
-                              });
-                              Navigator.pop(ctx, true);
-                            } catch (e) {
-                              ScaffoldMessenger.of(ctx).showSnackBar(
-                                SnackBar(content: Text('Xatolik: $e'), backgroundColor: Colors.red),
-                              );
-                            }
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppTheme.primaryCyan,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          ),
-                          child: Text(context.tr('add'), style: const TextStyle(color: Colors.white, fontFamily: 'Mulish', fontWeight: FontWeight.w700)),
-                        ),
-                      ),
+                      Expanded(child: ElevatedButton(
+                        onPressed: () async {
+                          bool hasErr = false;
+                          final plate = plateCtrl.text.trim();
+                          if (plate.length < 11) { ss(() => plateErr = 'Format: 01 A 777 AA'); hasErr = true; }
+                          if (selectedBrand == null) { ss(() => brandErr = 'Markani tanlang'); hasErr = true; }
+                          if (yearCtrl.text.isNotEmpty) {
+                            final y = int.tryParse(yearCtrl.text) ?? 0;
+                            if (y < 1990 || y > curYear) { ss(() => yearErr = '1990-$curYear'); hasErr = true; }
+                          }
+                          if (hasErr) return;
+                          try {
+                            await FullApiService.post('/api/mobile/vehicles', data: {
+                              'license_plate': plate,
+                              'brand': selectedBrand,
+                              'model': modelCtrl.text.trim().isNotEmpty ? modelCtrl.text.trim() : null,
+                              'color': colorCtrl.text.trim().isNotEmpty ? colorCtrl.text.trim() : null,
+                              'year': yearCtrl.text.isNotEmpty ? int.tryParse(yearCtrl.text) : null,
+                              'vehicle_type': selectedType,
+                            });
+                            Navigator.pop(ctx, true);
+                          } catch (e) {
+                            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Xatolik: $e'), backgroundColor: Colors.red));
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryCyan, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                        child: Text(context.tr('add'), style: const TextStyle(color: Colors.white, fontFamily: 'Mulish', fontWeight: FontWeight.w700)),
+                      )),
                     ],
                   ),
                 ],
@@ -208,32 +259,7 @@ class _CarsScreenState extends State<CarsScreen> {
       ),
     );
 
-    if (result == true) {
-      _loadVehicles();
-    }
-  }
-
-  Widget _buildInput(String label, TextEditingController ctrl, String hint, {bool isNumber = false}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
-        const SizedBox(height: 6),
-        TextField(
-          controller: ctrl,
-          keyboardType: isNumber ? TextInputType.number : TextInputType.text,
-          style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w600),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[400], fontWeight: FontWeight.w400),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: Colors.grey[300]!)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: AppTheme.primaryCyan, width: 2)),
-          ),
-        ),
-      ],
-    );
+    if (result == true) _loadVehicles();
   }
 
   Future<void> _deleteVehicle(Map<String, dynamic> car) async {
