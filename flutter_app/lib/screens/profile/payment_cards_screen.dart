@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
+import '../../l10n/language_provider.dart';
 
 class PaymentCardsScreen extends StatelessWidget {
   const PaymentCardsScreen({Key? key}) : super(key: key);
@@ -18,7 +19,7 @@ class PaymentCardsScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Mening kartalarim',
+          context.tr('cards_title'),
           style: TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 18,
@@ -62,7 +63,7 @@ class PaymentCardsScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Qo\'shish',
+                        context.tr('cards_add'),
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -193,7 +194,7 @@ class PaymentCardsScreen extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            'Kartalar mavjud emas',
+            context.tr('cards_empty'),
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -204,7 +205,7 @@ class PaymentCardsScreen extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              'Kartalarni qo\'shish uchun pastdagi "Qo\'shish" tugmasini bosing',
+              context.tr('cards_empty_desc'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
