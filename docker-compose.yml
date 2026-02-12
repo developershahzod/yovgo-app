@@ -58,7 +58,7 @@ services:
       - PAYMENT_SERVICE_URL=http://payment_service:8005
       - NOTIFICATION_SERVICE_URL=http://notification_service:8006
       - ADMIN_SERVICE_URL=http://admin_service:8007
-      - IPAKYULI_BASE_URL=https://partner.ecomm.staging.ipakyulibank.uz
+      - IPAKYULI_BASE_URL=http://partner.ecomm.staging.ipakyulibank.uz
       - IPAKYULI_ACCESS_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiI1ODM1YWVkNS05ZjkwLTQ3ZWEtYmVhMS1kNzE5MzI1NGY5N2QiLCJtZXJjaGFudElkIjoiMjE2YjQzNjItOGM4Yi00MjlkLWJlOGItNTJkYmVlZTAzYTNhIiwiaWF0IjoxNzcwNzcwMjUwLCJleHAiOjE4MDIzMjc4NTB9.o9l2mUjYe2_igfgyoDGovwgnZImvOF09RRgRzQ2-Ge8
       - IPAKYULI_CASHBOX_ID=5835aed5-9f90-47ea-bea1-d7193254f97d
       - IPAKYULI_MERCHANT_ID=216b4362-8c8b-429d-be8b-52dbeee03a3a
@@ -174,7 +174,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - JWT_SECRET=your-secret-key-change-in-production
       # IpakYuliBank E-Comm credentials (Staging)
-      - IPAKYULI_BASE_URL=https://partner.ecomm.staging.ipakyulibank.uz
+      - IPAKYULI_BASE_URL=http://partner.ecomm.staging.ipakyulibank.uz
       - IPAKYULI_ACCESS_TOKEN=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiI1ODM1YWVkNS05ZjkwLTQ3ZWEtYmVhMS1kNzE5MzI1NGY5N2QiLCJtZXJjaGFudElkIjoiMjE2YjQzNjItOGM4Yi00MjlkLWJlOGItNTJkYmVlZTAzYTNhIiwiaWF0IjoxNzcwNzcwMjUwLCJleHAiOjE4MDIzMjc4NTB9.o9l2mUjYe2_igfgyoDGovwgnZImvOF09RRgRzQ2-Ge8
       - IPAKYULI_CASHBOX_ID=5835aed5-9f90-47ea-bea1-d7193254f97d
       - IPAKYULI_MERCHANT_ID=216b4362-8c8b-429d-be8b-52dbeee03a3a
