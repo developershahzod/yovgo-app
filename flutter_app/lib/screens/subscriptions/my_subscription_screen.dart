@@ -5,6 +5,8 @@ import '../../l10n/language_provider.dart';
 class MySubscriptionScreen extends StatefulWidget {
   const MySubscriptionScreen({Key? key}) : super(key: key);
 
+  static final GlobalKey<_MySubscriptionScreenState> globalKey = GlobalKey<_MySubscriptionScreenState>();
+
   @override
   State<MySubscriptionScreen> createState() => _MySubscriptionScreenState();
 }
@@ -24,6 +26,10 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
   @override
   void initState() {
     super.initState();
+    _loadSubscription();
+  }
+
+  void refreshData() {
     _loadSubscription();
   }
 

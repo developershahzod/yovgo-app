@@ -9,6 +9,8 @@ import '../../l10n/language_provider.dart';
 class HomeScreenFixed extends StatefulWidget {
   const HomeScreenFixed({Key? key}) : super(key: key);
 
+  static final GlobalKey<_HomeScreenFixedState> globalKey = GlobalKey<_HomeScreenFixedState>();
+
   @override
   State<HomeScreenFixed> createState() => _HomeScreenFixedState();
 }
@@ -53,6 +55,10 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
   @override
   void initState() {
     super.initState();
+    _loadHomeData();
+  }
+
+  void refreshData() {
     _loadHomeData();
   }
 

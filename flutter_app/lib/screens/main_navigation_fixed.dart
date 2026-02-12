@@ -33,6 +33,12 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
     setState(() {
       _currentIndex = index;
     });
+    // Refresh data when switching to home or subscription tabs
+    if (index == 0) {
+      HomeScreenFixed.globalKey.currentState?.refreshData();
+    } else if (index == 3) {
+      MySubscriptionScreen.globalKey.currentState?.refreshData();
+    }
   }
 
   @override
@@ -41,11 +47,11 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
       body: IndexedStack(
         index: _currentIndex,
         children: [
-          const HomeScreenFixed(),
+          HomeScreenFixed(key: HomeScreenFixed.globalKey),
           const MapScreenNew(),
           // Only build QR scanner when its tab is active to prevent camera on all pages
           _currentIndex == 2 ? const QrScannerScreenFixed() : const SizedBox.shrink(),
-          const MySubscriptionScreen(),
+          MySubscriptionScreen(key: MySubscriptionScreen.globalKey),
           const ProfileScreen(),
         ],
       ),

@@ -915,12 +915,13 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   // ─── Bottom Bar ───
   Widget _buildBottomBar(dynamic lat, dynamic lng) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 20, offset: const Offset(0, -4))],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, -2))],
       ),
       child: SafeArea(
+        top: false,
         child: Row(
           children: [
             // Marshrut button

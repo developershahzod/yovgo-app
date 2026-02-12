@@ -628,8 +628,13 @@ async def qr_checkin(
     
     location_id = None
     try:
-        parts = qr_token.split("_")
-        if len(parts) >= 2 and parts[0] == "MERCHANT":
+        # Normalize: strip YUVGO_ prefix if present
+        normalized = qr_token
+        if normalized.startswith("YUVGO_"):
+            normalized = normalized[6:]  # Remove "YUVGO_" prefix
+        
+        parts = normalized.split("_")
+        if len(parts) >= 2 and parts[0] in ("MERCHANT", "PARTNER"):
             partner_id = parts[1]  # UUID string
         elif len(parts) >= 2 and parts[0] == "BRANCH":
             branch_id = parts[1]  # UUID string — this is a PartnerLocation id
