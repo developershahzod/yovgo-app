@@ -1,8 +1,49 @@
 import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
+import '../../services/full_api_service.dart';
+import '../../l10n/language_provider.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({Key? key}) : super(key: key);
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  List<Map<String, dynamic>> _notifications = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadNotifications();
+  }
+
+  Future<void> _loadNotifications() async {
+    try {
+      final resp = await FullApiService.get('/api/mobile/notifications');
+      if (resp.statusCode == 200 && resp.data != null) {
+        final list = (resp.data['notifications'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        if (mounted) setState(() { _notifications = list; _isLoading = false; });
+        return;
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  String _formatTime(String? dateStr) {
+    if (dateStr == null || dateStr.isEmpty) return '';
+    try {
+      final dt = DateTime.parse(dateStr);
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 60) return '${diff.inMinutes} ${context.tr('notif_minutes_ago')}';
+      if (diff.inHours < 24) return '${diff.inHours} ${context.tr('notif_hours_ago')}';
+      return '${diff.inDays} ${context.tr('notif_days_ago')}';
+    } catch (_) {
+      return dateStr;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +57,7 @@ class NotificationsScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Bildirishnomalar',
+          context.tr('notif_title'),
           style: TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 18,
@@ -25,50 +66,46 @@ class NotificationsScreen extends StatelessWidget {
         ),
         centerTitle: true,
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
-          _buildNotificationItem(
-            icon: Icons.campaign,
-            iconColor: AppTheme.red,
-            iconBg: AppTheme.red.withOpacity(0.1),
-            title: 'Yangi aksiya!',
-            description: 'YUVGo ilovasida 30% chegirma boshlanadi',
-            time: '10 daqiqa oldin',
-            isNew: true,
-          ),
-          const SizedBox(height: 12),
-          _buildNotificationItem(
-            icon: Icons.directions_car,
-            iconColor: AppTheme.primaryCyan,
-            iconBg: AppTheme.primaryCyan.withOpacity(0.1),
-            title: 'Yangilash!',
-            description: 'E-avtomobil uchun elektr to\'ldirish punktlari qo\'shildi',
-            time: '1 soat oldin',
-            isNew: false,
-          ),
-          const SizedBox(height: 12),
-          _buildNotificationItem(
-            icon: Icons.local_offer,
-            iconColor: AppTheme.orange,
-            iconBg: AppTheme.orange.withOpacity(0.1),
-            title: '120 000 so\'m tejaldi',
-            description: 'Siz avto yuvish xizmatlari uchun 120 000 so\'m tejalgan',
-            time: '2 soat oldin',
-            isNew: false,
-          ),
-          const SizedBox(height: 12),
-          _buildNotificationItem(
-            icon: Icons.verified,
-            iconColor: AppTheme.blue,
-            iconBg: AppTheme.blue.withOpacity(0.1),
-            title: 'Premium obunangiz faol',
-            description: 'Premium obuna aktivlashtirildi va 90 kun davom etadi',
-            time: '1 kun oldin',
-            isNew: false,
-          ),
-        ],
-      ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _notifications.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.notifications_none, size: 64, color: Colors.grey[300]),
+                      const SizedBox(height: 16),
+                      Text(context.tr('notif_empty'), style: TextStyle(fontSize: 16, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _loadNotifications,
+                  child: ListView.separated(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: _notifications.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (context, index) {
+                      final n = _notifications[index];
+                      final type = (n['type'] ?? '').toString();
+                      IconData icon = Icons.notifications;
+                      Color iconColor = AppTheme.primaryCyan;
+                      if (type.contains('promo') || type.contains('campaign')) { icon = Icons.campaign; iconColor = AppTheme.red; }
+                      else if (type.contains('visit')) { icon = Icons.directions_car; iconColor = AppTheme.primaryCyan; }
+                      else if (type.contains('save') || type.contains('offer')) { icon = Icons.local_offer; iconColor = AppTheme.orange; }
+                      else if (type.contains('sub')) { icon = Icons.verified; iconColor = AppTheme.blue; }
+                      return _buildNotificationItem(
+                        icon: icon,
+                        iconColor: iconColor,
+                        iconBg: iconColor.withOpacity(0.1),
+                        title: n['title'] ?? '',
+                        description: n['message'] ?? n['body'] ?? '',
+                        time: _formatTime((n['created_at'] ?? n['sent_at'] ?? '').toString()),
+                        isNew: n['is_read'] == false,
+                      );
+                    },
+                  ),
+                ),
     );
   }
 

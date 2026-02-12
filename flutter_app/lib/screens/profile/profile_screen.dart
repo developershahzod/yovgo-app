@@ -438,11 +438,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(
-                  'YuvGO Maxfiylik Siyosati\n\n'
-                  '1. Ma\'lumotlarni yig\'ish\nBiz foydalanuvchilarning shaxsiy ma\'lumotlarini faqat xizmat ko\'rsatish maqsadida yig\'amiz.\n\n'
-                  '2. Ma\'lumotlardan foydalanish\nYig\'ilgan ma\'lumotlar faqat xizmat sifatini oshirish uchun ishlatiladi.\n\n'
-                  '3. Ma\'lumotlarni himoya qilish\nBarcha shaxsiy ma\'lumotlar shifrlangan holda saqlanadi.\n\n'
-                  '4. Bog\'lanish\nSavollar uchun: support@yuvgo.uz',
+                  '${context.tr('privacy_policy_title')}\n\n'
+                  '${context.tr('privacy_policy_section1_title')}\n${context.tr('privacy_policy_section1')}\n\n'
+                  '${context.tr('privacy_policy_section2_title')}\n${context.tr('privacy_policy_section2')}\n\n'
+                  '${context.tr('privacy_policy_section3_title')}\n${context.tr('privacy_policy_section3')}\n\n'
+                  '${context.tr('privacy_policy_section4_title')}\n${context.tr('privacy_policy_section4')}',
                   style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary, height: 1.6),
                 ),
               ),

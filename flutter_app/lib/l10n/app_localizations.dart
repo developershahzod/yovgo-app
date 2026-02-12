@@ -360,6 +360,28 @@ const Map<String, String> _enTranslations = {
   // Weather
   'wash_rating': 'Wash Rating',
   'weather_forecast': 'Weather Forecast',
+  'weather_recommendation': 'Recommendation',
+  'weather_current_temp': 'Current temperature:',
+  'weather_wind': 'Wind',
+  'weather_rain': 'Rain',
+  'weather_dust': 'Humidity',
+  'weather_weekly': 'Weekly forecast',
+
+  // Notifications time
+  'notif_minutes_ago': 'min ago',
+  'notif_hours_ago': 'hr ago',
+  'notif_days_ago': 'days ago',
+
+  // Privacy
+  'privacy_policy_title': 'YuvGO Privacy Policy',
+  'privacy_policy_section1_title': '1. Data Collection',
+  'privacy_policy_section1': 'We collect personal data only for the purpose of providing services.',
+  'privacy_policy_section2_title': '2. Use of Data',
+  'privacy_policy_section2': 'Collected data is used only to improve service quality.',
+  'privacy_policy_section3_title': '3. Data Protection',
+  'privacy_policy_section3': 'All personal data is stored in encrypted form.',
+  'privacy_policy_section4_title': '4. Contact',
+  'privacy_policy_section4': 'For questions: support@yuvgo.uz',
 
   // Visit History
   'visit_history': 'Visit History',
@@ -762,6 +784,28 @@ const Map<String, String> _ruTranslations = {
   // Weather
   'wash_rating': 'Рейтинг мойки',
   'weather_forecast': 'Прогноз погоды',
+  'weather_recommendation': 'Рекомендация',
+  'weather_current_temp': 'Текущая температура:',
+  'weather_wind': 'Ветер',
+  'weather_rain': 'Дождь',
+  'weather_dust': 'Влажность',
+  'weather_weekly': 'Недельный прогноз',
+
+  // Notifications time
+  'notif_minutes_ago': 'мин назад',
+  'notif_hours_ago': 'ч назад',
+  'notif_days_ago': 'дн назад',
+
+  // Privacy
+  'privacy_policy_title': 'Политика конфиденциальности YuvGO',
+  'privacy_policy_section1_title': '1. Сбор данных',
+  'privacy_policy_section1': 'Мы собираем персональные данные только для предоставления услуг.',
+  'privacy_policy_section2_title': '2. Использование данных',
+  'privacy_policy_section2': 'Собранные данные используются только для улучшения качества обслуживания.',
+  'privacy_policy_section3_title': '3. Защита данных',
+  'privacy_policy_section3': 'Все персональные данные хранятся в зашифрованном виде.',
+  'privacy_policy_section4_title': '4. Контакты',
+  'privacy_policy_section4': 'По вопросам: support@yuvgo.uz',
 
   // Visit History
   'visit_history': 'История посещений',
@@ -1164,6 +1208,28 @@ const Map<String, String> _uzTranslations = {
   // Weather
   'wash_rating': 'Yuvish reytingi',
   'weather_forecast': 'Ob-havo prognozi',
+  'weather_recommendation': 'Tavsiya',
+  'weather_current_temp': 'Hozirgi havo harorati:',
+  'weather_wind': 'Shamol',
+  'weather_rain': 'Yomg\'ir',
+  'weather_dust': 'Namlik',
+  'weather_weekly': 'Haftalik prognoz',
+
+  // Notifications time
+  'notif_minutes_ago': 'daq oldin',
+  'notif_hours_ago': 'soat oldin',
+  'notif_days_ago': 'kun oldin',
+
+  // Privacy
+  'privacy_policy_title': 'YuvGO Maxfiylik Siyosati',
+  'privacy_policy_section1_title': '1. Ma\'lumotlarni yig\'ish',
+  'privacy_policy_section1': 'Biz foydalanuvchilarning shaxsiy ma\'lumotlarini faqat xizmat ko\'rsatish maqsadida yig\'amiz.',
+  'privacy_policy_section2_title': '2. Ma\'lumotlardan foydalanish',
+  'privacy_policy_section2': 'Yig\'ilgan ma\'lumotlar faqat xizmat sifatini oshirish uchun ishlatiladi.',
+  'privacy_policy_section3_title': '3. Ma\'lumotlarni himoya qilish',
+  'privacy_policy_section3': 'Barcha shaxsiy ma\'lumotlar shifrlangan holda saqlanadi.',
+  'privacy_policy_section4_title': '4. Bog\'lanish',
+  'privacy_policy_section4': 'Savollar uchun: support@yuvgo.uz',
 
   // Visit History
   'visit_history': 'Tashriflar tarixi',

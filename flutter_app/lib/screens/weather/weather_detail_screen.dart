@@ -2,12 +2,23 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import '../../config/app_theme.dart';
 import '../../widgets/ios_weather_icon.dart';
+import '../../l10n/language_provider.dart';
 
 class WeatherDetailScreen extends StatelessWidget {
   const WeatherDetailScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final weatherData = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final washRating = weatherData?['wash_rating'] ?? 0;
+    final recommendation = weatherData?['recommendation'] ?? context.tr('home_weather_good');
+    final forecast = (weatherData?['forecast'] as List?) ?? [];
+    final currentTemp = weatherData?['current_temp'] ?? weatherData?['temp'] ?? '';
+    final currentWeather = weatherData?['current_weather'] ?? 'sunny';
+    final wind = weatherData?['wind'] ?? '';
+    final rainChance = weatherData?['rain_chance'] ?? '';
+    final humidity = weatherData?['humidity'] ?? '';
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -18,7 +29,7 @@ class WeatherDetailScreen extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Yuvish reytingi',
+          context.tr('wash_rating'),
           style: TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 18,
@@ -38,7 +49,7 @@ class WeatherDetailScreen extends StatelessWidget {
                 width: 200,
                 height: 140,
                 child: CustomPaint(
-                  painter: LargeGaugePainter(92),
+                  painter: LargeGaugePainter(washRating is int ? washRating : (washRating as num).toInt()),
                 ),
               ),
             ),
@@ -56,11 +67,11 @@ class WeatherDetailScreen extends StatelessWidget {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
+                    Expanded(child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Tavfsiya',
+                          context.tr('weather_recommendation'),
                           style: TextStyle(
                             color: AppTheme.textPrimary,
                             fontSize: 16,
@@ -73,10 +84,9 @@ class WeatherDetailScreen extends StatelessWidget {
                           children: [
                             Icon(Icons.info_outline, color: AppTheme.primaryCyan, size: 16),
                             const SizedBox(width: 8),
-                            SizedBox(
-                              width: 280,
+                            Expanded(
                               child: Text(
-                                '4 kun davomida yog\'ingarchilik kutilmaydi. Yuvish uchun mukammal havo!',
+                                recommendation,
                                 style: TextStyle(
                                   color: AppTheme.textSecondary,
                                   fontSize: 13,
@@ -87,120 +97,39 @@ class WeatherDetailScreen extends StatelessWidget {
                           ],
                         ),
                       ],
-                    ),
+                    )),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 16),
 
-            // Current weather card with map
+            // Current weather card
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Container(
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8F8F8),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Weather info
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Hozirgi havo harorati:',
-                              style: TextStyle(
-                                color: AppTheme.textSecondary,
-                                fontSize: 12,
-                                fontFamily: 'Mulish',
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                const IosWeatherIcon(type: 'sunny', size: 24),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Quyoshli',
-                                  style: TextStyle(
-                                    color: AppTheme.textPrimary,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                    fontFamily: 'Mulish',
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Kunduzi: +24°',
-                              style: TextStyle(
-                                color: AppTheme.primaryCyan,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                fontFamily: 'Mulish',
-                              ),
-                            ),
-                            Text(
-                              'Tunda: +10°',
-                              style: TextStyle(
-                                color: AppTheme.textSecondary,
-                                fontSize: 14,
-                                fontFamily: 'Mulish',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    Text(
+                      context.tr('weather_current_temp'),
+                      style: TextStyle(color: AppTheme.textSecondary, fontSize: 12, fontFamily: 'Mulish'),
                     ),
-                    // Mini map
-                    ClipRRect(
-                      borderRadius: const BorderRadius.only(
-                        topRight: Radius.circular(16),
-                        bottomRight: Radius.circular(16),
-                      ),
-                      child: Container(
-                        width: 140,
-                        height: 120,
-                        color: const Color(0xFFE8F4E8),
-                        child: Stack(
-                          children: [
-                            Center(
-                              child: Icon(Icons.map, color: Colors.grey[400], size: 40),
-                            ),
-                            // Location marker
-                            Positioned(
-                              top: 40,
-                              right: 50,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primaryCyan,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(Icons.location_on, color: Colors.white, size: 10),
-                                    Text(
-                                      'Black Star',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 8,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        IosWeatherIcon(type: currentWeather.toString(), size: 28),
+                        const SizedBox(width: 10),
+                        Text(
+                          '$currentTemp',
+                          style: TextStyle(color: AppTheme.textPrimary, fontSize: 24, fontWeight: FontWeight.w900, fontFamily: 'Mulish'),
                         ),
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -220,9 +149,9 @@ class WeatherDetailScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceAround,
                   children: [
-                    _buildWeatherStatIcon(const IosWeatherIcon(type: 'cloudy', size: 28), '24 km/h', 'Shamol'),
-                    _buildWeatherStatIcon(const IosWeatherIcon(type: 'rain', size: 28), '10%', 'Yomg\'ir'),
-                    _buildWeatherStatIcon(const IosWeatherIcon(type: 'fog', size: 28), '10%', 'Chang'),
+                    _buildWeatherStatIcon(const IosWeatherIcon(type: 'cloudy', size: 28), '$wind', context.tr('weather_wind')),
+                    _buildWeatherStatIcon(const IosWeatherIcon(type: 'rain', size: 28), '$rainChance', context.tr('weather_rain')),
+                    _buildWeatherStatIcon(const IosWeatherIcon(type: 'fog', size: 28), '$humidity', context.tr('weather_dust')),
                   ],
                 ),
               ),
@@ -233,7 +162,7 @@ class WeatherDetailScreen extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
-                'Haftalik prognoz',
+                context.tr('weather_weekly'),
                 style: TextStyle(
                   color: AppTheme.textPrimary,
                   fontSize: 18,
@@ -244,18 +173,20 @@ class WeatherDetailScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Weekly forecast list
+            // Weekly forecast list from API
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
-                  _buildForecastRowIcon('Bugun', 92, '+24°', '+10°', 'sunny', true),
-                  _buildForecastRowIcon('Sesh', 85, '+22°', '+5°', 'sunny', false),
-                  _buildForecastRowIcon('Chor', 72, '+16°', '+4°', 'partly_cloudy', false),
-                  _buildForecastRowIcon('Pay', 22, '+24°', '+10°', 'rain', false),
-                  _buildForecastRowIcon('Jum', 48, '+10°', '+3°', 'cloudy', false),
-                  _buildForecastRowIcon('Shan', 70, '+16°', '+4°', 'cloudy', false),
-                  _buildForecastRowIcon('Yak', 12, '+3°', '-2°', 'snow', false),
+                  for (int i = 0; i < forecast.length && i < 7; i++)
+                    _buildForecastRowIcon(
+                      forecast[i]['day']?.toString() ?? '',
+                      (forecast[i]['wash_rating'] ?? 0) is int ? forecast[i]['wash_rating'] : (forecast[i]['wash_rating'] as num).toInt(),
+                      forecast[i]['high']?.toString() ?? forecast[i]['temp']?.toString() ?? '',
+                      forecast[i]['low']?.toString() ?? '',
+                      forecast[i]['weather']?.toString() ?? 'sunny',
+                      i == 0,
+                    ),
                 ],
               ),
             ),

@@ -27,7 +27,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Wave animation — continuous flowing motion (fast)
     _waveController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 800),
       vsync: this,
     )..repeat();
     _waveSlide = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -102,7 +102,7 @@ class _SplashScreenState extends State<SplashScreen>
                 left: -40,
                 right: -40,
                 child: CustomPaint(
-                  size: Size(size.width + 80, 240),
+                  size: Size(size.width + 80, 340),
                   painter: _AnimatedWavePainter(
                     isTop: true,
                     animValue: _waveSlide.value,
@@ -121,7 +121,7 @@ class _SplashScreenState extends State<SplashScreen>
                 left: -40,
                 right: -40,
                 child: CustomPaint(
-                  size: Size(size.width + 80, 240),
+                  size: Size(size.width + 80, 340),
                   painter: _AnimatedWavePainter(
                     isTop: false,
                     animValue: _waveSlide.value,
