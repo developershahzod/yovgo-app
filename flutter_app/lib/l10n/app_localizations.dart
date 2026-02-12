@@ -633,7 +633,7 @@ const Map<String, String> _ruTranslations = {
   'sub_unlimited': 'Безлимит',
   'sub_per_month': '/месяц',
   'sub_popular': 'Популярный',
-  'sub_best_value': 'Выгодный',
+  'sub_best_value': 'Выгода',
   'sub_subscribe': 'Оформить',
   'sub_current': 'Текущий тариф',
   'sub_expires': 'Истекает',
