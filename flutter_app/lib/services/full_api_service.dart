@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'ipak_yuli_dio.dart' if (dart.library.io) 'ipak_yuli_dio_native.dart';
 
 /// Comprehensive API Service for YuvGO Flutter App
 /// Handles all API calls to backend microservices through the gateway
@@ -416,9 +417,9 @@ class FullApiService {
     }
   }
 
-  // IpakYuli Production constants (staging is broken - SSL errors, unreachable from server)
-  static const _ipakYuliUrl = 'https://ecom.ipakyulibank.uz/api/transfer';
-  static const _ipakYuliToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiIxODhjYWQyMS0zMGQwLTQyZDktODUxOC05ODFhYWNiNTVkOTUiLCJtZXJjaGFudElkIjoiYTBlZmUyNzgtNWUyZi00YzQ5LWIzZmItN2NlMjllOWM4ZmVkIiwiaWF0IjoxNzQ4ODYyNDI1LCJleHAiOjE3ODA0MjAwMjV9.JmfSQb_5Ei6fPLxTCCbQY6ECprq76NMJMnwT3CPFxP4';
+  // IpakYuli Staging constants (HTTPS with SSL bypass — staging cert is self-signed)
+  static const _ipakYuliUrl = 'https://partner.ecomm.staging.ipakyulibank.uz/api/transfer';
+  static const _ipakYuliToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiI1ODM1YWVkNS05ZjkwLTQ3ZWEtYmVhMS1kNzE5MzI1NGY5N2QiLCJtZXJjaGFudElkIjoiMjE2YjQzNjItOGM4Yi00MjlkLWJlOGItNTJkYmVlZTAzYTNhIiwiaWF0IjoxNzcwNzcwMjUwLCJleHAiOjE4MDIzMjc4NTB9.o9l2mUjYe2_igfgyoDGovwgnZImvOF09RRgRzQ2-Ge8';
 
   /// Call IpakYuli Production API directly from Flutter app
   static Future<Map<String, dynamic>> createIpakYuliPaymentDirect({
@@ -427,10 +428,7 @@ class FullApiService {
     required String paymentId,
   }) async {
 
-    final ipakDio = Dio(BaseOptions(
-      connectTimeout: const Duration(seconds: 30),
-      receiveTimeout: const Duration(seconds: 30),
-    ));
+    final ipakDio = createIpakYuliDio();
 
     final payload = {
       'jsonrpc': '2.0',
@@ -441,19 +439,6 @@ class FullApiService {
         'amount': amount,
         'details': {
           'description': 'YuvGO obuna to\'lovi',
-          'ofdInfo': {
-            'Items': [
-              {
-                'Name': 'YuvGO Subscription',
-                'SPIC': '03304999067000000',
-                'PackageCode': '1344094',
-                'price': amount,
-                'count': 1,
-                'VATPercent': 0,
-                'Discount': 0,
-              }
-            ]
-          },
         },
         'success_url': 'https://app.yuvgo.uz/api/mobile/payments/success?payment_id=$paymentId',
         'fail_url': 'https://app.yuvgo.uz/#/main',
@@ -514,10 +499,7 @@ class FullApiService {
     required String paymentId,
   }) async {
 
-    final ipakDio = Dio(BaseOptions(
-      connectTimeout: const Duration(seconds: 15),
-      receiveTimeout: const Duration(seconds: 15),
-    ));
+    final ipakDio = createIpakYuliDio();
 
     try {
       final payload = {

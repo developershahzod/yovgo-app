@@ -12,7 +12,7 @@ from datetime import datetime
 from pydantic import BaseModel
 
 # Configuration
-IPAKYULI_BASE_URL = os.getenv("IPAKYULI_BASE_URL", "http://partner.ecomm.staging.ipakyulibank.uz")
+IPAKYULI_BASE_URL = os.getenv("IPAKYULI_BASE_URL", "https://partner.ecomm.staging.ipakyulibank.uz")
 # Staging API: https://partner.ecomm.staging.ipakyulibank.uz/api/transfer (JSON-RPC 2.0)
 IPAKYULI_ACCESS_TOKEN = os.getenv("IPAKYULI_ACCESS_TOKEN", "")
 IPAKYULI_CASHBOX_ID = os.getenv("IPAKYULI_CASHBOX_ID", "")
@@ -69,7 +69,7 @@ class IpakYuliClient:
             "Authorization": f"Bearer {self.access_token}"
         }
         
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
             response = await client.post(url, json=payload, headers=headers)
             data = response.json()
             
