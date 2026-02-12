@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:geolocator/geolocator.dart';
+import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
@@ -185,9 +186,11 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
 
     // Load weather with cached/default location
     try {
+      final lang = context.read<LanguageProvider>().languageCode;
       final weather = await FullApiService.getWeatherData(
         latitude: _userLat,
         longitude: _userLng,
+        lang: lang,
       );
       if (mounted) setState(() => _weatherData = weather);
     } catch (_) {}

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'dart:math' as math;
+import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
@@ -27,10 +28,11 @@ class _WeatherScreenState extends State<WeatherScreen> {
 
   Future<void> _fetchWeather() async {
     try {
+      final lang = context.read<LanguageProvider>().languageCode;
       final resp = await FullApiService.get('/api/mobile/weather', queryParameters: {
         'latitude': 41.311,
         'longitude': 69.279,
-        'lang': 'uz',
+        'lang': lang,
       });
       if (mounted && resp.statusCode == 200) {
         final data = resp.data;
