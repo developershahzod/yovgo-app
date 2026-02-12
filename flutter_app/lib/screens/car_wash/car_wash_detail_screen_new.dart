@@ -116,7 +116,10 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     if (partnerId == null) return;
     setState(() => _reviewsLoading = true);
     try {
-      final resp = await FullApiService.get('/api/mobile/reviews/partner/$partnerId');
+      final locationId = _partner?['location_id']?.toString();
+      final resp = await FullApiService.get('/api/mobile/reviews/partner/$partnerId',
+        queryParameters: locationId != null ? {'location_id': locationId} : null,
+      );
       if (mounted && resp.statusCode == 200) {
         final data = resp.data;
         setState(() {
@@ -198,6 +201,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                         try {
                           await FullApiService.post('/api/mobile/reviews', data: {
                             'partner_id': _partner?['id'],
+                            'location_id': _partner?['location_id'],
                             'rating': selectedRating,
                             'comment': commentController.text.trim().isEmpty ? null : commentController.text.trim(),
                           });

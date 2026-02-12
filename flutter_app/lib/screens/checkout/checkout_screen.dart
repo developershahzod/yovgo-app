@@ -37,7 +37,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   String _fmt(dynamic price) {
-    final p = (price is int) ? price : (int.tryParse(price.toString()) ?? 0);
+    final p = (price is int) ? price : (price is double) ? price.toInt() : (int.tryParse(price.toString().split('.').first) ?? 0);
     final str = p.toString();
     final buf = StringBuffer();
     int c = 0;
@@ -554,7 +554,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void _showPaymentPendingDialog() {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -567,7 +568,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const SizedBox(height: 12),
               Text(context.tr('payment_pending_desc'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
               const SizedBox(height: 24),
-              SizedBox(width: double.infinity, height: 48, child: ElevatedButton(onPressed: () { Navigator.of(context).pop(); Navigator.of(context).pop(); }, child: const Text('OK'))),
+              SizedBox(width: double.infinity, height: 48, child: ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pushNamedAndRemoveUntil('/main', (route) => false),
+                child: const Text('OK'),
+              )),
             ],
           ),
         ),
@@ -578,7 +582,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void _showSuccessDialog() {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         child: Padding(
           padding: const EdgeInsets.all(32),
@@ -591,7 +596,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               const SizedBox(height: 12),
               Text(context.tr('sub_activated'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
               const SizedBox(height: 24),
-              SizedBox(width: double.infinity, height: 48, child: ElevatedButton(onPressed: () { Navigator.of(context).pop(); Navigator.of(context).pop(); }, child: const Text('OK'))),
+              SizedBox(width: double.infinity, height: 48, child: ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pushNamedAndRemoveUntil('/main', (route) => false),
+                child: const Text('OK'),
+              )),
             ],
           ),
         ),

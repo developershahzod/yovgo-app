@@ -243,6 +243,7 @@ class Review(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"))
     partner_id = Column(UUID(as_uuid=True), ForeignKey("partners.id", ondelete="CASCADE"))
+    location_id = Column(UUID(as_uuid=True), ForeignKey("partner_locations.id", ondelete="SET NULL"), nullable=True)
     visit_id = Column(UUID(as_uuid=True), ForeignKey("visits.id", ondelete="SET NULL"), nullable=True)
     rating = Column(Integer, nullable=False)  # 1-5
     comment = Column(Text)

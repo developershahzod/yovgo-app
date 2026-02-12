@@ -840,6 +840,7 @@ async def get_user_stats(
 
 class CreateReviewRequest(BaseModel):
     partner_id: str
+    location_id: Optional[str] = None
     rating: int  # 1-5
     comment: Optional[str] = None
     visit_id: Optional[str] = None
@@ -863,17 +864,24 @@ async def create_review(
     if not partner:
         raise HTTPException(status_code=404, detail="Avtomoyka topilmadi")
 
-    # Check if user already reviewed this partner (allow one review per partner, update if exists)
-    existing = db.query(Review).filter(
+    # Check if user already reviewed this partner+location (allow one review per location)
+    q = db.query(Review).filter(
         Review.user_id == user_id,
         Review.partner_id == request.partner_id,
-    ).first()
+    )
+    if request.location_id:
+        q = q.filter(Review.location_id == request.location_id)
+    else:
+        q = q.filter(Review.location_id == None)
+    existing = q.first()
 
     if existing:
         existing.rating = request.rating
         existing.comment = request.comment or existing.comment
         if request.visit_id:
             existing.visit_id = request.visit_id
+        if request.location_id:
+            existing.location_id = request.location_id
         db.commit()
         db.refresh(existing)
         review_id = str(existing.id)
@@ -881,6 +889,7 @@ async def create_review(
         review = Review(
             user_id=user_id,
             partner_id=request.partner_id,
+            location_id=request.location_id if request.location_id else None,
             visit_id=request.visit_id if request.visit_id else None,
             rating=request.rating,
             comment=request.comment,
@@ -909,16 +918,21 @@ async def create_review(
 @router.get("/reviews/partner/{partner_id}")
 async def get_partner_reviews(
     partner_id: str,
+    location_id: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    """Get reviews for a car wash"""
+    """Get reviews for a car wash. If location_id provided, show only that branch's reviews."""
     from sqlalchemy import func as sqlfunc
+
+    base_filter = [Review.partner_id == partner_id, Review.is_visible == True]
+    if location_id:
+        base_filter.append(Review.location_id == location_id)
 
     reviews = (
         db.query(Review)
-        .filter(Review.partner_id == partner_id, Review.is_visible == True)
+        .filter(*base_filter)
         .order_by(Review.created_at.desc())
         .offset(offset)
         .limit(limit)
@@ -926,19 +940,18 @@ async def get_partner_reviews(
     )
 
     total = db.query(sqlfunc.count(Review.id)).filter(
-        Review.partner_id == partner_id, Review.is_visible == True
+        *base_filter
     ).scalar() or 0
 
     avg_rating = db.query(sqlfunc.avg(Review.rating)).filter(
-        Review.partner_id == partner_id, Review.is_visible == True
+        *base_filter
     ).scalar()
 
     # Rating distribution
     dist = {}
     for star in range(1, 6):
         cnt = db.query(sqlfunc.count(Review.id)).filter(
-            Review.partner_id == partner_id,
-            Review.is_visible == True,
+            *base_filter,
             Review.rating == star,
         ).scalar() or 0
         dist[str(star)] = cnt
