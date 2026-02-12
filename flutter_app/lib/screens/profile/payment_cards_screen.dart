@@ -32,7 +32,7 @@ class PaymentCardsScreen extends StatelessWidget {
         children: [
           Expanded(
             child: cards.isEmpty
-                ? _buildEmptyState()
+                ? _buildEmptyState(context)
                 : ListView.builder(
                     padding: const EdgeInsets.all(20),
                     itemCount: cards.length,
@@ -174,7 +174,7 @@ class PaymentCardsScreen extends StatelessWidget {
     }
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
