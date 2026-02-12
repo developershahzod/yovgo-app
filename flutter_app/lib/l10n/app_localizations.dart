@@ -887,13 +887,13 @@ const Map<String, String> _uzTranslations = {
   'home_title': 'YuvGO',
   'home_greeting': 'Salom',
   'home_premium_title': 'Premium obuna',
-  'home_premium_desc': 'Cheksiz avtomoyqalar',
+  'home_premium_desc': 'Cheksiz avtomoykalar',
   'home_get_premium': 'Premium olish',
   'home_weather_title': "Ob-havo",
-  'home_weather_good': "Avtomoyqa uchun yaxshi kun!",
+  'home_weather_good': "Avtomoyka uchun yaxshi kun!",
   'home_weather_bad': "Bugun tavsiya etilmaydi",
   'home_categories': 'Kategoriyalar',
-  'home_nearest': 'Eng yaqin avtomoyqalar',
+  'home_nearest': 'Eng yaqin avtomoykalar',
   'home_recent': "So'nggi tashriflar",
   'home_see_all': 'Barchasi',
   'home_no_recent': "So'nggi tashriflar yo'q",
@@ -906,8 +906,8 @@ const Map<String, String> _uzTranslations = {
   'category_self': "O'z-o'ziga xizmat",
 
   // Map Screen
-  'map_title': 'Avtomoyqalar xaritasi',
-  'map_search': 'Avtomoyqalarni qidirish...',
+  'map_title': 'Avtomoykalar xaritasi',
+  'map_search': 'Avtomoykalarni qidirish...',
   'map_nearby': 'Yaqinda',
   'map_open_now': 'Hozir ochiq',
   'map_directions': "Yo'nalish",
@@ -928,8 +928,8 @@ const Map<String, String> _uzTranslations = {
 
   // Saved
   'saved_title': 'Saqlangan',
-  'saved_subtitle': 'Sevimli avtomoyqalaringiz',
-  'saved_empty': "Saqlangan avtomoyqalar yo'q",
+  'saved_subtitle': 'Sevimli avtomoykalaringiz',
+  'saved_empty': "Saqlangan avtomoykalar yo'q",
   'saved_add_hint': "Saqlash uchun yurak belgisini bosing",
 
   // Profile
@@ -1234,7 +1234,7 @@ const Map<String, String> _uzTranslations = {
   'closed_until': 'GACHA YOPIQ',
   'status_open': 'OCHIQ',
   'status_closed': 'YOPIQ',
-  'car_wash_default': 'Avtomoyqa',
+  'car_wash_default': 'Avtomoyka',
 
   // Visit dates & statuses
   'today': 'Bugun',
