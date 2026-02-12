@@ -5,6 +5,7 @@ import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../services/favorites_service.dart';
 import '../../l10n/language_provider.dart';
+import '../main_navigation_fixed.dart';
 
 class CarWashDetailScreenNew extends StatefulWidget {
   const CarWashDetailScreenNew({Key? key}) : super(key: key);
@@ -949,7 +950,10 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                 height: 48,
                 child: _hasSubscription
                     ? ElevatedButton.icon(
-                        onPressed: () => Navigator.pushNamed(context, '/qr'),
+                        onPressed: () {
+                          Navigator.popUntil(context, (route) => route.isFirst);
+                          MainNavigationFixed.switchToTab(2);
+                        },
                         icon: const Icon(Icons.qr_code_scanner, size: 18),
                         label: Text(context.tr('detail_scan_qr'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                         style: ElevatedButton.styleFrom(

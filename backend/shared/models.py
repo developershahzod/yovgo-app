@@ -247,7 +247,7 @@ class Review(Base):
     visit_id = Column(UUID(as_uuid=True), ForeignKey("visits.id", ondelete="SET NULL"), nullable=True)
     rating = Column(Integer, nullable=False)  # 1-5
     comment = Column(Text)
-    is_visible = Column(Boolean, default=True)
+    is_visible = Column(Boolean, default=True, server_default=text('true'))
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 

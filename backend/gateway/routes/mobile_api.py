@@ -918,6 +918,7 @@ async def create_review(
             visit_id=request.visit_id if request.visit_id else None,
             rating=request.rating,
             comment=request.comment,
+            is_visible=True,
         )
         db.add(review)
         db.commit()

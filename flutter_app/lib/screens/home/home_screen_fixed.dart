@@ -809,14 +809,14 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
         children: [
           Expanded(
             child: GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/map', arguments: {'filter': 'premium'}),
+              onTap: () => MainNavigationFixed.switchToTab(1),
               child: _buildCategoryCard(context.tr('premium_car_washes'), 'assets/images/af4f3f12083748892aa8cce089849a9c6258d073.png'),
             ),
           ),
           const SizedBox(width: 8),
           Expanded(
             child: GestureDetector(
-              onTap: () => Navigator.pushNamed(context, '/map', arguments: {'filter': 'new'}),
+              onTap: () => MainNavigationFixed.switchToTab(1),
               child: _buildCategoryCard(context.tr('new_car_washes'), 'assets/images/72736a3105b93be09268e4ff3f9cf58a4e3a202e.png'),
             ),
           ),
@@ -895,7 +895,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                 ),
               ),
               GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/map'),
+                onTap: () => MainNavigationFixed.switchToTab(1),
                 child: Text(
                   context.tr('home_see_all'),
                   style: TextStyle(

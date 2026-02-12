@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
+import '../main_navigation_fixed.dart';
 
 class SubscriptionsScreen extends StatefulWidget {
   const SubscriptionsScreen({Key? key}) : super(key: key);
@@ -255,7 +256,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
 
   Widget _buildViewCarWashesRow() {
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/map'),
+      onTap: () => MainNavigationFixed.switchToTab(1),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(

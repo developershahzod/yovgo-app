@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
+import '../main_navigation_fixed.dart';
 
 class QrScannerScreenFixed extends StatefulWidget {
   const QrScannerScreenFixed({Key? key}) : super(key: key);
@@ -261,7 +262,7 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).pop();
-                    Navigator.pushNamed(context, '/subscriptions');
+                    MainNavigationFixed.switchToTab(3);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryCyan,
@@ -524,7 +525,7 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
 
   Widget _buildSubscribePrompt() {
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/subscriptions'),
+      onTap: () => MainNavigationFixed.switchToTab(3),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
