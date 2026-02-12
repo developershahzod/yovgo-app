@@ -21,6 +21,9 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
   bool _hasSubscription = false;
   bool _isLoading = true;
   bool _scannedOnce = false;
+  String? _lastScannedToken;
+  DateTime? _lastScanTime;
+  bool _scannerPaused = false;
   MobileScannerController? _scannerController;
 
   @override
@@ -87,8 +90,15 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
   }
 
   Future<void> _handleQrScanned(String qrToken) async {
-    if (_isScanning || _scannedOnce) return;
+    if (_isScanning || _scannedOnce || _scannerPaused) return;
+    // Prevent same QR within 30 seconds
+    if (_lastScannedToken == qrToken && _lastScanTime != null &&
+        DateTime.now().difference(_lastScanTime!).inSeconds < 30) {
+      return;
+    }
     _scannedOnce = true;
+    _lastScannedToken = qrToken;
+    _lastScanTime = DateTime.now();
     _scannerController?.stop();
 
     // Not logged in → go to registration
@@ -285,11 +295,18 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
       // Reset scanner when user comes back from timer screen
       if (mounted) {
         setState(() {
-          _scannedOnce = false;
           _isScanning = false;
+          _scannerPaused = true;
+          _scannedOnce = false;
         });
-        _scannerController?.start();
         _loadUserState(); // Refresh subscription counters
+        // Delay before allowing scanner to resume (prevent immediate re-scan)
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() => _scannerPaused = false);
+            _scannerController?.start();
+          }
+        });
       }
     });
   }
@@ -301,16 +318,17 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
       body: Stack(
         children: [
           // Real camera preview
-          MobileScanner(
-            controller: _scannerController,
-            onDetect: (capture) {
-              if (_scannedOnce || _isScanning) return;
-              final barcodes = capture.barcodes;
-              if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
-                _handleQrScanned(barcodes.first.rawValue!);
-              }
-            },
-          ),
+          if (!_scannerPaused)
+            MobileScanner(
+              controller: _scannerController,
+              onDetect: (capture) {
+                if (_scannedOnce || _isScanning || _scannerPaused) return;
+                final barcodes = capture.barcodes;
+                if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
+                  _handleQrScanned(barcodes.first.rawValue!);
+                }
+              },
+            ),
           // Dark overlay
           Container(color: Colors.black.withOpacity(0.4)),
 

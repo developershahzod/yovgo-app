@@ -672,6 +672,26 @@ async def qr_checkin(
     if not subscription.is_unlimited and subscription.visits_remaining is not None and subscription.visits_remaining <= 0:
         raise HTTPException(status_code=400, detail="Visit limit reached")
     
+    # Prevent duplicate visits within 60 seconds
+    from datetime import timedelta
+    recent_visit = db.query(Visit).filter(
+        Visit.user_id == user_id,
+        Visit.partner_id == partner_id,
+        Visit.check_in_time > datetime.utcnow() - timedelta(seconds=60)
+    ).first()
+    if recent_visit:
+        return {
+            "success": True,
+            "message": "Tashrif allaqachon ro'yxatdan o'tkazilgan!",
+            "partner_name": (db.query(Partner).filter(Partner.id == partner_id).first() or Partner()).name or "Avtomoyka",
+            "partner_id": str(partner_id),
+            "location_id": location_id,
+            "visit_id": str(recent_visit.id),
+            "check_in_time": recent_visit.check_in_time.isoformat() if recent_visit.check_in_time else None,
+            "status": recent_visit.status or "in_progress",
+            "remaining_visits": subscription.visits_remaining if not subscription.is_unlimited else "unlimited"
+        }
+    
     # If no vehicle_id provided, try to get user's first active vehicle
     if not vehicle_id:
         vehicle = db.query(Vehicle).filter(
