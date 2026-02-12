@@ -216,30 +216,12 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
                 borderRadius: BorderRadius.circular(20),
                 gradient: const LinearGradient(colors: [Color(0xFF1A3A7A), Color(0xFF3B7DDD)], begin: Alignment.topLeft, end: Alignment.bottomRight),
               ),
-              child: Stack(
-                children: [
-                  // 3D duration number image (30 or 365)
-                  Positioned(
-                    top: 0, left: 0, bottom: 0,
-                    child: ClipRRect(
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        bottomLeft: Radius.circular(20),
-                      ),
-                      child: Image.asset(
-                        _planName.contains('365') || _planName.contains('Yillik')
-                            ? 'assets/images/dc39eda64d246726ea5621050f1a81b4f23f7d79.png'
-                            : 'assets/images/c22416c54393bfea53da65c75321cdc015b47ddb.png',
-                        height: 200,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
                         // PREMIUM badge
                         Container(
@@ -257,40 +239,57 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 40),
-                        Text(_planName, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
-                        const SizedBox(height: 4),
-                        Text(_endDate.isNotEmpty ? '${context.tr('sub_expires')}: ${_formatEndDate(_endDate)}' : '', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9), fontFamily: 'Mulish')),
-                        const SizedBox(height: 12),
-                        Align(
-                          alignment: Alignment.centerRight,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: isExpired ? const Color(0xFFFF8C00) : Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: isExpired
-                                ? Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.info, size: 14, color: Colors.white),
-                                      const SizedBox(width: 4),
-                                      Text(context.tr('sub_expired'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
-                                    ],
-                                  )
-                                : Column(
-                                    children: [
-                                      Text(context.tr('sub_remaining'), style: TextStyle(fontSize: 11, color: const Color(0xFF8F96A0), fontFamily: 'Mulish')),
-                                      Text('$_daysLeft ${context.tr('days')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
-                                    ],
-                                  ),
+                        const Spacer(),
+                        if (!isExpired)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(color: const Color(0xFF5CCC27), borderRadius: BorderRadius.circular(8)),
+                            child: const Text('FAOL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
+                          ),
+                        if (isExpired)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(color: const Color(0xFFFF8C00), borderRadius: BorderRadius.circular(8)),
+                            child: Text(context.tr('sub_expired'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(_planName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, fontFamily: 'Mulish')),
+                    const SizedBox(height: 6),
+                    if (_endDate.isNotEmpty)
+                      Text('${context.tr('sub_expires')}: ${_formatEndDate(_endDate)}', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.85), fontFamily: 'Mulish')),
+                    const SizedBox(height: 16),
+                    // Stats inside card
+                    Row(
+                      children: [
+                        // Remaining days
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                          child: Column(
+                            children: [
+                              Text('$_daysLeft', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, fontFamily: 'Mulish')),
+                              Text(context.tr('days'), style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.8), fontFamily: 'Mulish')),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        // Visits
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                          child: Column(
+                            children: [
+                              Text(_isUnlimited ? '∞' : '${_visitsLimit - _visitsUsed}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, fontFamily: 'Mulish')),
+                              Text(context.tr('qr_visits_remaining'), style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.8), fontFamily: 'Mulish')),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
