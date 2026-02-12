@@ -1180,63 +1180,50 @@ async def payment_success_callback(
     return RedirectResponse(url="https://app.yuvgo.uz/#/main", status_code=302)
 
 
+class ConfirmPaymentRequest(BaseModel):
+    payment_id: str
+    transfer_id: Optional[str] = None
+
+@router.post("/payments/confirm-success")
+async def confirm_payment_success(
+    request: ConfirmPaymentRequest,
+    db: Session = Depends(get_db),
+):
+    """Called by Flutter app after it verifies payment succeeded via IpakYuli directly"""
+    payment = db.query(Payment).filter(Payment.id == request.payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    if payment.status == "completed":
+        return {"success": True, "message": "Already activated"}
+    
+    if request.transfer_id:
+        payment.transaction_id = request.transfer_id
+    payment.status = "completed"
+    
+    # Activate subscription
+    if payment.subscription_id:
+        subscription = db.query(Subscription).filter(Subscription.id == payment.subscription_id).first()
+        if subscription and subscription.status != "active":
+            plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == subscription.plan_id).first()
+            subscription.status = "active"
+            subscription.start_date = datetime.utcnow()
+            if plan:
+                subscription.end_date = datetime.utcnow() + timedelta(days=plan.duration_days)
+                subscription.visits_remaining = plan.visit_limit or 0
+                subscription.is_unlimited = plan.is_unlimited if hasattr(plan, 'is_unlimited') else False
+    db.commit()
+    return {"success": True, "message": "Subscription activated"}
+
+
 @router.get("/payments/status/{payment_id}")
 async def get_payment_status(
     payment_id: str,
     db: Session = Depends(get_db),
 ):
-    """Check payment status — also queries IpakYuli transfer.get for real-time status"""
-    import httpx
+    """Check payment status from DB. IpakYuli status is checked client-side (Flutter app)."""
     payment = db.query(Payment).filter(Payment.id == payment_id).first()
     if not payment:
         raise HTTPException(status_code=404, detail="To'lov topilmadi")
-
-    # If payment is still pending and has a transfer_id, check IpakYuli
-    if payment.status == "pending" and payment.transaction_id:
-        # Server can't reach staging (network blocked), use production for status checks
-        IPAKYULI_ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiIxODhjYWQyMS0zMGQwLTQyZDktODUxOC05ODFhYWNiNTVkOTUiLCJtZXJjaGFudElkIjoiYTBlZmUyNzgtNWUyZi00YzQ5LWIzZmItN2NlMjllOWM4ZmVkIiwiaWF0IjoxNzQ4ODYyNDI1LCJleHAiOjE3ODA0MjAwMjV9.JmfSQb_5Ei6fPLxTCCbQY6ECprq76NMJMnwT3CPFxP4"
-        IPAKYULI_URL = "https://ecom.ipakyulibank.uz/api/transfer"
-        try:
-            import uuid as _uuid
-            payload = {
-                "jsonrpc": "2.0",
-                "id": str(_uuid.uuid4()),
-                "method": "transfer.get",
-                "params": {"id": payment.transaction_id},
-            }
-            async with httpx.AsyncClient(timeout=15.0, verify=False) as client:
-                resp = await client.post(
-                    IPAKYULI_URL,
-                    json=payload,
-                    headers={
-                        "Content-Type": "application/json",
-                        "Authorization": f"Bearer {IPAKYULI_ACCESS_TOKEN}",
-                    },
-                )
-                data = resp.json()
-                result = data.get("result", {})
-                ipk_status = result.get("status", "").lower()
-                print(f"[IPAKYULI STATUS] transfer {payment.transaction_id}: {ipk_status}")
-
-                if ipk_status == "success":
-                    payment.status = "completed"
-                    # Activate the subscription
-                    if payment.subscription_id:
-                        subscription = db.query(Subscription).filter(Subscription.id == payment.subscription_id).first()
-                        if subscription and subscription.status != "active":
-                            plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == subscription.plan_id).first()
-                            subscription.status = "active"
-                            subscription.start_date = datetime.utcnow()
-                            if plan:
-                                subscription.end_date = datetime.utcnow() + timedelta(days=plan.duration_days)
-                                subscription.visits_remaining = plan.visit_limit or 0
-                                subscription.is_unlimited = plan.is_unlimited if hasattr(plan, 'is_unlimited') else False
-                    db.commit()
-                elif ipk_status in ("failed", "cancelled", "expired"):
-                    payment.status = "failed"
-                    db.commit()
-        except Exception as e:
-            print(f"[IPAKYULI STATUS CHECK ERROR] {e}")
 
     return {
         "success": True,

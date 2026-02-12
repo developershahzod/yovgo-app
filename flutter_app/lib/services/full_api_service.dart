@@ -524,8 +524,9 @@ class FullApiService {
       // If payment succeeded, tell backend to activate subscription
       if (status == 'success') {
         try {
-          await _dio.get('/api/mobile/payments/success', queryParameters: {
+          await _dio.post('/api/mobile/payments/confirm-success', data: {
             'payment_id': paymentId,
+            'transfer_id': transferId,
           });
         } catch (_) {}
       }
