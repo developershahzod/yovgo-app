@@ -176,6 +176,9 @@ const Map<String, String> _enTranslations = {
   'vehicle_color': 'Color',
   'vehicle_year': 'Year',
   'vehicle_active': 'Active',
+  'vehicle_type': 'Vehicle Type',
+  'vehicle_selected': 'Primary vehicle selected',
+  'vehicle_empty': 'No vehicles added yet',
   'vehicle_delete_confirm': 'Delete this vehicle?',
 
   // Notifications
@@ -438,6 +441,14 @@ const Map<String, String> _enTranslations = {
   'status_completed': 'Completed',
   'status_in_progress': 'In progress',
 
+  // Auth errors
+  'auth_name_required': 'Please enter your name',
+  'auth_phone_short': 'Please enter full phone number',
+  'auth_code_short': 'Please enter the full code',
+  'auth_error_network': 'Network error',
+  'auth_error_occurred': 'An error occurred',
+  'auth_invalid_code': 'Invalid code',
+
   // Settings
   'settings_app_language': 'App Language',
 };
@@ -567,6 +578,9 @@ const Map<String, String> _ruTranslations = {
   'vehicle_color': 'Цвет',
   'vehicle_year': 'Год',
   'vehicle_active': 'Активный',
+  'vehicle_type': 'Тип автомобиля',
+  'vehicle_selected': 'Основной автомобиль выбран',
+  'vehicle_empty': 'Автомобили еще не добавлены',
   'vehicle_delete_confirm': 'Удалить этот автомобиль?',
 
   // Notifications
@@ -829,6 +843,14 @@ const Map<String, String> _ruTranslations = {
   'status_completed': 'Завершено',
   'status_in_progress': 'В процессе',
 
+  // Auth errors
+  'auth_name_required': 'Введите ваше имя',
+  'auth_phone_short': 'Введите полный номер телефона',
+  'auth_code_short': 'Введите полный код',
+  'auth_error_network': 'Ошибка сети',
+  'auth_error_occurred': 'Произошла ошибка',
+  'auth_invalid_code': 'Неверный код',
+
   // Settings
   'settings_app_language': 'Язык приложения',
 };
@@ -958,6 +980,9 @@ const Map<String, String> _uzTranslations = {
   'vehicle_color': 'Rang',
   'vehicle_year': 'Yil',
   'vehicle_active': 'Faol',
+  'vehicle_type': 'Mashina turi',
+  'vehicle_selected': 'Asosiy mashina tanlandi',
+  'vehicle_empty': 'Hali mashina qo\'shilmagan',
   'vehicle_delete_confirm': "Bu avtomobilni o'chirishni xohlaysizmi?",
 
   // Notifications
@@ -1219,6 +1244,14 @@ const Map<String, String> _uzTranslations = {
   'hours_ago': 'soat oldin',
   'status_completed': 'Yakunlangan',
   'status_in_progress': 'Jarayonda',
+
+  // Auth errors
+  'auth_name_required': 'Iltimos, ismingizni kiriting',
+  'auth_phone_short': 'Iltimos, to\'liq telefon raqamni kiriting',
+  'auth_code_short': 'Iltimos, to\'liq kodni kiriting',
+  'auth_error_network': 'Tarmoq xatosi',
+  'auth_error_occurred': 'Xatolik yuz berdi',
+  'auth_invalid_code': 'Noto\'g\'ri kod',
 
   // Settings
   'settings_app_language': 'Ilova tili',

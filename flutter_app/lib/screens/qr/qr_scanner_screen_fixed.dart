@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 
@@ -56,17 +57,28 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
         }
       } catch (_) {}
 
-      // Load vehicles only if logged in
+      // Load vehicles only if logged in — prefer primary car from SharedPreferences
       try {
         final vehicles = await FullApiService.getVehicles();
         if (mounted && vehicles.isNotEmpty) {
           final list = vehicles.cast<Map<String, dynamic>>();
+          // Try to load primary vehicle from SharedPreferences
+          String? primaryId;
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            primaryId = prefs.getString('primary_vehicle_id');
+          } catch (_) {}
+          // Find primary or fallback to first
+          Map<String, dynamic> selected = list.first;
+          if (primaryId != null) {
+            final found = list.where((v) => v['id']?.toString() == primaryId);
+            if (found.isNotEmpty) selected = found.first;
+          }
           setState(() {
             _vehicles = list;
-            final first = list.first;
-            _selectedVehicle = '${first['brand'] ?? ''} ${first['model'] ?? ''}'.trim();
-            _plateNumber = first['plate_number'] ?? '';
-            _selectedVehicleId = first['id']?.toString();
+            _selectedVehicle = '${selected['brand'] ?? ''} ${selected['model'] ?? ''}'.trim();
+            _plateNumber = selected['plate_number'] ?? '';
+            _selectedVehicleId = selected['id']?.toString();
           });
         }
       } catch (_) {}
@@ -100,6 +112,7 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
       );
 
       if (mounted) {
+        setState(() => _isScanning = false);
         _showCheckinSuccessDialog(
           result['partner_name'] ?? 'Avtomoyka',
           result['remaining_visits']?.toString() ?? '',
@@ -111,21 +124,20 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
         String msg = e.toString();
         if (msg.contains('No active subscription') || msg.contains('subscription')) {
           _showSubscriptionRequiredDialog();
-          return;
         } else if (msg.contains('Visit limit reached')) {
           msg = 'Tashrif limiti tugadi.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg), backgroundColor: Colors.red),
+          );
         } else if (msg.contains('401') || msg.contains('Unauthorized')) {
           _showAuthRequiredDialog();
-          return;
         } else {
           msg = 'Xatolik yuz berdi. Qayta urinib ko\'ring.';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(msg), backgroundColor: Colors.red),
+          );
         }
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), backgroundColor: Colors.red),
-        );
-      }
-    } finally {
-      if (mounted) {
+        // Reset scanner state on error so user can retry
         setState(() {
           _isScanning = false;
           _scannedOnce = false;

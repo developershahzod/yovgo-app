@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
+import '../../l10n/language_provider.dart';
 
 class CarsScreen extends StatefulWidget {
   const CarsScreen({Key? key}) : super(key: key);
@@ -22,18 +24,35 @@ class _CarsScreenState extends State<CarsScreen> {
 
   Future<void> _loadVehicles() async {
     try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedPrimary = prefs.getString('primary_vehicle_id');
       final resp = await FullApiService.get('/api/mobile/vehicles/my');
       if (resp.statusCode == 200 && resp.data != null) {
         final list = (resp.data['vehicles'] as List?)?.cast<Map<String, dynamic>>() ?? [];
         setState(() {
           cars = list;
-          if (cars.isNotEmpty) selectedCarId = cars.first['id'];
+          if (savedPrimary != null && list.any((c) => c['id'] == savedPrimary)) {
+            selectedCarId = savedPrimary;
+          } else if (cars.isNotEmpty) {
+            selectedCarId = cars.first['id'];
+          }
           _isLoading = false;
         });
         return;
       }
     } catch (_) {}
     setState(() => _isLoading = false);
+  }
+
+  Future<void> _setPrimaryCar(String carId) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('primary_vehicle_id', carId);
+    setState(() => selectedCarId = carId);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(context.tr('vehicle_selected')), backgroundColor: const Color(0xFF00BFFE), duration: const Duration(seconds: 2)),
+      );
+    }
   }
 
   Future<void> _showAddDialog() async {
@@ -56,19 +75,19 @@ class _CarsScreenState extends State<CarsScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Mashina qo\'shish', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                  Text(context.tr('vehicle_add'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                   const SizedBox(height: 20),
-                  _buildInput('Davlat raqami *', plateCtrl, 'Masalan: 01 A 777 AA'),
+                  _buildInput(context.tr('vehicle_plate'), plateCtrl, '01 A 777 AA'),
                   const SizedBox(height: 12),
-                  _buildInput('Marka *', brandCtrl, 'Masalan: Chevrolet'),
+                  _buildInput(context.tr('vehicle_brand'), brandCtrl, 'Chevrolet'),
                   const SizedBox(height: 12),
-                  _buildInput('Model', modelCtrl, 'Masalan: Malibu 2'),
+                  _buildInput(context.tr('vehicle_model'), modelCtrl, 'Malibu 2'),
                   const SizedBox(height: 12),
                   // Vehicle type selector
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Mashina turi *', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
+                      Text(context.tr('vehicle_type'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
                       const SizedBox(height: 8),
                       Row(
                         children: [
@@ -132,9 +151,9 @@ class _CarsScreenState extends State<CarsScreen> {
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: _buildInput('Rang', colorCtrl, 'Oq')),
+                      Expanded(child: _buildInput(context.tr('vehicle_color'), colorCtrl, '')),
                       const SizedBox(width: 12),
-                      Expanded(child: _buildInput('Yil', yearCtrl, '2024', isNumber: true)),
+                      Expanded(child: _buildInput(context.tr('vehicle_year'), yearCtrl, '2024', isNumber: true)),
                     ],
                   ),
                   const SizedBox(height: 24),
@@ -147,7 +166,7 @@ class _CarsScreenState extends State<CarsScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
-                          child: const Text('Bekor qilish', style: TextStyle(fontFamily: 'Mulish', fontWeight: FontWeight.w600)),
+                          child: Text(context.tr('cancel'), style: const TextStyle(fontFamily: 'Mulish', fontWeight: FontWeight.w600)),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -176,7 +195,7 @@ class _CarsScreenState extends State<CarsScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                           ),
-                          child: const Text('Qo\'shish', style: TextStyle(color: Colors.white, fontFamily: 'Mulish', fontWeight: FontWeight.w700)),
+                          child: Text(context.tr('add'), style: const TextStyle(color: Colors.white, fontFamily: 'Mulish', fontWeight: FontWeight.w700)),
                         ),
                       ),
                     ],
@@ -259,7 +278,7 @@ class _CarsScreenState extends State<CarsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Mening mashinalarim',
+          context.tr('vehicle_title'),
           style: TextStyle(
             color: AppTheme.textPrimary,
             fontSize: 18,
@@ -283,12 +302,12 @@ class _CarsScreenState extends State<CarsScreen> {
                 children: [
                   Icon(Icons.directions_car_outlined, size: 64, color: Colors.grey[300]),
                   const SizedBox(height: 16),
-                  Text('Hali mashina qo\'shilmagan', style: TextStyle(fontSize: 16, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
+                  Text(context.tr('vehicle_empty'), style: TextStyle(fontSize: 16, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
                   const SizedBox(height: 12),
                   ElevatedButton.icon(
                     onPressed: _showAddDialog,
                     icon: const Icon(Icons.add, size: 18),
-                    label: const Text('Mashina qo\'shish', style: TextStyle(fontFamily: 'Mulish', fontWeight: FontWeight.w600)),
+                    label: Text(context.tr('vehicle_add'), style: const TextStyle(fontFamily: 'Mulish', fontWeight: FontWeight.w600)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryCyan,
                       foregroundColor: Colors.white,
@@ -308,11 +327,7 @@ class _CarsScreenState extends State<CarsScreen> {
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 12),
                   child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedCarId = car['id'];
-                      });
-                    },
+                    onTap: () => _setPrimaryCar(car['id']),
                     onLongPress: () => _deleteVehicle(car),
                     child: Container(
                       padding: const EdgeInsets.all(16),
@@ -355,7 +370,7 @@ class _CarsScreenState extends State<CarsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  car['name'] ?? car['brand'] ?? 'Mashina',
+                                  car['name'] ?? car['brand'] ?? context.tr('vehicle_title'),
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,

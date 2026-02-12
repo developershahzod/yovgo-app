@@ -1807,7 +1807,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                   ),
                   child: Center(
                     child: Text(
-                      'Tashriflar hali yo\'q',
+                      context.tr('home_no_recent'),
                       style: TextStyle(
                         color: AppTheme.textSecondary,
                         fontSize: 14,

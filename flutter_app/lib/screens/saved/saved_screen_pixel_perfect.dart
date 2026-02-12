@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:geolocator/geolocator.dart';
 import '../../config/app_theme.dart';
 import '../../services/favorites_service.dart';
+import '../../l10n/language_provider.dart';
 
 class SavedScreenPixelPerfect extends StatefulWidget {
   const SavedScreenPixelPerfect({Key? key}) : super(key: key);
@@ -123,9 +124,9 @@ class _SavedScreenPixelPerfectState extends State<SavedScreenPixelPerfect> {
                             children: [
                               Icon(Icons.bookmark_border, size: 64, color: Colors.grey.shade300),
                               const SizedBox(height: 16),
-                              const Text('Saqlanganlar yo\'q', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textPrimary, fontFamily: 'Mulish')),
+                              Text(context.tr('saved_empty'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: AppTheme.textPrimary, fontFamily: 'Mulish')),
                               const SizedBox(height: 8),
-                              const Text('Sevimli avtomoykalarni saqlang', style: TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
+                              Text(context.tr('saved_add_hint'), style: const TextStyle(fontSize: 14, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
                             ],
                           ),
                         )
@@ -155,10 +156,10 @@ class _SavedScreenPixelPerfectState extends State<SavedScreenPixelPerfect> {
               child: const Center(child: Icon(Icons.arrow_back, size: 24, color: AppTheme.textPrimary)),
             ),
           ),
-          const Center(
+          Center(
             child: Text(
-              'Saqlanganlar',
-              style: TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish'),
+              context.tr('saved_favorites'),
+              style: const TextStyle(color: AppTheme.textPrimary, fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish'),
             ),
           ),
         ],

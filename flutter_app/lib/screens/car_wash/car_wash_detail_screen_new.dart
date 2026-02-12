@@ -41,6 +41,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
         setState(() { _partner = args; _isLoading = false; });
         _checkFavorite(args['id']?.toString());
         _fetchReviews(args['id']?.toString());
+        _checkSubscription();
         return;
       }
       String? partnerId;
@@ -68,6 +69,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
               setState(() { _partner = pd; _isLoading = false; });
               _checkFavorite(pd['id']?.toString());
               _fetchReviews(pd['id']?.toString());
+              _checkSubscription();
               return;
             }
           }
@@ -81,6 +83,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
           setState(() { _partner = Map<String, dynamic>.from(partners.first); _isLoading = false; });
           _checkFavorite(partners.first['id']?.toString());
           _fetchReviews(partners.first['id']?.toString());
+          _checkSubscription();
           return;
         }
       }
@@ -725,7 +728,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   Widget _buildMapSection(dynamic lat, dynamic lng) {
     final hasCoords = lat != null && lng != null;
     final mapUrl = hasCoords
-        ? 'https://static-maps.yandex.ru/v1?ll=${lng},${lat}&z=15&size=600,300&l=map&pt=${lng},${lat},pm2rdm'
+        ? 'https://maps.googleapis.com/maps/api/staticmap?center=$lat,$lng&zoom=15&size=600x300&maptype=roadmap&markers=color:red%7C$lat,$lng&key=AIzaSyD2sYo3t9aQf4O-4nF7_md18VRU_tGdrQM'
         : '';
 
     return GestureDetector(

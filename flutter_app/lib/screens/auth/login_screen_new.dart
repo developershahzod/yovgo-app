@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../services/full_api_service.dart';
+import '../../l10n/language_provider.dart';
 
 class LoginScreenNew extends StatefulWidget {
   const LoginScreenNew({Key? key}) : super(key: key);
@@ -42,7 +43,7 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
   Future<void> _sendCode() async {
     final phone = _phoneController.text.trim();
     if (phone.length < 13) {
-      setState(() => _error = 'Telefon raqamni to\'liq kiriting');
+      setState(() => _error = context.tr('auth_phone_short'));
       return;
     }
     setState(() { _isLoading = true; _error = null; });
@@ -54,9 +55,9 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
       }
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];
-      setState(() => _error = detail?.toString() ?? 'Xatolik yuz berdi');
+      setState(() => _error = detail?.toString() ?? context.tr('auth_error_occurred'));
     } catch (e) {
-      setState(() => _error = 'Tarmoq xatosi');
+      setState(() => _error = context.tr('auth_error_network'));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -66,7 +67,7 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
     final phone = _phoneController.text.trim();
     final code = _codeController.text.trim();
     if (code.length < 5) {
-      setState(() => _error = 'Kodni to\'liq kiriting');
+      setState(() => _error = context.tr('auth_code_short'));
       return;
     }
     setState(() { _isLoading = true; _error = null; });
@@ -84,9 +85,9 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
       }
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];
-      setState(() => _error = detail?.toString() ?? 'Kod noto\'g\'ri');
+      setState(() => _error = detail?.toString() ?? context.tr('auth_invalid_code'));
     } catch (e) {
-      setState(() => _error = 'Tarmoq xatosi');
+      setState(() => _error = context.tr('auth_error_network'));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -136,14 +137,14 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
         const SizedBox(height: 16),
         Image.asset('assets/images/Light BG Default.png', height: 28, fit: BoxFit.contain),
         const SizedBox(height: 40),
-        const Text(
-          'Tizimga kirish',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
+        Text(
+          context.tr('auth_login'),
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
         ),
         const SizedBox(height: 8),
         Text(
-          'Telefon raqamingizni kiriting',
-          style: TextStyle(fontSize: 15, color: const Color(0xFF8F96A0), fontFamily: 'Mulish'),
+          context.tr('auth_login_desc'),
+          style: const TextStyle(fontSize: 15, color: Color(0xFF8F96A0), fontFamily: 'Mulish'),
         ),
         const SizedBox(height: 32),
         if (_error != null) _buildError(),
@@ -157,8 +158,8 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
             keyboardType: TextInputType.phone,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish'),
             decoration: InputDecoration(
-              labelText: 'Telefon raqam',
-              labelStyle: TextStyle(color: const Color(0xFF8F96A0), fontFamily: 'Mulish'),
+              labelText: context.tr('auth_phone'),
+              labelStyle: const TextStyle(color: Color(0xFF8F96A0), fontFamily: 'Mulish'),
               prefixIcon: const Icon(Icons.phone_outlined, color: Color(0xFF8F96A0)),
               border: InputBorder.none,
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -179,19 +180,19 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
             ),
             child: _isLoading
                 ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('Kod yuborish', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                : Text(context.tr('auth_send_code'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
           ),
         ),
         const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Akkauntingiz yo\'qmi? ', style: TextStyle(fontSize: 14, color: const Color(0xFF8F96A0), fontFamily: 'Mulish')),
+            Text(context.tr('auth_no_account'), style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
             GestureDetector(
               onTap: () => Navigator.pushReplacementNamed(context, '/register'),
-              child: const Text(
-                'Ro\'yxatdan o\'tish',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF00BFFE), fontFamily: 'Mulish'),
+              child: Text(
+                context.tr('auth_register'),
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF00BFFE), fontFamily: 'Mulish'),
               ),
             ),
           ],
@@ -206,7 +207,7 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
                 Navigator.pushReplacementNamed(context, '/main');
               }
             },
-            child: Text('Keyinroq', style: TextStyle(fontSize: 14, color: const Color(0xFF8F96A0), fontFamily: 'Mulish')),
+            child: Text(context.tr('auth_later'), style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
           ),
         ),
         const SizedBox(height: 32),
@@ -222,14 +223,14 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
         const SizedBox(height: 16),
         Image.asset('assets/images/Light BG Default.png', height: 28, fit: BoxFit.contain),
         const SizedBox(height: 40),
-        const Text(
-          'Kodni kiriting',
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
+        Text(
+          context.tr('auth_enter_code'),
+          style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
         ),
         const SizedBox(height: 8),
         Text(
-          '$phone raqamiga kod yuborildi',
-          style: TextStyle(fontSize: 15, color: const Color(0xFF8F96A0), fontFamily: 'Mulish'),
+          '${context.tr('auth_code_sent')} $phone',
+          style: const TextStyle(fontSize: 15, color: Color(0xFF8F96A0), fontFamily: 'Mulish'),
         ),
         const SizedBox(height: 32),
         if (_error != null) _buildError(),
@@ -257,10 +258,10 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
         const SizedBox(height: 16),
         Center(
           child: _resendSeconds > 0
-              ? Text('Qayta yuborish: $_resendSeconds s', style: TextStyle(fontSize: 14, color: const Color(0xFF8F96A0), fontFamily: 'Mulish'))
+              ? Text('${context.tr('auth_resend')}: $_resendSeconds s', style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0), fontFamily: 'Mulish'))
               : GestureDetector(
                   onTap: _isLoading ? null : _sendCode,
-                  child: const Text('Kodni qayta yuborish', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
+                  child: Text(context.tr('auth_resend_code'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
                 ),
         ),
         const SizedBox(height: 24),
@@ -277,7 +278,7 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
             ),
             child: _isLoading
                 ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                : const Text('Tasdiqlash', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                : Text(context.tr('auth_verify'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
           ),
         ),
         const SizedBox(height: 32),

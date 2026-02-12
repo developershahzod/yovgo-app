@@ -58,11 +58,11 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
     final phone = _phoneController.text.trim();
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = 'Please enter your name');
+      setState(() => _error = context.tr('auth_name_required'));
       return;
     }
     if (phone.length < 13) {
-      setState(() => _error = 'Please enter full phone number');
+      setState(() => _error = context.tr('auth_phone_short'));
       return;
     }
     setState(() { _isLoading = true; _error = null; });
@@ -74,9 +74,9 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
       }
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];
-      setState(() => _error = detail?.toString() ?? 'An error occurred');
+      setState(() => _error = detail?.toString() ?? context.tr('auth_error_occurred'));
     } catch (e) {
-      setState(() => _error = 'Network error');
+      setState(() => _error = context.tr('auth_error_network'));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -87,7 +87,7 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
     final name = _nameController.text.trim();
     final code = _codeController.text.trim();
     if (code.length < 5) {
-      setState(() => _error = 'Please enter the full code');
+      setState(() => _error = context.tr('auth_code_short'));
       return;
     }
     setState(() { _isLoading = true; _error = null; });
@@ -102,9 +102,9 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
       }
     } on DioException catch (e) {
       final detail = e.response?.data?['detail'];
-      setState(() => _error = detail?.toString() ?? 'Invalid code');
+      setState(() => _error = detail?.toString() ?? context.tr('auth_invalid_code'));
     } catch (e) {
-      setState(() => _error = 'Network error');
+      setState(() => _error = context.tr('auth_error_network'));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -113,7 +113,7 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
   Future<void> _completeProfile() async {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      setState(() => _error = 'Please enter your name');
+      setState(() => _error = context.tr('auth_name_required'));
       return;
     }
     setState(() { _isLoading = true; _error = null; });

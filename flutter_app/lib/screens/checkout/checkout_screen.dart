@@ -92,16 +92,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final subscriptionId = subResult['id']?.toString() ?? subResult['subscription_id']?.toString();
       if (subscriptionId == null) throw Exception(context.tr('sub_create_error'));
 
-      // Step 2: Create payment link via mobile API (handles IpakYuli integration)
+      // Step 2: Create payment record via backend (returns order_id, payment_id)
       final price = _plan!['price'] ?? 0;
       final amount = double.tryParse(price.toString()) ?? 0.0;
+      final paymentResult = await FullApiService.createMobilePayment(
+        subscriptionId: subscriptionId,
+        planId: _plan!['id'].toString(),
+        amount: amount,
+      );
+      final paymentId = paymentResult['payment_id']?.toString() ?? '';
+      final orderId = paymentResult['order_id']?.toString() ?? '';
+
+      // Step 3: Call IpakYuli directly from Flutter to get payment URL
       try {
-        final paymentResult = await FullApiService.createMobilePayment(
-          subscriptionId: subscriptionId,
-          planId: _plan!['id'].toString(),
-          amount: amount,
+        final ipakResult = await FullApiService.createIpakYuliPaymentDirect(
+          orderId: orderId,
+          amount: amount.toInt(),
+          paymentId: paymentId,
         );
-        final paymentUrl = paymentResult['payment_url']?.toString();
+        final paymentUrl = ipakResult['payment_url']?.toString();
+        final transferId = ipakResult['transfer_id']?.toString() ?? '';
         if (paymentUrl != null && paymentUrl.isNotEmpty) {
           if (mounted) {
             final result = await Navigator.push(
@@ -113,23 +123,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
               ),
             );
-            // If user completed payment or came back, check subscription status
             if (mounted) {
-              if (result == 'cancelled') {
-                _showPaymentPendingDialog();
-              } else {
-                _showPaymentPendingDialog();
-              }
+              await _checkSubscriptionActivated(subscriptionId, transferId: transferId, paymentId: paymentId);
             }
           }
         } else {
-          // No payment URL returned — subscription was activated directly (test mode)
-          if (mounted) _showSuccessDialog();
+          if (mounted) await _checkSubscriptionActivated(subscriptionId, transferId: transferId, paymentId: paymentId);
         }
       } catch (paymentError) {
-        // Payment link creation failed, but subscription was created
-        // Show success with note that payment is pending
-        if (mounted) _showSuccessDialog();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('To\'lov yaratishda xatolik: ${paymentError.toString().replaceAll('Exception: ', '')}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -144,6 +154,52 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
+  }
+
+  Future<void> _checkSubscriptionActivated(String subscriptionId, {String transferId = '', String paymentId = ''}) async {
+    // Step 1: If we have transferId, check IpakYuli directly and activate via backend
+    if (transferId.isNotEmpty && paymentId.isNotEmpty) {
+      for (int i = 0; i < 6; i++) {
+        if (!mounted) return;
+        try {
+          final status = await FullApiService.checkIpakYuliPaymentDirect(
+            transferId: transferId,
+            paymentId: paymentId,
+          );
+          if (status == 'success') {
+            // Give backend a moment to activate subscription
+            await Future.delayed(const Duration(seconds: 1));
+            if (mounted) _showSuccessDialog();
+            return;
+          }
+          if (status == 'failed' || status == 'cancelled' || status == 'expired') {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(context.tr('payment_failed')), backgroundColor: Colors.red),
+              );
+            }
+            return;
+          }
+        } catch (_) {}
+        await Future.delayed(const Duration(seconds: 3));
+      }
+    }
+
+    // Step 2: Fallback — poll subscription status from backend
+    for (int i = 0; i < 5; i++) {
+      if (!mounted) return;
+      try {
+        final sub = await FullApiService.getSubscriptionStatus();
+        final subData = sub['subscription'] as Map<String, dynamic>?;
+        if (subData != null && subData['status'] == 'active') {
+          if (mounted) _showSuccessDialog();
+          return;
+        }
+      } catch (_) {}
+      await Future.delayed(const Duration(seconds: 2));
+    }
+    // If not activated after polling, show pending dialog
+    if (mounted) _showPaymentPendingDialog();
   }
 
   @override

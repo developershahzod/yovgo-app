@@ -1127,83 +1127,32 @@ async def create_payment_link(
     db.commit()
     db.refresh(payment)
 
-    # Create payment link directly via IpakYuli EPOS API (staging)
-    IPAKYULI_BASE_URL = "https://partner.ecomm.staging.ipakyulibank.uz"
-    # Staging token for YuvGO merchant (cashbox 5835aed5, merchant 216b4362)
-    IPAKYULI_ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiI1ODM1YWVkNS05ZjkwLTQ3ZWEtYmVhMS1kNzE5MzI1NGY5N2QiLCJtZXJjaGFudElkIjoiMjE2YjQzNjItOGM4Yi00MjlkLWJlOGItNTJkYmVlZTAzYTNhIiwiaWF0IjoxNzcwNzcwMjUwLCJleHAiOjE4MDIzMjc4NTB9.o9l2mUjYe2_igfgyoDGovwgnZImvOF09RRgRzQ2-Ge8"
-
-    payload = {
-        "jsonrpc": "2.0",
-        "id": str(_uuid.uuid4()),
-        "method": "transfer.create_token",
-        "params": {
-            "order_id": order_id,
-            "amount": int(amount),
-            "details": {
-                "description": "YuvGO obuna to'lovi",
-                "ofdInfo": {
-                    "Items": [
-                        {
-                            "Name": "YuvGO Subscription",
-                            "SPIC": "03304999067000000",
-                            "PackageCode": "1344094",
-                            "price": int(amount),
-                            "count": 1,
-                            "VATPercent": 0,
-                            "Discount": 0,
-                        }
-                    ]
-                },
-            },
-            "success_url": f"https://app.yuvgo.uz/api/mobile/payments/success?payment_id={str(payment.id)}",
-            "fail_url": "https://app.yuvgo.uz/#/main",
-        },
-    }
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {IPAKYULI_ACCESS_TOKEN}",
+    # Return payment details — Flutter app will call IpakYuli directly
+    return {
+        "success": True,
+        "payment_id": str(payment.id),
+        "order_id": order_id,
+        "amount": amount,
+        "subscription_id": str(subscription.id),
     }
 
-    # Call IpakYuli via nginx reverse proxy (avoids outbound HTTPS issues from uvicorn)
-    import httpx
 
-    try:
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            resp = await client.post(
-                "http://yuvgo_nginx:80/ipakyuli-proxy",
-                json=payload,
-                headers={
-                    "Content-Type": "application/json",
-                    "Authorization": f"Bearer {IPAKYULI_ACCESS_TOKEN}",
-                    "Host": "app.yuvgo.uz",
-                },
-            )
-            print(f"[IPAKYULI] Status: {resp.status_code}, Body: {resp.text[:500]}")
-            data = resp.json()
-        if "error" in data:
-            print(f"[IPAKYULI] Error: {data['error']}")
-            payment.status = "failed"
-            db.commit()
-            raise HTTPException(status_code=500, detail=f"IpakYuli xatolik: {data['error'].get('message', '')}")
-        result = data.get("result", {})
-        payment.transaction_id = result.get("transfer_id")
-        db.commit()
-        return {
-            "success": True,
-            "payment_id": str(payment.id),
-            "payment_url": result.get("payment_url"),
-            "transfer_id": result.get("transfer_id"),
-            "order_id": order_id,
-            "amount": amount,
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        payment.status = "failed"
-        db.commit()
-        raise HTTPException(status_code=500, detail=f"To'lov yaratishda xatolik: {type(e).__name__}: {str(e)}")
+class UpdateTransferRequest(BaseModel):
+    payment_id: str
+    transfer_id: str
+
+@router.post("/payments/update-transfer")
+async def update_payment_transfer(
+    request: UpdateTransferRequest,
+    db: Session = Depends(get_db),
+):
+    """Save transfer_id from Flutter's direct IpakYuli call"""
+    payment = db.query(Payment).filter(Payment.id == request.payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+    payment.transaction_id = request.transfer_id
+    db.commit()
+    return {"success": True}
 
 
 @router.get("/payments/success")
@@ -1244,7 +1193,8 @@ async def get_payment_status(
 
     # If payment is still pending and has a transfer_id, check IpakYuli
     if payment.status == "pending" and payment.transaction_id:
-        IPAKYULI_ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiI1ODM1YWVkNS05ZjkwLTQ3ZWEtYmVhMS1kNzE5MzI1NGY5N2QiLCJtZXJjaGFudElkIjoiMjE2YjQzNjItOGM4Yi00MjlkLWJlOGItNTJkYmVlZTAzYTNhIiwiaWF0IjoxNzcwNzcwMjUwLCJleHAiOjE4MDIzMjc4NTB9.o9l2mUjYe2_igfgyoDGovwgnZImvOF09RRgRzQ2-Ge8"
+        IPAKYULI_ACCESS_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiIxODhjYWQyMS0zMGQwLTQyZDktODUxOC05ODFhYWNiNTVkOTUiLCJtZXJjaGFudElkIjoiYTBlZmUyNzgtNWUyZi00YzQ5LWIzZmItN2NlMjllOWM4ZmVkIiwiaWF0IjoxNzQ4ODYyNDI1LCJleHAiOjE3ODA0MjAwMjV9.JmfSQb_5Ei6fPLxTCCbQY6ECprq76NMJMnwT3CPFxP4"
+        IPAKYULI_URL = "https://ecom.ipakyulibank.uz/api/transfer"
         try:
             import uuid as _uuid
             payload = {
@@ -1255,12 +1205,11 @@ async def get_payment_status(
             }
             async with httpx.AsyncClient(timeout=15.0) as client:
                 resp = await client.post(
-                    "http://yuvgo_nginx:80/ipakyuli-proxy",
+                    IPAKYULI_URL,
                     json=payload,
                     headers={
                         "Content-Type": "application/json",
                         "Authorization": f"Bearer {IPAKYULI_ACCESS_TOKEN}",
-                        "Host": "app.yuvgo.uz",
                     },
                 )
                 data = resp.json()

@@ -56,13 +56,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) setState(() => _vehicleCount = vehicles.length);
       } catch (_) {}
       
-      // Load visit stats
+      // Load visit stats via mobile API
       try {
-        final stats = await FullApiService.getVisitStats();
-        if (mounted) {
+        final resp = await FullApiService.get('/api/mobile/users/stats');
+        if (mounted && resp.statusCode == 200) {
+          final stats = resp.data['stats'] ?? resp.data;
           setState(() {
             _visitCount = stats['total_visits'] ?? 0;
-            _savedAmount = stats['total_saved'] ?? stats['total_savings'] ?? 0;
+            _savedAmount = stats['total_savings'] ?? stats['total_saved'] ?? 0;
             _carWashCount = stats['total_car_washes'] ?? 0;
           });
         }
