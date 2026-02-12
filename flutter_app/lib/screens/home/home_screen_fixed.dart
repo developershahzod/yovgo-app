@@ -516,24 +516,26 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                   size: 24,
                                 ),
                                 const SizedBox(width: 8),
-                                Column(
+                                Expanded(child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       context.tr('saved_money'),
                                       style: TextStyle(
                                         color: const Color(0xFFFFEEEA),
-                                        fontSize: 12,
+                                        fontSize: 11,
                                         fontWeight: FontWeight.w400,
                                         fontFamily: 'Mulish',
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
                                     Row(
                                       crossAxisAlignment: CrossAxisAlignment.baseline,
                                       textBaseline: TextBaseline.alphabetic,
                                       children: [
-                                        Text(
+                                        Flexible(child: Text(
                                           _formatNumber(_savedAmount),
                                           style: TextStyle(
                                             color: Colors.white,
@@ -541,7 +543,9 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                             fontWeight: FontWeight.w900,
                                             fontFamily: 'Mulish',
                                           ),
-                                        ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        )),
                                         const SizedBox(width: 2),
                                         Text(
                                           context.tr('currency'),
@@ -555,7 +559,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                       ],
                                     ),
                                   ],
-                                ),
+                                )),
                               ],
                             ),
                           ),
@@ -581,17 +585,19 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                   size: 24,
                                 ),
                                 const SizedBox(width: 8),
-                                Column(
+                                Expanded(child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
                                       context.tr('monthly_visits'),
                                       style: TextStyle(
                                         color: const Color(0xFFFFEEEA),
-                                        fontSize: 12,
+                                        fontSize: 11,
                                         fontWeight: FontWeight.w400,
                                         fontFamily: 'Mulish',
                                       ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 4),
                                     RichText(
@@ -619,7 +625,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                       ),
                                     ),
                                   ],
-                                ),
+                                )),
                               ],
                             ),
                           ),
