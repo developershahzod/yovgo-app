@@ -841,7 +841,7 @@ const Map<String, String> _ruTranslations = {
   'saved_count': 'Избранное',
   'privacy_policy': 'Политика конфиденциальности',
   'help_center': 'Центр помощи',
-  'help_about_sub': 'Об обунах',
+  'help_about_sub': 'О подписках',
   'help_about_sub_desc': 'Тарифные планы и информация об оплате',
   'help_qr_scan': 'Сканирование QR-кода',
   'help_qr_scan_desc': 'Как сканировать QR-коды на автомойках',

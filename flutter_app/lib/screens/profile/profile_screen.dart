@@ -489,8 +489,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.6,
+      builder: (ctx) => Container(
+        height: MediaQuery.of(ctx).size.height * 0.6,
         decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -515,7 +515,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     context.tr('help_center'),
                     style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, fontFamily: 'Mulish'),
                   ),
-                  IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+                  IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close)),
                 ],
               ),
             ),
