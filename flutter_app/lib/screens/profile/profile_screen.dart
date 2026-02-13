@@ -16,8 +16,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isPremium = false;
   String _fullName = '';
   String _phone = '';
-  int _carWashCount = 0;
-  int _visitCount = 0;
+  int _usedVisits = 0;
+  int _totalVisits = 0;
   int _savedAmount = 0;
   int _vehicleCount = 0;
   int _cardCount = 0;
@@ -56,24 +56,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) setState(() => _vehicleCount = vehicles.length);
       } catch (_) {}
       
-      // Load visit stats via mobile API
+      // Load subscription status (same source as home page)
       try {
-        final resp = await FullApiService.get('/api/mobile/users/stats');
-        if (mounted && resp.statusCode == 200) {
-          final stats = resp.data['stats'] ?? resp.data;
+        final res = await FullApiService.getSubscriptionStatus();
+        final sub = res['subscription'] as Map<String, dynamic>?;
+        if (mounted && sub != null && sub['status'] == 'active') {
           setState(() {
-            _visitCount = stats['total_visits'] ?? 0;
-            _savedAmount = stats['total_savings'] ?? stats['total_saved'] ?? 0;
-            _carWashCount = stats['total_car_washes'] ?? 0;
+            _isPremium = true;
+            _usedVisits = sub['used_visits'] ?? sub['visits_used'] ?? 0;
+            final isUnlimited = sub['is_unlimited'] == true;
+            if (isUnlimited) {
+              _totalVisits = -1;
+            } else {
+              _totalVisits = sub['total_visits'] ?? sub['visit_limit'] ?? 0;
+              if (_totalVisits == 0) {
+                final rem = sub['remaining_visits'] ?? sub['visits_remaining'] ?? 0;
+                _totalVisits = _usedVisits + (rem as int);
+              }
+            }
+            _savedAmount = sub['saved_amount'] ?? (_usedVisits * 15000);
           });
-        }
-      } catch (_) {}
-      
-      // Load subscription status
-      try {
-        final sub = await FullApiService.getSubscriptionStatus();
-        if (mounted && sub['status'] == 'active') {
-          setState(() => _isPremium = true);
         }
       } catch (_) {}
       
@@ -308,11 +310,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildStatsRow() {
     return Row(
       children: [
-        Expanded(child: _buildStatBox(Icons.home_outlined, '$_carWashCount', context.tr('home_nearest').toUpperCase())),
-        const SizedBox(width: 8),
-        Expanded(child: _buildStatBox(Icons.bolt, '$_visitCount', context.tr('home_recent').toUpperCase())),
+        Expanded(child: _buildStatBox(Icons.local_car_wash_outlined, _totalVisits == -1 ? '$_usedVisits/∞' : '$_usedVisits/$_totalVisits', context.tr('monthly_visits').toUpperCase())),
         const SizedBox(width: 8),
         Expanded(child: _buildStatBox(Icons.attach_money, _formatNumber(_savedAmount), context.tr('sub_best_value').toUpperCase())),
+        const SizedBox(width: 8),
+        Expanded(child: _buildStatBox(Icons.directions_car_outlined, '$_vehicleCount', context.tr('profile_vehicles').toUpperCase())),
       ],
     );
   }
