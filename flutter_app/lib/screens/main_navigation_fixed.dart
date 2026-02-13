@@ -99,7 +99,7 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
         child: SafeArea(
           top: false,
           child: Container(
-            height: 80,
+            height: 64,
             color: Colors.white,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Row(
@@ -180,16 +180,15 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
     return GestureDetector(
       onTap: () => _onTabTapped(2),
       child: Container(
-        width: 72,
-        height: 72,
-        margin: const EdgeInsets.only(bottom: 4),
+        width: 64,
+        height: 64,
         child: Stack(
           alignment: Alignment.center,
           children: [
             // Outer glow ring
             Container(
-              width: 72,
-              height: 72,
+              width: 64,
+              height: 64,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Color.fromRGBO(0, 191, 254, 0.12),
@@ -197,8 +196,8 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
             ),
             // Middle ring
             Container(
-              width: 60,
-              height: 60,
+              width: 54,
+              height: 54,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Color.fromRGBO(0, 191, 254, 0.25),
@@ -206,8 +205,8 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
             ),
             // Inner button
             Container(
-              width: 50,
-              height: 50,
+              width: 44,
+              height: 44,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: AppTheme.primaryCyan,
