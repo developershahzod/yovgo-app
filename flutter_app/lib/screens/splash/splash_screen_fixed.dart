@@ -27,7 +27,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Wave animation — smooth continuous flowing motion
     _waveController = AnimationController(
-      duration: const Duration(milliseconds: 2500),
+      duration: const Duration(milliseconds: 4000),
       vsync: this,
     )..repeat();
     _waveSlide = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -98,11 +98,11 @@ class _SplashScreenState extends State<SplashScreen>
             animation: _waveSlide,
             builder: (context, child) {
               return Positioned(
-                top: -20,
-                left: -40,
-                right: -40,
+                top: -30,
+                left: -60,
+                right: -60,
                 child: CustomPaint(
-                  size: Size(size.width + 80, 340),
+                  size: Size(size.width + 120, size.height * 0.38),
                   painter: _AnimatedWavePainter(
                     isTop: true,
                     animValue: _waveSlide.value,
@@ -117,11 +117,11 @@ class _SplashScreenState extends State<SplashScreen>
             animation: _waveSlide,
             builder: (context, child) {
               return Positioned(
-                bottom: -20,
-                left: -40,
-                right: -40,
+                bottom: -30,
+                left: -60,
+                right: -60,
                 child: CustomPaint(
-                  size: Size(size.width + 80, 340),
+                  size: Size(size.width + 120, size.height * 0.38),
                   painter: _AnimatedWavePainter(
                     isTop: false,
                     animValue: _waveSlide.value,
@@ -185,44 +185,80 @@ class _AnimatedWavePainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // Animated horizontal offset for flowing wave effect
-    final shift = sin(animValue * 2 * pi) * w * 0.06;
-    final shift2 = sin((animValue + 0.3) * 2 * pi) * w * 0.05;
+    // Gentle animated horizontal offset for smooth flowing wave
+    final shift = sin(animValue * 2 * pi) * w * 0.04;
+    final shift2 = sin((animValue + 0.35) * 2 * pi) * w * 0.035;
+
+    // Wave band thickness
+    final bandH = h * 0.20;
 
     if (isTop) {
-      // Wave band 1
+      // Wave band 1 — top edge, thick S-curve
       final p1 = Path();
-      p1.moveTo(-40, 0);
-      p1.lineTo(w + 40, 0);
-      p1.lineTo(w + 40, h * 0.32);
-      p1.cubicTo(w * 0.75 + shift, h * 0.05, w * 0.25 + shift, h * 0.55, -40, h * 0.18);
+      p1.moveTo(-60, 0);
+      p1.lineTo(w + 60, 0);
+      // Bottom edge of band 1: wide S-curve
+      p1.lineTo(w + 60, h * 0.18 + shift);
+      p1.cubicTo(
+        w * 0.72 + shift, h * 0.02,
+        w * 0.28 + shift, h * 0.42,
+        -60, h * 0.12 + shift,
+      );
       p1.close();
       canvas.drawPath(p1, paint);
 
-      // Wave band 2
+      // Wave band 2 — below band 1 with gap, thick S-curve
+      final y2Top = h * 0.30;
       final p2 = Path();
-      p2.moveTo(-40, h * 0.38);
-      p2.cubicTo(w * 0.25 + shift2, h * 0.75, w * 0.75 + shift2, h * 0.22, w + 40, h * 0.55);
-      p2.lineTo(w + 40, h * 0.75);
-      p2.cubicTo(w * 0.75 + shift2, h * 0.42, w * 0.25 + shift2, h * 0.95, -40, h * 0.58);
+      // Top edge of band 2
+      p2.moveTo(-60, y2Top + shift2);
+      p2.cubicTo(
+        w * 0.30 + shift2, y2Top + bandH * 1.6,
+        w * 0.70 + shift2, y2Top - bandH * 0.6,
+        w + 60, y2Top + bandH * 0.5 + shift2,
+      );
+      // Bottom edge of band 2
+      p2.lineTo(w + 60, y2Top + bandH + shift2);
+      p2.cubicTo(
+        w * 0.70 + shift2, y2Top + bandH - bandH * 0.6,
+        w * 0.30 + shift2, y2Top + bandH + bandH * 1.6,
+        -60, y2Top + bandH * 0.5 + shift2,
+      );
       p2.close();
       canvas.drawPath(p2, paint);
     } else {
-      // Wave band 1
+      // Wave band 1 — upper band in bottom section
+      final y1Top = h * 0.30;
       final p1 = Path();
-      p1.moveTo(-40, h * 0.25);
-      p1.cubicTo(w * 0.25 - shift, h * 0.58, w * 0.75 - shift, h * 0.05, w + 40, h * 0.42);
-      p1.lineTo(w + 40, h * 0.62);
-      p1.cubicTo(w * 0.75 - shift, h * 0.25, w * 0.25 - shift, h * 0.78, -40, h * 0.45);
+      // Top edge
+      p1.moveTo(-60, y1Top - shift);
+      p1.cubicTo(
+        w * 0.30 - shift, y1Top - bandH * 0.6,
+        w * 0.70 - shift, y1Top + bandH * 1.6,
+        w + 60, y1Top + bandH * 0.5 - shift,
+      );
+      // Bottom edge
+      p1.lineTo(w + 60, y1Top + bandH - shift);
+      p1.cubicTo(
+        w * 0.70 - shift, y1Top + bandH + bandH * 1.6,
+        w * 0.30 - shift, y1Top + bandH - bandH * 0.6,
+        -60, y1Top + bandH * 0.5 - shift,
+      );
       p1.close();
       canvas.drawPath(p1, paint);
 
-      // Wave band 2
+      // Wave band 2 — bottom edge, thick S-curve
       final p2 = Path();
-      p2.moveTo(-40, h * 0.68);
-      p2.cubicTo(w * 0.25 - shift2, h * 0.95, w * 0.75 - shift2, h * 0.55, w + 40, h * 0.82);
-      p2.lineTo(w + 40, h + 20);
-      p2.lineTo(-40, h + 20);
+      // Top edge of band 2: wide S-curve
+      p2.moveTo(-60, h * 0.72 - shift2);
+      p2.cubicTo(
+        w * 0.28 - shift2, h * 0.58,
+        w * 0.72 - shift2, h * 0.98,
+        w + 60, h * 0.82 - shift2,
+      );
+      // Fill to bottom
+      p2.lineTo(w + 60, h + 30);
+      p2.lineTo(-60, h + 30);
       p2.close();
       canvas.drawPath(p2, paint);
     }
