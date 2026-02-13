@@ -188,10 +188,10 @@ const Map<String, String> _enTranslations = {
   'vehicle_delete_desc': 'Do you want to delete',
   'error_generic': 'Error',
   'sub_active': 'ACTIVE',
-  'sub_expired': 'EXPIRED',
+  'sub_expired_badge': 'EXPIRED',
   'sub_validity': 'Valid until',
-  'remaining_visits': 'Remaining\nvisits',
-  'used_visits': 'Used\nvisits',
+  'remaining_visits': 'Remaining visits',
+  'used_visits': 'Used visits',
   'reviews_count': 'REVIEWS',
 
   // Notifications
@@ -676,10 +676,10 @@ const Map<String, String> _ruTranslations = {
   'vehicle_delete_desc': 'Вы хотите удалить',
   'error_generic': 'Ошибка',
   'sub_active': 'АКТИВНА',
-  'sub_expired': 'ИСТЕКЛА',
+  'sub_expired_badge': 'ИСТЕКЛА',
   'sub_validity': 'Действует до',
-  'remaining_visits': 'Осталось\nпосещений',
-  'used_visits': 'Использовано\nпосещений',
+  'remaining_visits': 'Осталось посещений',
+  'used_visits': 'Использовано посещений',
   'reviews_count': 'ОТЗЫВОВ',
 
   // Notifications
@@ -1164,10 +1164,10 @@ const Map<String, String> _uzTranslations = {
   'vehicle_delete_desc': "O'chirmoqchimisiz",
   'error_generic': 'Xatolik',
   'sub_active': 'FAOL',
-  'sub_expired': 'MUDDATI TUGAGAN',
+  'sub_expired_badge': 'MUDDATI TUGAGAN',
   'sub_validity': 'Amal qilish muddati',
-  'remaining_visits': 'Qolgan\ntashriflar',
-  'used_visits': 'Ishlatilgan\ntashriflar',
+  'remaining_visits': 'Qolgan tashriflar',
+  'used_visits': 'Ishlatilgan tashriflar',
   'reviews_count': 'TA BAHO',
 
   // Notifications

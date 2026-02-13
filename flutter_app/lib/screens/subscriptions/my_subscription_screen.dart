@@ -250,7 +250,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(color: const Color(0xFFFF8C00), borderRadius: BorderRadius.circular(8)),
-                            child: Text(context.tr('sub_expired'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
+                            child: Text(context.tr('sub_expired_badge'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
                           ),
                       ],
                     ),
