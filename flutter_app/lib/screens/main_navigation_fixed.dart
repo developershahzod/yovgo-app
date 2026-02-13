@@ -29,12 +29,20 @@ class MainNavigationFixed extends StatefulWidget {
 
 class _MainNavigationFixedState extends State<MainNavigationFixed> {
   late int _currentIndex;
+  late final List<Widget> _screens;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     MainNavigationFixed._instance = this;
+    _screens = [
+      HomeScreenFixed(key: HomeScreenFixed.globalKey),
+      const MapScreenNew(),
+      const _QrTabWrapper(),
+      MySubscriptionScreen(key: MySubscriptionScreen.globalKey),
+      const ProfileScreen(),
+    ];
   }
 
   @override
@@ -62,14 +70,7 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
     return Scaffold(
       body: IndexedStack(
         index: _currentIndex,
-        children: [
-          HomeScreenFixed(key: HomeScreenFixed.globalKey),
-          const MapScreenNew(),
-          // Only build QR scanner when its tab is active to prevent camera on all pages
-          _currentIndex == 2 ? const QrScannerScreenFixed() : const SizedBox.shrink(),
-          MySubscriptionScreen(key: MySubscriptionScreen.globalKey),
-          const ProfileScreen(),
-        ],
+        children: _screens,
       ),
       bottomNavigationBar: _buildBottomNav(),
     );
@@ -231,5 +232,15 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
         ),
       ),
     );
+  }
+}
+
+/// Stable wrapper for QR tab — avoids changing widget types in IndexedStack
+class _QrTabWrapper extends StatelessWidget {
+  const _QrTabWrapper();
+
+  @override
+  Widget build(BuildContext context) {
+    return const QrScannerScreenFixed();
   }
 }
