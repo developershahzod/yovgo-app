@@ -227,7 +227,7 @@ class _CarsScreenState extends State<CarsScreen> {
                           child: Column(children: [
                             Icon(Icons.directions_car, size: 28, color: selectedType == 'sedan' ? Colors.white : AppTheme.textSecondary),
                             const SizedBox(height: 4),
-                            Text('Yengil', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: selectedType == 'sedan' ? Colors.white : AppTheme.textPrimary)),
+                            Text(context.tr('vehicle_sedan'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: selectedType == 'sedan' ? Colors.white : AppTheme.textPrimary)),
                           ]),
                         ),
                       )),
@@ -244,7 +244,7 @@ class _CarsScreenState extends State<CarsScreen> {
                           child: Column(children: [
                             Icon(Icons.airport_shuttle, size: 28, color: selectedType == 'crossover' ? Colors.white : AppTheme.textSecondary),
                             const SizedBox(height: 4),
-                            Text('Krossover', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: selectedType == 'crossover' ? Colors.white : AppTheme.textPrimary)),
+                            Text(context.tr('vehicle_crossover'), style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: selectedType == 'crossover' ? Colors.white : AppTheme.textPrimary)),
                           ]),
                         ),
                       )),
@@ -258,7 +258,7 @@ class _CarsScreenState extends State<CarsScreen> {
                         DropdownButtonFormField<String>(
                           value: selectedColor, isExpanded: true, menuMaxHeight: 200,
                           style: const TextStyle(fontSize: 14, fontFamily: 'Mulish', fontWeight: FontWeight.w600, color: Color(0xFF0A0C13)),
-                          decoration: _inputDeco('Rang', error: colorErr),
+                          decoration: _inputDeco(context.tr('vehicle_color'), error: colorErr),
                           items: _carColors.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                           onChanged: (v) => ss(() { selectedColor = v; colorErr = null; }),
                         ),
@@ -295,8 +295,8 @@ class _CarsScreenState extends State<CarsScreen> {
                           if (yearCtrl.text.isNotEmpty) {
                             final y = int.tryParse(yearCtrl.text) ?? 0;
                             if (y < 1990 || y > curYear) { ss(() => yearErr = '1990-$curYear'); hasErr = true; }
-                          } else { ss(() => yearErr = 'Yilni kiriting'); hasErr = true; }
-                          if (selectedColor == null) { ss(() => colorErr = 'Rangni tanlang'); hasErr = true; }
+                          } else { ss(() => yearErr = context.tr('vehicle_enter_year')); hasErr = true; }
+                          if (selectedColor == null) { ss(() => colorErr = context.tr('vehicle_select_color')); hasErr = true; }
                           if (hasErr) return;
                           try {
                             await FullApiService.post('/api/mobile/vehicles', data: {
@@ -309,7 +309,7 @@ class _CarsScreenState extends State<CarsScreen> {
                             });
                             Navigator.pop(ctx, true);
                           } catch (e) {
-                            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('Xatolik: $e'), backgroundColor: Colors.red));
+                            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text('${context.tr('error_generic')}: $e'), backgroundColor: Colors.red));
                           }
                         },
                         style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryCyan, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
@@ -333,13 +333,13 @@ class _CarsScreenState extends State<CarsScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('O\'chirish', style: TextStyle(fontFamily: 'Mulish', fontWeight: FontWeight.w700)),
-        content: Text('"${car['name'] ?? car['license_plate']}" ni o\'chirmoqchimisiz?', style: const TextStyle(fontFamily: 'Mulish')),
+        title: Text(context.tr('vehicle_delete_title'), style: const TextStyle(fontFamily: 'Mulish', fontWeight: FontWeight.w700)),
+        content: Text('${context.tr('vehicle_delete_desc')} "${car['name'] ?? car['license_plate']}"?', style: const TextStyle(fontFamily: 'Mulish')),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Yo\'q')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text(context.tr('no'))),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Ha, o\'chirish', style: TextStyle(color: Colors.red)),
+            child: Text('${context.tr('yes')}, ${context.tr('vehicle_delete_title').toLowerCase()}', style: const TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -351,7 +351,7 @@ class _CarsScreenState extends State<CarsScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Xatolik: $e'), backgroundColor: Colors.red),
+            SnackBar(content: Text('${context.tr('error_generic')}: $e'), backgroundColor: Colors.red),
           );
         }
       }
@@ -487,7 +487,7 @@ class _CarsScreenState extends State<CarsScreen> {
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
-                                        (car['vehicle_type'] == 'crossover') ? 'Krossover' : 'Yengil',
+                                        (car['vehicle_type'] == 'crossover') ? context.tr('vehicle_crossover') : context.tr('vehicle_sedan'),
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,

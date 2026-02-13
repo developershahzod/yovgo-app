@@ -629,7 +629,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('~${_partner?['wash_time'] ?? 60} min', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
-                    Text('YUVISH VAQTI', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF8F96A0), letterSpacing: 0.5)),
+                    Text(context.tr('detail_wash_time'), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF8F96A0), letterSpacing: 0.5)),
                   ],
                 ),
               ],
@@ -701,7 +701,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(phone, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
-                const Text('QO\'NG\'IROQ QILISH', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF00BFFE), fontFamily: 'Mulish', letterSpacing: 0.5)),
+                Text(context.tr('detail_call'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF00BFFE), fontFamily: 'Mulish', letterSpacing: 0.5)),
               ],
             ),
           ],

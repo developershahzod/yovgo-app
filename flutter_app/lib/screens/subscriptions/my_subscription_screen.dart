@@ -244,7 +244,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(color: const Color(0xFF5CCC27), borderRadius: BorderRadius.circular(8)),
-                            child: const Text('FAOL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
+                            child: Text(context.tr('sub_active'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
                           ),
                         if (isExpired)
                           Container(

@@ -153,7 +153,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                   color: const Color(0xFF5CCC27),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Text('FAOL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
+                child: Text(context.tr('sub_active'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
               ),
               const Spacer(),
               Icon(Icons.workspace_premium, color: const Color(0xFF00BFFE), size: 28),
@@ -165,9 +165,9 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
           // Stats row
           Row(
             children: [
-              _buildSubStat(isUnlimited ? '∞' : '$remaining', 'Qolgan\ntashriflar'),
+              _buildSubStat(isUnlimited ? '∞' : '$remaining', '${context.tr('remaining_visits')}'),
               const SizedBox(width: 20),
-              _buildSubStat('$used', 'Ishlatilgan\ntashriflar'),
+              _buildSubStat('$used', '${context.tr('used_visits')}'),
             ],
           ),
           const SizedBox(height: 16),
@@ -182,7 +182,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
               children: [
                 Icon(Icons.calendar_today, size: 16, color: Colors.white70),
                 const SizedBox(width: 8),
-                Text('Amal qilish muddati: $endStr', style: TextStyle(fontSize: 13, color: Colors.white70, fontFamily: 'Mulish')),
+                Text('${context.tr('sub_validity')}: $endStr', style: TextStyle(fontSize: 13, color: Colors.white70, fontFamily: 'Mulish')),
               ],
             ),
           ),
