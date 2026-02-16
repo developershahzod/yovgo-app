@@ -7,11 +7,12 @@ import os
 import random
 import time
 import httpx
+from datetime import datetime, timedelta
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from shared.database import get_db, engine
-from shared.models import User, Vehicle, Base
+from shared.models import User, Vehicle, Subscription, SubscriptionPlan, Base
 from shared.schemas import UserCreate, UserUpdate, UserResponse, VehicleCreate, VehicleResponse
 from shared.auth import AuthHandler
 from shared.utils import format_phone_number
@@ -87,6 +88,16 @@ async def send_verification_code(data: SendCodeRequest):
     """Send SMS verification code to phone number"""
     phone = format_phone_number(data.phone_number)
     
+    # Apple test account: fixed code, no real SMS
+    APPLE_TEST_PHONE = "+998000000000"
+    if phone == APPLE_TEST_PHONE:
+        sms_codes[phone] = {
+            "code": "00000",
+            "expires_at": time.time() + 99999999,
+            "sent_at": time.time(),
+        }
+        return {"message": "Kod yuborildi", "phone": phone}
+    
     # Rate limiting: don't send if code was sent less than 10s ago
     existing = sms_codes.get(phone)
     if existing and existing.get("sent_at") and (time.time() - existing["sent_at"]) < 10:
@@ -161,6 +172,34 @@ async def verify_code_and_login(data: VerifyCodeRequest, db: Session = Depends(g
         user.full_name = data.full_name
         db.commit()
         db.refresh(user)
+    
+    # Apple test account: auto-activate basic subscription
+    APPLE_TEST_PHONE = "+998000000000"
+    if phone == APPLE_TEST_PHONE:
+        existing_sub = db.query(Subscription).filter(
+            Subscription.user_id == user.id,
+            Subscription.status == "active"
+        ).first()
+        if not existing_sub:
+            # Find cheapest active plan
+            plan = db.query(SubscriptionPlan).filter(
+                SubscriptionPlan.is_active == True
+            ).order_by(SubscriptionPlan.price.asc()).first()
+            if plan:
+                now = datetime.utcnow()
+                sub = Subscription(
+                    user_id=user.id,
+                    plan_id=plan.id,
+                    status="active",
+                    start_date=now,
+                    end_date=now + timedelta(days=plan.duration_days),
+                    visits_used=0,
+                    visits_remaining=plan.visit_limit or 999,
+                    is_unlimited=plan.is_unlimited,
+                    auto_renew=False,
+                )
+                db.add(sub)
+                db.commit()
     
     # Create access token
     token_data = {
