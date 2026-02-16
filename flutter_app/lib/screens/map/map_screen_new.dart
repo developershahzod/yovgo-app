@@ -408,159 +408,266 @@ class _MapScreenNewState extends State<MapScreenNew> {
     );
   }
 
-  // Cache custom marker icons
-  BitmapDescriptor? _singleMarkerIcon;
+  // ─── Marker system ───
+  double _currentZoom = 13.0;
+  final Map<String, BitmapDescriptor> _labelIconCache = {};
   final Map<int, BitmapDescriptor> _clusterIcons = {};
+  bool _isRebuildingMarkers = false;
 
-  Future<BitmapDescriptor> _createSingleMarkerIcon() async {
-    if (_singleMarkerIcon != null) return _singleMarkerIcon!;
-    const size = 44.0;
+  // Pixel ratio for sharp rendering
+  double get _dpr => MediaQuery.of(context).devicePixelRatio.clamp(2.0, 3.0);
+
+  /// Create a pill-shaped label marker: [📍 Name  ★ 4.8]
+  Future<BitmapDescriptor> _createLabelIcon(String name, double rating, bool isPremium) async {
+    final cacheKey = '${name}_${rating}_${isPremium}_${_dpr.toInt()}';
+    if (_labelIconCache.containsKey(cacheKey)) return _labelIconCache[cacheKey]!;
+
+    final dpr = _dpr;
+    final displayName = name.length > 14 ? '${name.substring(0, 14)}…' : name;
+    final ratingStr = rating > 0 ? rating.toStringAsFixed(1) : '';
+
+    // Measure texts
+    final namePainter = TextPainter(
+      text: TextSpan(text: displayName, style: TextStyle(fontSize: 11 * dpr, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
+      textDirection: TextDirection.ltr,
+    )..layout();
+
+    TextPainter? ratingPainter;
+    if (ratingStr.isNotEmpty) {
+      ratingPainter = TextPainter(
+        text: TextSpan(text: ratingStr, style: TextStyle(fontSize: 11 * dpr, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
+        textDirection: TextDirection.ltr,
+      )..layout();
+    }
+
+    // Calculate dimensions
+    final iconSize = 14 * dpr;
+    final starSize = 12 * dpr;
+    final hPad = 10 * dpr;
+    final gap = 4 * dpr;
+    final arrowH = 6 * dpr;
+
+    double pillW = hPad + iconSize + gap + namePainter.width + hPad;
+    if (ratingPainter != null) {
+      pillW += gap * 2 + starSize + gap / 2 + ratingPainter.width;
+    }
+    final pillH = 28 * dpr;
+    final totalW = pillW;
+    final totalH = pillH + arrowH + 2 * dpr;
+
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
 
-    // Dark circle background
-    final bgPaint = Paint()..color = const Color(0xFF1A2332);
-    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, bgPaint);
+    final bgColor = isPremium ? const Color(0xFF00BFFE) : const Color(0xFF1A2332);
+    final radius = pillH / 2;
 
-    // White border
-    final borderPaint = Paint()
-      ..color = const Color(0xFFFFFFFF)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.0;
-    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2 - 1, borderPaint);
+    // Pill background
+    final pillRect = RRect.fromRectAndRadius(Rect.fromLTWH(0, 0, pillW, pillH), Radius.circular(radius));
+    canvas.drawRRect(pillRect, Paint()..color = bgColor);
 
-    // Location pin icon (draw a simple pin shape)
-    final iconPaint = Paint()..color = Colors.white;
-    // Pin body (circle)
-    canvas.drawCircle(const Offset(size / 2, size / 2 - 3), 7, iconPaint);
-    // Pin hole
-    final holePaint = Paint()..color = const Color(0xFF1A2332);
-    canvas.drawCircle(const Offset(size / 2, size / 2 - 3), 3.5, holePaint);
-    // Pin point (triangle)
-    final path = Path()
-      ..moveTo(size / 2 - 5, size / 2 + 2)
-      ..lineTo(size / 2, size / 2 + 10)
-      ..lineTo(size / 2 + 5, size / 2 + 2)
+    // Shadow effect (subtle)
+    final shadowPaint = Paint()
+      ..color = const Color.fromRGBO(0, 0, 0, 0.25)
+      ..maskFilter = MaskFilter.blur(BlurStyle.normal, 3 * dpr);
+    canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(0, 2 * dpr, pillW, pillH), Radius.circular(radius)), shadowPaint);
+    canvas.drawRRect(pillRect, Paint()..color = bgColor);
+
+    // Location pin icon (simple circle + dot)
+    final pinCx = hPad + iconSize / 2;
+    final pinCy = pillH / 2;
+    canvas.drawCircle(Offset(pinCx, pinCy - 1 * dpr), 5 * dpr, Paint()..color = Colors.white);
+    canvas.drawCircle(Offset(pinCx, pinCy - 1 * dpr), 2.2 * dpr, Paint()..color = bgColor);
+    // Pin point
+    final pinPath = Path()
+      ..moveTo(pinCx - 3 * dpr, pinCy + 2.5 * dpr)
+      ..lineTo(pinCx, pinCy + 6 * dpr)
+      ..lineTo(pinCx + 3 * dpr, pinCy + 2.5 * dpr)
       ..close();
-    canvas.drawPath(path, iconPaint);
+    canvas.drawPath(pinPath, Paint()..color = Colors.white);
+
+    // Name text
+    final nameX = hPad + iconSize + gap;
+    final nameY = (pillH - namePainter.height) / 2;
+    namePainter.paint(canvas, Offset(nameX, nameY));
+
+    // Star + rating
+    if (ratingPainter != null) {
+      final starX = nameX + namePainter.width + gap * 2;
+      final starY = (pillH - starSize) / 2;
+      // Draw star
+      _drawStar(canvas, Offset(starX + starSize / 2, starY + starSize / 2), starSize / 2, const Color(0xFFFFD600));
+      // Rating text
+      final rtX = starX + starSize + gap / 2;
+      final rtY = (pillH - ratingPainter.height) / 2;
+      ratingPainter.paint(canvas, Offset(rtX, rtY));
+    }
+
+    // Arrow pointer at bottom center
+    final arrowPath = Path()
+      ..moveTo(totalW / 2 - 6 * dpr, pillH)
+      ..lineTo(totalW / 2, pillH + arrowH)
+      ..lineTo(totalW / 2 + 6 * dpr, pillH)
+      ..close();
+    canvas.drawPath(arrowPath, Paint()..color = bgColor);
 
     final picture = recorder.endRecording();
-    final img = await picture.toImage(size.toInt(), size.toInt());
+    final img = await picture.toImage(totalW.ceil(), totalH.ceil());
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
-    _singleMarkerIcon = BitmapDescriptor.bytes(data!.buffer.asUint8List());
-    return _singleMarkerIcon!;
+    final icon = BitmapDescriptor.bytes(data!.buffer.asUint8List());
+    _labelIconCache[cacheKey] = icon;
+    return icon;
   }
 
+  void _drawStar(Canvas canvas, Offset center, double radius, Color color) {
+    final path = Path();
+    for (int i = 0; i < 5; i++) {
+      final angle = -math.pi / 2 + i * 2 * math.pi / 5;
+      final innerAngle = angle + math.pi / 5;
+      final outerX = center.dx + radius * math.cos(angle);
+      final outerY = center.dy + radius * math.sin(angle);
+      final innerX = center.dx + radius * 0.4 * math.cos(innerAngle);
+      final innerY = center.dy + radius * 0.4 * math.sin(innerAngle);
+      if (i == 0) {
+        path.moveTo(outerX, outerY);
+      } else {
+        path.lineTo(outerX, outerY);
+      }
+      path.lineTo(innerX, innerY);
+    }
+    path.close();
+    canvas.drawPath(path, Paint()..color = color);
+  }
+
+  /// Create cluster icon showing count
   Future<BitmapDescriptor> _createClusterIcon(int count) async {
     if (_clusterIcons.containsKey(count)) return _clusterIcons[count]!;
-    const size = 48.0;
+    final dpr = _dpr;
+    final size = 48 * dpr;
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
 
-    // Dark circle background
-    final bgPaint = Paint()..color = const Color(0xFF1A2332);
-    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2, bgPaint);
-
+    // Outer circle
+    final outerPaint = Paint()..color = const Color(0xFF1A2332);
+    canvas.drawCircle(Offset(size / 2, size / 2), size / 2, outerPaint);
     // White border
-    final borderPaint = Paint()
-      ..color = const Color(0xFFFFFFFF)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.5;
-    canvas.drawCircle(const Offset(size / 2, size / 2), size / 2 - 1.25, borderPaint);
-
-    // Number text
-    final textPainter = TextPainter(
-      text: TextSpan(
-        text: '$count',
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 18,
-          fontWeight: FontWeight.w800,
-          fontFamily: 'Mulish',
-        ),
-      ),
+    final borderPaint = Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 2.5 * dpr;
+    canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 1.25 * dpr, borderPaint);
+    // Count text
+    final tp = TextPainter(
+      text: TextSpan(text: '$count', style: TextStyle(color: Colors.white, fontSize: 18 * dpr, fontWeight: FontWeight.w800, fontFamily: 'Mulish')),
       textDirection: TextDirection.ltr,
-    );
-    textPainter.layout();
-    textPainter.paint(
-      canvas,
-      Offset((size - textPainter.width) / 2, (size - textPainter.height) / 2),
-    );
+    )..layout();
+    tp.paint(canvas, Offset((size - tp.width) / 2, (size - tp.height) / 2));
 
     final picture = recorder.endRecording();
-    final img = await picture.toImage(size.toInt(), size.toInt());
+    final img = await picture.toImage(size.ceil(), size.ceil());
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
     _clusterIcons[count] = BitmapDescriptor.bytes(data!.buffer.asUint8List());
     return _clusterIcons[count]!;
   }
 
+  /// Get dynamic cluster threshold based on zoom level
+  double _clusterThreshold() {
+    // At zoom 10: 0.02 (~2km), at zoom 13: 0.004 (~400m), at zoom 15+: 0 (no clustering)
+    if (_currentZoom >= 15.5) return 0.0; // No clustering at high zoom
+    if (_currentZoom >= 14) return 0.001;
+    if (_currentZoom >= 13) return 0.003;
+    if (_currentZoom >= 12) return 0.006;
+    if (_currentZoom >= 11) return 0.012;
+    return 0.025;
+  }
+
+  void _onCameraIdle() async {
+    if (_mapController == null) return;
+    final zoom = await _mapController!.getZoomLevel();
+    final oldThreshold = _clusterThreshold();
+    _currentZoom = zoom;
+    final newThreshold = _clusterThreshold();
+    // Only rebuild if threshold changed
+    if ((oldThreshold - newThreshold).abs() > 0.0001) {
+      _buildMarkers();
+    }
+  }
+
   Future<void> _buildMarkers() async {
-    final singleIcon = await _createSingleMarkerIcon();
+    if (_isRebuildingMarkers) return;
+    _isRebuildingMarkers = true;
 
-    // Group nearby car washes (simple grid-based clustering)
-    const clusterThreshold = 0.003; // ~300m in lat/lng
-    final used = <int, bool>{};
-    final clusters = <List<Map<String, dynamic>>>[];
+    try {
+      final threshold = _clusterThreshold();
+      final used = <int, bool>{};
+      final clusters = <List<Map<String, dynamic>>>[];
 
-    for (int i = 0; i < _carWashes.length; i++) {
-      if (used[i] == true) continue;
-      final lat = (_carWashes[i]['latitude'] as num?)?.toDouble();
-      final lng = (_carWashes[i]['longitude'] as num?)?.toDouble();
-      if (lat == null || lng == null) continue;
+      for (int i = 0; i < _carWashes.length; i++) {
+        if (used[i] == true) continue;
+        final lat = (_carWashes[i]['latitude'] as num?)?.toDouble();
+        final lng = (_carWashes[i]['longitude'] as num?)?.toDouble();
+        if (lat == null || lng == null) continue;
 
-      final cluster = <Map<String, dynamic>>[_carWashes[i]];
-      used[i] = true;
+        final cluster = <Map<String, dynamic>>[_carWashes[i]];
+        used[i] = true;
 
-      for (int j = i + 1; j < _carWashes.length; j++) {
-        if (used[j] == true) continue;
-        final lat2 = (_carWashes[j]['latitude'] as num?)?.toDouble();
-        final lng2 = (_carWashes[j]['longitude'] as num?)?.toDouble();
-        if (lat2 == null || lng2 == null) continue;
-        if ((lat - lat2).abs() < clusterThreshold && (lng - lng2).abs() < clusterThreshold) {
-          cluster.add(_carWashes[j]);
-          used[j] = true;
+        if (threshold > 0) {
+          for (int j = i + 1; j < _carWashes.length; j++) {
+            if (used[j] == true) continue;
+            final lat2 = (_carWashes[j]['latitude'] as num?)?.toDouble();
+            final lng2 = (_carWashes[j]['longitude'] as num?)?.toDouble();
+            if (lat2 == null || lng2 == null) continue;
+            if ((lat - lat2).abs() < threshold && (lng - lng2).abs() < threshold) {
+              cluster.add(_carWashes[j]);
+              used[j] = true;
+            }
+          }
+        }
+        clusters.add(cluster);
+      }
+
+      final markers = <Marker>{};
+      for (final cluster in clusters) {
+        if (cluster.length == 1) {
+          final p = cluster.first;
+          final lat = (p['latitude'] as num).toDouble();
+          final lng = (p['longitude'] as num).toDouble();
+          final name = (p['name'] ?? '').toString();
+          final rating = (p['rating'] as num?)?.toDouble() ?? 0.0;
+          final isPremium = p['is_premium'] == true;
+          final id = p['location_id']?.toString() ?? p['id']?.toString() ?? '$lat$lng';
+
+          final icon = await _createLabelIcon(name, rating, isPremium);
+          markers.add(Marker(
+            markerId: MarkerId('label_$id'),
+            position: LatLng(lat, lng),
+            icon: icon,
+            anchor: const Offset(0.5, 1.0),
+            onTap: () => Navigator.pushNamed(context, '/car-wash-detail', arguments: p),
+          ));
+        } else {
+          // Cluster marker
+          double avgLat = 0, avgLng = 0;
+          for (final p in cluster) {
+            avgLat += (p['latitude'] as num).toDouble();
+            avgLng += (p['longitude'] as num).toDouble();
+          }
+          avgLat /= cluster.length;
+          avgLng /= cluster.length;
+          final clusterIcon = await _createClusterIcon(cluster.length);
+          markers.add(Marker(
+            markerId: MarkerId('cluster_${avgLat.toStringAsFixed(5)}_${avgLng.toStringAsFixed(5)}'),
+            position: LatLng(avgLat, avgLng),
+            icon: clusterIcon,
+            anchor: const Offset(0.5, 0.5),
+            onTap: () {
+              _mapController?.animateCamera(
+                CameraUpdate.newLatLngZoom(LatLng(avgLat, avgLng), _currentZoom + 2),
+              );
+            },
+          ));
         }
       }
-      clusters.add(cluster);
+      if (mounted) setState(() => _markers = markers);
+    } finally {
+      _isRebuildingMarkers = false;
     }
-
-    final markers = <Marker>{};
-    for (final cluster in clusters) {
-      if (cluster.length == 1) {
-        final p = cluster.first;
-        final lat = (p['latitude'] as num).toDouble();
-        final lng = (p['longitude'] as num).toDouble();
-        final id = p['location_id']?.toString() ?? p['id']?.toString() ?? '';
-        markers.add(Marker(
-          markerId: MarkerId('single_${id}_${lat}_$lng'),
-          position: LatLng(lat, lng),
-          icon: singleIcon,
-          onTap: () => Navigator.pushNamed(context, '/car-wash-detail', arguments: p),
-        ));
-      } else {
-        // Cluster: average position, show count
-        double avgLat = 0, avgLng = 0;
-        for (final p in cluster) {
-          avgLat += (p['latitude'] as num).toDouble();
-          avgLng += (p['longitude'] as num).toDouble();
-        }
-        avgLat /= cluster.length;
-        avgLng /= cluster.length;
-        final clusterIcon = await _createClusterIcon(cluster.length);
-        markers.add(Marker(
-          markerId: MarkerId('cluster_${avgLat}_$avgLng'),
-          position: LatLng(avgLat, avgLng),
-          icon: clusterIcon,
-          onTap: () {
-            // Zoom in to see individual markers
-            _mapController?.animateCamera(
-              CameraUpdate.newLatLngZoom(LatLng(avgLat, avgLng), 16),
-            );
-          },
-        ));
-      }
-    }
-    if (mounted) setState(() => _markers = markers);
   }
 
   Widget _buildMapView() {
@@ -572,6 +679,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
       onMapCreated: (controller) {
         _mapController = controller;
       },
+      onCameraIdle: _onCameraIdle,
       markers: _markers,
       myLocationEnabled: true,
       myLocationButtonEnabled: false,

@@ -18,7 +18,7 @@
 | speed@test.com | merchant123 | Speed Wash |
 | diamond@test.com | merchant123 | Diamond Car Care |
 | testmerchant@yuvgo.uz | merchant123 | Test Avtomoyka |
-| abozor@yuvgo.uz | merchant123 | Abozor |
+| abozor@yuvgo.uz | abozor@yuvgo.uz | Abozor |
 
 ## Test Users (Flutter App)
 **URL**: https://app.yuvgo.uz
