@@ -22,6 +22,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
   bool _isUnlimited = false;
   int _savedAmount = 0;
   bool _isLoading = true;
+  List<Map<String, dynamic>> _plans = [];
 
   @override
   void initState() {
@@ -73,6 +74,15 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
           if (_visitsUsed == 0) _visitsUsed = stats['total_visits'] ?? stats['this_month'] ?? 0;
           if (_savedAmount == 0) _savedAmount = stats['saved_amount'] ?? 0;
         });
+      }
+    } catch (_) {}
+
+    // Load plans for price display
+    try {
+      final plansRes = await FullApiService.get('/api/subscription/plans');
+      if (plansRes.statusCode == 200 && plansRes.data != null) {
+        final list = plansRes.data is List ? plansRes.data : (plansRes.data['plans'] ?? []);
+        setState(() => _plans = List<Map<String, dynamic>>.from(list));
       }
     } catch (_) {}
 
@@ -323,43 +333,18 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
           ],
           _buildActionRow(Icons.help_outline, context.tr('sub_faq'), const Color(0xFF0A0C13), () {}),
           const SizedBox(height: 24),
-          // View all plans button — only when expired
-          if (isExpired)
+          // Plans section
+          if (_plans.isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/subscription-plans'),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(colors: [Color(0xFF00BFFE), Color(0xFF00A3E0)], begin: Alignment.topLeft, end: Alignment.bottomRight),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 44, height: 44,
-                        decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
-                        child: const Icon(Icons.list_alt, color: Colors.white, size: 22),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(context.tr('sub_view_all_plans'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
-                            const SizedBox(height: 2),
-                            Text(context.tr('sub_view_prices'), style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.85), fontFamily: 'Mulish')),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
-                    ],
-                  ),
-                ),
-              ),
+              child: Text(context.tr('sub_view_all_plans'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
             ),
+            const SizedBox(height: 12),
+            ..._plans.map((plan) => Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+              child: _buildPlanPriceCard(plan, canBuy: isExpired),
+            )),
+          ],
           const SizedBox(height: 120),
         ],
       ),
@@ -416,6 +401,49 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
       if (c % 3 == 0 && i > 0) buf.write(' ');
     }
     return buf.toString().split('').reversed.join();
+  }
+
+  Widget _buildPlanPriceCard(Map<String, dynamic> plan, {required bool canBuy}) {
+    final name = plan['name'] ?? '${plan['duration_days']} kunlik';
+    final price = plan['price'] ?? 0;
+    final durationDays = plan['duration_days'] ?? 0;
+    final visitLimit = plan['visit_limit'] ?? 0;
+
+    return GestureDetector(
+      onTap: canBuy ? () => Navigator.pushNamed(context, '/checkout', arguments: plan) : null,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F7FA),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+              child: Center(
+                child: Text('$durationDays', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF00BFFE))),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                  const SizedBox(height: 2),
+                  Text('$durationDays kun · $visitLimit ta tashrif', style: const TextStyle(fontSize: 12, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
+                ],
+              ),
+            ),
+            Text('${_formatPrice(price)} so\'m', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF00BFFE))),
+            if (canBuy) const SizedBox(width: 4),
+            if (canBuy) const Icon(Icons.chevron_right, color: Color(0xFF8F96A0), size: 20),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildActionRow(IconData icon, String text, Color color, VoidCallback onTap) {
