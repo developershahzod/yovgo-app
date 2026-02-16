@@ -405,9 +405,10 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
 
   Widget _buildPlanPriceCard(Map<String, dynamic> plan, {required bool canBuy}) {
     final name = plan['name'] ?? '${plan['duration_days']} kunlik';
-    final price = plan['price'] ?? 0;
+    final price = (plan['price'] is num) ? (plan['price'] as num).toInt() : 0;
     final durationDays = plan['duration_days'] ?? 0;
-    final visitLimit = plan['visit_limit'] ?? 0;
+    final visitLimit = plan['visit_limit'];
+    final isUnlimited = plan['is_unlimited'] == true || visitLimit == null;
 
     return GestureDetector(
       onTap: canBuy ? () => Navigator.pushNamed(context, '/checkout', arguments: plan) : null,
@@ -433,7 +434,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
                 children: [
                   Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                   const SizedBox(height: 2),
-                  Text('$durationDays kun · $visitLimit ta tashrif', style: const TextStyle(fontSize: 12, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
+                  Text('$durationDays kun · ${isUnlimited ? "cheksiz" : "$visitLimit ta"} tashrif', style: const TextStyle(fontSize: 12, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
                 ],
               ),
             ),
