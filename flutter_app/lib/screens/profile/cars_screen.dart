@@ -385,32 +385,37 @@ class _CarsScreenState extends State<CarsScreen> {
           ),
         ],
       ),
-      body: _isLoading
-        ? const Center(child: CircularProgressIndicator())
-        : cars.isEmpty
-          ? Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: RefreshIndicator(
+        color: AppTheme.primaryCyan,
+        onRefresh: _loadVehicles,
+        child: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : cars.isEmpty
+            ? ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
                 children: [
+                  SizedBox(height: MediaQuery.of(context).size.height * 0.3),
                   Icon(Icons.directions_car_outlined, size: 64, color: Colors.grey[300]),
                   const SizedBox(height: 16),
-                  Text(context.tr('vehicle_empty'), style: TextStyle(fontSize: 16, color: AppTheme.textSecondary, fontFamily: 'Mulish')),
+                  Center(child: Text(context.tr('vehicle_empty'), style: TextStyle(fontSize: 16, color: AppTheme.textSecondary, fontFamily: 'Mulish'))),
                   const SizedBox(height: 12),
-                  ElevatedButton.icon(
-                    onPressed: _showAddDialog,
-                    icon: const Icon(Icons.add, size: 18),
-                    label: Text(context.tr('vehicle_add'), style: const TextStyle(fontFamily: 'Mulish', fontWeight: FontWeight.w600)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryCyan,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  Center(
+                    child: ElevatedButton.icon(
+                      onPressed: _showAddDialog,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text(context.tr('vehicle_add'), style: const TextStyle(fontFamily: 'Mulish', fontWeight: FontWeight.w600)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryCyan,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      ),
                     ),
                   ),
                 ],
-              ),
-            )
-          : ListView.builder(
+              )
+            : ListView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.all(20),
               itemCount: cars.length,
               itemBuilder: (context, index) {
@@ -521,6 +526,7 @@ class _CarsScreenState extends State<CarsScreen> {
                 );
               },
             ),
+      ),
     );
   }
 }

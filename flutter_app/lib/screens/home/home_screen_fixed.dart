@@ -266,25 +266,30 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildTopBar(),
-              const SizedBox(height: 16),
-              if (_hasSubscription) _buildPremiumCard(),
-              if (_hasSubscription) const SizedBox(height: 16),
-              _buildWeatherWidget(),
-              const SizedBox(height: 16),
-              if (!_hasSubscription) _buildSubscriptionBanner(),
-              if (!_hasSubscription) const SizedBox(height: 16),
-              _buildCategoriesSection(),
-              const SizedBox(height: 24),
-              _buildNearestCarWashesSection(),
-              if (_isLoggedIn) const SizedBox(height: 24),
-              if (_isLoggedIn) _buildRecentVisitsSection(),
-              const SizedBox(height: 120),
-            ],
+        child: RefreshIndicator(
+          color: AppTheme.primaryCyan,
+          onRefresh: _loadHomeData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTopBar(),
+                const SizedBox(height: 16),
+                if (_hasSubscription) _buildPremiumCard(),
+                if (_hasSubscription) const SizedBox(height: 16),
+                _buildWeatherWidget(),
+                const SizedBox(height: 16),
+                if (!_hasSubscription) _buildSubscriptionBanner(),
+                if (!_hasSubscription) const SizedBox(height: 16),
+                _buildCategoriesSection(),
+                const SizedBox(height: 24),
+                _buildNearestCarWashesSection(),
+                if (_isLoggedIn) const SizedBox(height: 24),
+                if (_isLoggedIn) _buildRecentVisitsSection(),
+                const SizedBox(height: 120),
+              ],
+            ),
           ),
         ),
       ),

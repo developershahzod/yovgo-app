@@ -84,11 +84,21 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _status == null
-                ? _buildGuest(context)
-                : _buildSubscribed(context),
+        child: RefreshIndicator(
+          color: const Color(0xFF00BCD4),
+          onRefresh: () async {
+            setState(() => _isLoading = true);
+            await _loadSubscription();
+          },
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  child: _status == null
+                      ? _buildGuest(context)
+                      : _buildSubscribed(context),
+                ),
+        ),
       ),
     );
   }

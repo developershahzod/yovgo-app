@@ -87,9 +87,13 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: _loading
+      body: RefreshIndicator(
+        color: AppTheme.primaryCyan,
+        onRefresh: _loadData,
+        child: _loading
           ? const Center(child: CircularProgressIndicator(color: AppTheme.primaryCyan))
           : ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
               children: [
                 // Active subscription card (if exists)
@@ -109,6 +113,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                   )),
               ],
             ),
+      ),
     );
   }
 
