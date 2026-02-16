@@ -24,15 +24,15 @@ get_current_user = AuthHandler.get_current_user
 router = APIRouter(tags=["Mobile App"])
 
 
-def _get_partner_rating(db: Session, partner_id) -> dict:
-    """Get real average rating and review count from reviews table"""
+def _get_partner_rating(db: Session, partner_id, location_id=None) -> dict:
+    """Get real average rating and review count from reviews table.
+    If location_id is provided, returns rating for that specific branch."""
     from sqlalchemy import func as sqlfunc
-    avg = db.query(sqlfunc.avg(Review.rating)).filter(
-        Review.partner_id == partner_id, Review.is_visible == True
-    ).scalar()
-    count = db.query(sqlfunc.count(Review.id)).filter(
-        Review.partner_id == partner_id, Review.is_visible == True
-    ).scalar() or 0
+    filters = [Review.partner_id == partner_id, Review.is_visible == True]
+    if location_id:
+        filters.append(Review.location_id == location_id)
+    avg = db.query(sqlfunc.avg(Review.rating)).filter(*filters).scalar()
+    count = db.query(sqlfunc.count(Review.id)).filter(*filters).scalar() or 0
     return {
         "rating": round(float(avg), 1) if avg else 0,
         "review_count": count,
@@ -165,7 +165,7 @@ async def get_nearby_car_washes(
                 svc_prices = list(loc.service_prices)
         except Exception:
             pass
-        rv = _get_partner_rating(db, partner.id)
+        rv = _get_partner_rating(db, partner.id, location_id=str(loc.id))
         nearby_partners.append({
             "id": str(partner.id),
             "location_id": str(loc.id),
@@ -1031,6 +1031,38 @@ async def get_my_reviews(
         })
 
     return {"success": True, "reviews": result}
+
+
+@router.get("/reviews/my/check")
+async def check_my_review(
+    partner_id: str = Query(...),
+    location_id: Optional[str] = Query(None),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    """Check if current user already reviewed this partner/location. Returns existing review if found."""
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+    q = db.query(Review).filter(
+        Review.user_id == user_id,
+        Review.partner_id == partner_id,
+    )
+    if location_id:
+        q = q.filter(Review.location_id == location_id)
+    else:
+        q = q.filter(Review.location_id == None)
+    existing = q.first()
+    if existing:
+        return {
+            "success": True,
+            "has_review": True,
+            "review": {
+                "id": str(existing.id),
+                "rating": existing.rating,
+                "comment": existing.comment or "",
+                "created_at": existing.created_at.isoformat() if existing.created_at else None,
+            },
+        }
+    return {"success": True, "has_review": False, "review": None}
 
 
 def _mask_phone(phone: str) -> str:

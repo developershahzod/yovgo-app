@@ -137,10 +137,31 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     if (mounted) setState(() => _reviewsLoading = false);
   }
 
-  void _showWriteReviewSheet() {
+  void _showWriteReviewSheet() async {
     int selectedRating = 5;
     final commentController = TextEditingController();
     bool submitting = false;
+    bool isEditing = false;
+
+    // Check if user already has a review for this location
+    try {
+      final partnerId = _partner?['id']?.toString();
+      final locationId = _partner?['location_id']?.toString();
+      if (partnerId != null) {
+        final resp = await FullApiService.get('/api/mobile/reviews/my/check', queryParameters: {
+          'partner_id': partnerId,
+          if (locationId != null) 'location_id': locationId,
+        });
+        if (resp.statusCode == 200 && resp.data['has_review'] == true) {
+          final existing = resp.data['review'];
+          selectedRating = existing['rating'] ?? 5;
+          commentController.text = existing['comment'] ?? '';
+          isEditing = true;
+        }
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
 
     showModalBottomSheet(
       context: context,
@@ -161,7 +182,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                 children: [
                   Container(width: 40, height: 4, decoration: BoxDecoration(color: const Color(0xFFE0E0E0), borderRadius: BorderRadius.circular(2))),
                   const SizedBox(height: 20),
-                  Text(context.tr('rate'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, fontFamily: 'Mulish')),
+                  Text(isEditing ? context.tr('edit_review') : context.tr('rate'), style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, fontFamily: 'Mulish')),
                   const SizedBox(height: 4),
                   Text(_partner?['name'] ?? '', style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
                   const SizedBox(height: 20),
@@ -210,7 +231,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                             Navigator.pop(ctx);
                             _fetchReviews(_partner?['id']);
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(context.tr('review_submitted')), duration: const Duration(seconds: 2)),
+                              SnackBar(content: Text(isEditing ? context.tr('review_updated') : context.tr('review_submitted')), duration: const Duration(seconds: 2)),
                             );
                           }
                         } catch (e) {
@@ -230,7 +251,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                       ),
                       child: submitting
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                          : Text(context.tr('submit'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                          : Text(isEditing ? context.tr('update') : context.tr('submit'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                     ),
                   ),
                 ],
