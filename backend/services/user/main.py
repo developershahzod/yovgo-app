@@ -57,7 +57,7 @@ async def send_sms_eskiz(phone: str, message: str):
         resp = await client.post(ESKIZ_SMS_URL, 
             headers={"Authorization": f"Bearer {token}"},
             data={
-                "mobile_phone": phone,
+                "mobile_phone": phone.lstrip("+"),
                 "message": message,
                 "from": ESKIZ_FROM,
                 "callback_url": "",
