@@ -166,6 +166,8 @@ const Map<String, String> _enTranslations = {
   'sub_cancel': 'Cancel Subscription',
   'sub_freeze': 'Freeze Subscription',
   'sub_faq': 'FAQ',
+  'sub_view_all_plans': 'View all plans',
+  'sub_view_prices': 'Compare prices and features',
 
   // Vehicles
   'vehicle_title': 'My Vehicles',
@@ -654,6 +656,8 @@ const Map<String, String> _ruTranslations = {
   'sub_cancel': 'Отменить подписку',
   'sub_freeze': 'Заморозить',
   'sub_faq': 'Вопросы и ответы',
+  'sub_view_all_plans': 'Все тарифы',
+  'sub_view_prices': 'Сравнить цены и возможности',
 
   // Vehicles
   'vehicle_title': 'Мои автомобили',
@@ -1142,6 +1146,8 @@ const Map<String, String> _uzTranslations = {
   'sub_cancel': 'Obunani bekor qilish',
   'sub_freeze': 'Obunani muzlatish',
   'sub_faq': "Ko'p so'raladigan savollar",
+  'sub_view_all_plans': 'Barcha tariflar',
+  'sub_view_prices': 'Narxlar va imkoniyatlarni solishtiring',
 
   // Vehicles
   'vehicle_title': 'Avtomobillarim',

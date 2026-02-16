@@ -322,6 +322,44 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
             _buildActionRow(Icons.ac_unit, context.tr('sub_freeze'), const Color(0xFF8F96A0), () {}),
           ],
           _buildActionRow(Icons.help_outline, context.tr('sub_faq'), const Color(0xFF0A0C13), () {}),
+          const SizedBox(height: 24),
+          // View all plans button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: GestureDetector(
+              onTap: () => Navigator.pushNamed(context, '/subscription-plans'),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [Color(0xFF00BFFE), Color(0xFF00A3E0)], begin: Alignment.topLeft, end: Alignment.bottomRight),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44, height: 44,
+                      decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), borderRadius: BorderRadius.circular(12)),
+                      child: const Icon(Icons.list_alt, color: Colors.white, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(context.tr('sub_view_all_plans'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
+                          const SizedBox(height: 2),
+                          Text(context.tr('sub_view_prices'), style: TextStyle(fontSize: 13, color: Colors.white.withOpacity(0.85), fontFamily: 'Mulish')),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, color: Colors.white, size: 16),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 120),
         ],
       ),
     );
