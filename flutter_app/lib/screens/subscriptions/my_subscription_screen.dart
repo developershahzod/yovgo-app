@@ -333,18 +333,18 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
           ],
           _buildActionRow(Icons.help_outline, context.tr('sub_faq'), const Color(0xFF0A0C13), () {}),
           const SizedBox(height: 24),
-          // Plans section
-          if (_plans.isNotEmpty) ...[
+          // Plans section header
+          if (_plans.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Text(context.tr('sub_view_all_plans'), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
             ),
-            const SizedBox(height: 12),
-            ..._plans.map((plan) => Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-              child: _buildPlanPriceCard(plan, canBuy: isExpired),
-            )),
-          ],
+          if (_plans.isNotEmpty) const SizedBox(height: 12),
+          // Plan price cards
+          ..._plans.map((plan) => Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+            child: _buildPlanPriceCard(plan, canBuy: isExpired),
+          )),
           const SizedBox(height: 120),
         ],
       ),
