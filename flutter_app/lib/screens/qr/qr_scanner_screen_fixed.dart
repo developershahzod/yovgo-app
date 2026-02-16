@@ -9,6 +9,8 @@ import '../main_navigation_fixed.dart';
 class QrScannerScreenFixed extends StatefulWidget {
   const QrScannerScreenFixed({Key? key}) : super(key: key);
 
+  static final globalKey = GlobalKey<_QrScannerScreenFixedState>();
+
   @override
   State<QrScannerScreenFixed> createState() => _QrScannerScreenFixedState();
 }
@@ -27,15 +29,32 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
   DateTime? _lastScanTime;
   bool _scannerPaused = false;
   MobileScannerController? _scannerController;
+  bool _cameraActive = false;
 
   @override
   void initState() {
     super.initState();
+    _loadUserState();
+  }
+
+  /// Start camera — called by MainNavigationFixed when QR tab is selected
+  void startCamera() {
+    if (_cameraActive) return;
+    _scannerController?.dispose();
     _scannerController = MobileScannerController(
       detectionSpeed: DetectionSpeed.normal,
       facing: CameraFacing.back,
     );
-    _loadUserState();
+    if (mounted) setState(() { _cameraActive = true; _scannerPaused = false; _scannedOnce = false; });
+  }
+
+  /// Stop camera — called by MainNavigationFixed when leaving QR tab
+  void stopCamera() {
+    if (!_cameraActive) return;
+    _scannerController?.stop();
+    _scannerController?.dispose();
+    _scannerController = null;
+    if (mounted) setState(() { _cameraActive = false; });
   }
 
   @override
@@ -319,10 +338,10 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Real camera preview
-          if (!_scannerPaused)
+          // Real camera preview — only when camera is active
+          if (_cameraActive && !_scannerPaused && _scannerController != null)
             MobileScanner(
-              controller: _scannerController,
+              controller: _scannerController!,
               onDetect: (capture) {
                 if (_scannedOnce || _isScanning || _scannerPaused) return;
                 final barcodes = capture.barcodes;

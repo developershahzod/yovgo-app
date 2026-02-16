@@ -39,7 +39,7 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
     _screens = [
       HomeScreenFixed(key: HomeScreenFixed.globalKey),
       const MapScreenNew(),
-      const _QrTabWrapper(),
+      QrScannerScreenFixed(key: QrScannerScreenFixed.globalKey),
       MySubscriptionScreen(key: MySubscriptionScreen.globalKey),
       const ProfileScreen(),
     ];
@@ -54,9 +54,18 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
   }
 
   void _onTabTapped(int index) {
+    final prevIndex = _currentIndex;
     setState(() {
       _currentIndex = index;
     });
+    // Stop camera when leaving QR tab
+    if (prevIndex == 2 && index != 2) {
+      QrScannerScreenFixed.globalKey.currentState?.stopCamera();
+    }
+    // Start camera when entering QR tab
+    if (index == 2) {
+      QrScannerScreenFixed.globalKey.currentState?.startCamera();
+    }
     // Refresh data when switching to home or subscription tabs
     if (index == 0) {
       HomeScreenFixed.globalKey.currentState?.refreshData();
@@ -235,12 +244,3 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
   }
 }
 
-/// Stable wrapper for QR tab — avoids changing widget types in IndexedStack
-class _QrTabWrapper extends StatelessWidget {
-  const _QrTabWrapper();
-
-  @override
-  Widget build(BuildContext context) {
-    return const QrScannerScreenFixed();
-  }
-}
