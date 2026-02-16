@@ -268,10 +268,14 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
       final gu = p['gallery_urls'] ?? p['images'];
       if (gu is List) galleryUrls = gu.map((e) => e.toString()).toList();
     } catch (_) {}
-    final allImages = <String>[
-      if (imageUrl.isNotEmpty && imageUrl.startsWith('http')) imageUrl,
-      ...galleryUrls.where((u) => u.startsWith('http')),
-    ];
+    final allImages = <String>[];
+    final seenUrls = <String>{};
+    for (final u in [...galleryUrls, imageUrl]) {
+      final url = u.toString().trim();
+      if (url.isNotEmpty && url.startsWith('http') && seenUrls.add(url)) {
+        allImages.add(url);
+      }
+    }
 
     final defaultDesc = '$name bu shunchaki avtoyuvish shoxobchasi emas, bu sizning avtomobilingizga bo\'lgan hurmatimiz namunasidir. Biz eng zamonaviy texnologiyalar va premium sifatli kimyoviy vositalar yordamida avtomobilingizni yangiday ko\'rinishga keltiramiz. Har bir detal biz uchun muhim!';
     final descText = description.isNotEmpty ? description : defaultDesc;

@@ -414,8 +414,8 @@ class _MapScreenNewState extends State<MapScreenNew> {
   final Map<int, BitmapDescriptor> _clusterIcons = {};
   bool _isRebuildingMarkers = false;
 
-  // Pixel ratio for sharp rendering
-  double get _dpr => MediaQuery.of(context).devicePixelRatio.clamp(2.0, 3.0);
+  // Pixel ratio — use 1.0 so markers render at logical-point size
+  double get _dpr => 1.0;
 
   /// Create a pill-shaped label marker: [📍 Name  ★ 4.8]
   Future<BitmapDescriptor> _createLabelIcon(String name, double rating, bool isPremium) async {
@@ -423,19 +423,19 @@ class _MapScreenNewState extends State<MapScreenNew> {
     if (_labelIconCache.containsKey(cacheKey)) return _labelIconCache[cacheKey]!;
 
     final dpr = _dpr;
-    final displayName = name.length > 14 ? '${name.substring(0, 14)}…' : name;
+    final displayName = name.length > 12 ? '${name.substring(0, 12)}…' : name;
     final ratingStr = rating > 0 ? rating.toStringAsFixed(1) : '';
 
     // Measure texts
     final namePainter = TextPainter(
-      text: TextSpan(text: displayName, style: TextStyle(fontSize: 11 * dpr, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
+      text: TextSpan(text: displayName, style: TextStyle(fontSize: 13 * dpr, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
       textDirection: TextDirection.ltr,
     )..layout();
 
     TextPainter? ratingPainter;
     if (ratingStr.isNotEmpty) {
       ratingPainter = TextPainter(
-        text: TextSpan(text: ratingStr, style: TextStyle(fontSize: 11 * dpr, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
+        text: TextSpan(text: ratingStr, style: TextStyle(fontSize: 13 * dpr, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
         textDirection: TextDirection.ltr,
       )..layout();
     }
@@ -542,7 +542,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
   Future<BitmapDescriptor> _createClusterIcon(int count) async {
     if (_clusterIcons.containsKey(count)) return _clusterIcons[count]!;
     final dpr = _dpr;
-    final size = 48 * dpr;
+    final size = 40 * dpr;
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder);
 
@@ -554,7 +554,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
     canvas.drawCircle(Offset(size / 2, size / 2), size / 2 - 1.25 * dpr, borderPaint);
     // Count text
     final tp = TextPainter(
-      text: TextSpan(text: '$count', style: TextStyle(color: Colors.white, fontSize: 18 * dpr, fontWeight: FontWeight.w800, fontFamily: 'Mulish')),
+      text: TextSpan(text: '$count', style: TextStyle(color: Colors.white, fontSize: 15 * dpr, fontWeight: FontWeight.w800, fontFamily: 'Mulish')),
       textDirection: TextDirection.ltr,
     )..layout();
     tp.paint(canvas, Offset((size - tp.width) / 2, (size - tp.height) / 2));

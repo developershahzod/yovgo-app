@@ -106,11 +106,10 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                 _buildViewCarWashesRow(),
                 const SizedBox(height: 16),
                 // Plan cards
-                if (_activeSubscription == null)
-                  ..._getDisplayPlans().map((plan) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _buildPlanCard(plan),
-                  )),
+                ..._getDisplayPlans().map((plan) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _buildPlanCard(plan),
+                )),
               ],
             ),
       ),
@@ -318,9 +317,10 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
     final price = plan['price'] ?? 0;
     final durationDays = plan['duration_days'] ?? 0;
     final visitLimit = plan['visit_limit'] ?? 0;
+    final hasActiveSub = _activeSubscription != null;
 
     return GestureDetector(
-      onTap: () {
+      onTap: hasActiveSub ? null : () {
         Navigator.pushNamed(context, '/checkout', arguments: plan);
       },
       child: Container(
@@ -389,7 +389,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 20),
+            if (!hasActiveSub) const Icon(Icons.chevron_right, color: AppTheme.textSecondary, size: 20),
           ],
         ),
       ),
