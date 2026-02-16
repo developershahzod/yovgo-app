@@ -24,13 +24,20 @@ api.interceptors.request.use(
 );
 
 // Response interceptor for error handling
+let isRedirecting = false;
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      const url = error.config?.url || '';
+      // Don't redirect on login requests or if already redirecting
+      if (!url.includes('/auth/login') && !isRedirecting && window.location.pathname !== '/login') {
+        isRedirecting = true;
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user');
+        window.location.href = '/login';
+        setTimeout(() => { isRedirecting = false; }, 3000);
+      }
     }
     return Promise.reject(error);
   }
