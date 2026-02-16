@@ -434,11 +434,11 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
                 children: [
                   Text(name, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                   const SizedBox(height: 2),
-                  Text('$durationDays kun · ${isUnlimited ? "cheksiz" : "$visitLimit ta"} tashrif', style: const TextStyle(fontSize: 12, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
+                  Text('$durationDays ${context.tr('days')} · ${isUnlimited ? context.tr('sub_unlimited') : "$visitLimit ${context.tr('sub_visits')}"} ', style: const TextStyle(fontSize: 12, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
                 ],
               ),
             ),
-            Text('${_formatPrice(price)} so\'m', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF00BFFE))),
+            Text('${_formatPrice(price)} ${context.tr('currency')}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF00BFFE))),
             if (canBuy) const SizedBox(width: 4),
             if (canBuy) const Icon(Icons.chevron_right, color: Color(0xFF8F96A0), size: 20),
           ],
