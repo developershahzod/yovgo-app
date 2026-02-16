@@ -851,10 +851,15 @@ const Branches = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Kenglik (Latitude)</label>
                       <input
-                        type="number"
-                        step="0.000001"
-                        value={formData.latitude || ''}
-                        onChange={(e) => setFormData({...formData, latitude: parseFloat(e.target.value) || null})}
+                        type="text"
+                        inputMode="decimal"
+                        value={formData.latitude ?? ''}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === '' || v === '-' || /^-?\d*\.?\d*$/.test(v)) {
+                            setFormData({...formData, latitude: v === '' || v === '-' ? null : (v.endsWith('.') ? v : parseFloat(v) || null)});
+                          }
+                        }}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
                         placeholder="41.311081"
                       />
@@ -862,10 +867,15 @@ const Branches = () => {
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1.5">Uzunlik (Longitude)</label>
                       <input
-                        type="number"
-                        step="0.000001"
-                        value={formData.longitude || ''}
-                        onChange={(e) => setFormData({...formData, longitude: parseFloat(e.target.value) || null})}
+                        type="text"
+                        inputMode="decimal"
+                        value={formData.longitude ?? ''}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          if (v === '' || v === '-' || /^-?\d*\.?\d*$/.test(v)) {
+                            setFormData({...formData, longitude: v === '' || v === '-' ? null : (v.endsWith('.') ? v : parseFloat(v) || null)});
+                          }
+                        }}
                         className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 outline-none transition-all"
                         placeholder="69.279737"
                       />
