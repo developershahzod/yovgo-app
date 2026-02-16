@@ -27,15 +27,17 @@ class MainNavigationFixed extends StatefulWidget {
   State<MainNavigationFixed> createState() => _MainNavigationFixedState();
 }
 
-class _MainNavigationFixedState extends State<MainNavigationFixed> {
+class _MainNavigationFixedState extends State<MainNavigationFixed> with WidgetsBindingObserver {
   late int _currentIndex;
   late final List<Widget> _screens;
+  bool _wasCameraActiveBeforePause = false;
 
   @override
   void initState() {
     super.initState();
     _currentIndex = widget.initialIndex;
     MainNavigationFixed._instance = this;
+    WidgetsBinding.instance.addObserver(this);
     _screens = [
       HomeScreenFixed(key: HomeScreenFixed.globalKey),
       const MapScreenNew(),
@@ -47,10 +49,26 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     if (MainNavigationFixed._instance == this) {
       MainNavigationFixed._instance = null;
     }
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      // App going to background — stop camera to save battery
+      final qrState = QrScannerScreenFixed.globalKey.currentState;
+      _wasCameraActiveBeforePause = _currentIndex == 2;
+      qrState?.stopCamera();
+    } else if (state == AppLifecycleState.resumed) {
+      // App coming back — restart camera only if QR tab was active
+      if (_wasCameraActiveBeforePause && _currentIndex == 2) {
+        QrScannerScreenFixed.globalKey.currentState?.startCamera();
+      }
+    }
   }
 
   void _onTabTapped(int index) {
