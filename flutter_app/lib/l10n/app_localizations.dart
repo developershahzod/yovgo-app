@@ -30,6 +30,12 @@ class AppLocalizations {
         key;
   }
 
+  static String staticTranslate(String key, String languageCode) {
+    return _localizedValues[languageCode]?[key] ??
+        _localizedValues['en']?[key] ??
+        key;
+  }
+
   String get languageCode => locale.languageCode;
 }
 
@@ -48,7 +54,7 @@ class _AppLocalizationsDelegate
   }
 
   @override
-  bool shouldReload(_AppLocalizationsDelegate old) => false;
+  bool shouldReload(_AppLocalizationsDelegate old) => true;
 }
 
 // English Translations
@@ -90,6 +96,7 @@ const Map<String, String> _enTranslations = {
   'home_weather_bad': 'Not recommended today',
   'home_categories': 'Categories',
   'home_nearest': 'Nearest Car Washes',
+  'home_no_nearby': 'No car washes found nearby',
   'home_recent': 'Recent Visits',
   'home_see_all': 'See All',
   'home_no_recent': 'No recent visits',
@@ -131,6 +138,9 @@ const Map<String, String> _enTranslations = {
   // Profile
   'profile_title': 'Profile',
   'profile_edit': 'Edit Profile',
+  'camera': 'Camera',
+  'gallery': 'Gallery',
+  'profile_saved': 'Profile saved successfully',
   'profile_name': 'Name',
   'profile_phone': 'Phone',
   'profile_email': 'Email',
@@ -293,6 +303,9 @@ const Map<String, String> _enTranslations = {
   'detail_oil_change': 'Oil Change',
   'detail_fuel': 'Fuel Station',
   'detail_ev_charge': 'EV Charging Station',
+  'detail_show': 'show more',
+  'detail_hide': 'hide',
+  'detail_reviews': 'REVIEWS',
 
   // QR Scanner (additional)
   'qr_login_required': 'Login Required',
@@ -415,6 +428,7 @@ const Map<String, String> _enTranslations = {
 
   // Weather
   'wash_rating': 'Wash Rating',
+  'map_rating': 'Rating',
   'weather_forecast': 'Weather Forecast',
   'weather_recommendation': 'Recommendation',
   'weather_current_temp': 'Current temperature:',
@@ -512,16 +526,28 @@ const Map<String, String> _enTranslations = {
   'delete_item': 'Delete',
   'nothing_found': 'Nothing found',
   'nothing_found_desc': 'Nothing found for',
-  'location_permission_title': 'Allow your\nlocation',
-  'location_permission_desc': 'Allow location access in settings to see nearby car washes',
+  'location_permission_title': 'Allow Location',
+  'location_permission_desc': 'YuvGO needs your location to show nearby car washes on the map.',
+  'location_permission_allow': 'Allow Location',
+  'location_permission_deny': 'Not Now',
+  'camera_permission_title': 'Allow Camera',
+  'camera_permission_desc': 'YuvGO needs camera access to scan QR codes at car washes.',
+  'camera_permission_allow': 'Allow Camera',
+  'camera_permission_deny': 'Not Now',
   'not_now': 'Not now',
   'open_settings': 'Open Settings',
   'open_24_7': '24/7 OPEN',
-  'open_until': 'OPEN UNTIL',
-  'closed_until': 'CLOSED UNTIL',
+  'open_until': 'Open until',
+  'closed_until': 'Closed until',
   'status_open': 'OPEN',
   'status_closed': 'CLOSED',
+  'status_open_until': 'Open until %s',
+  'status_closed_until': 'Closed until %s',
   'car_wash_default': 'Car Wash',
+  'auth_guard_title': 'Sign In',
+  'auth_guard_desc': 'Please sign in or register to use this section.',
+  'auth_guard_login_btn': 'Sign In',
+  'auth_guard_register_btn': 'Register',
 
   // Visit dates & statuses
   'today': 'Today',
@@ -542,6 +568,29 @@ const Map<String, String> _enTranslations = {
 
   // Settings
   'settings_app_language': 'App Language',
+
+  // Delete account
+  'profile_delete_account': 'Delete Account',
+  'profile_delete_account_confirm': 'Are you sure you want to permanently delete your account? All your data will be lost and cannot be recovered.',
+
+  // Permission dialogs
+  'permission_camera_title': 'Camera Access',
+  'permission_camera_desc': 'YuvGO needs camera access to scan QR codes at car washes',
+  'permission_camera_denied': 'Camera access is disabled. Please enable it in Settings to scan QR codes.',
+  'permission_location_title': 'Location Access',
+  'permission_location_desc': 'YuvGO needs your location to show nearby car washes on the map',
+  'permission_location_denied': 'Location access is disabled. Please enable it in Settings to see nearby car washes.',
+  'permission_photos_title': 'Photo Library Access',
+  'permission_photos_desc': 'YuvGO needs access to your photos to set your profile picture',
+  'permission_photos_denied': 'Photo library access is disabled. Please enable it in Settings.',
+  'permission_allow': 'Allow',
+  'permission_deny': 'Not Now',
+  'permission_open_settings': 'Open Settings',
+
+  // Plan localization helpers
+  'days_short': 'days',
+  'currency_suffix': 'sum',
+  'plan_days_visits': '%d days · %v visits',
 };
 
 // Russian Translations
@@ -583,6 +632,7 @@ const Map<String, String> _ruTranslations = {
   'home_weather_bad': 'Сегодня не рекомендуется',
   'home_categories': 'Категории',
   'home_nearest': 'Ближайшие автомойки',
+  'home_no_nearby': 'Рядом автомойки не найдены',
   'home_recent': 'Недавние посещения',
   'home_see_all': 'Все',
   'home_no_recent': 'Нет недавних посещений',
@@ -624,6 +674,9 @@ const Map<String, String> _ruTranslations = {
   // Profile
   'profile_title': 'Профиль',
   'profile_edit': 'Редактировать',
+  'camera': 'Камера',
+  'gallery': 'Галерея',
+  'profile_saved': 'Профиль успешно сохранён',
   'profile_name': 'Имя',
   'profile_phone': 'Телефон',
   'profile_email': 'Email',
@@ -786,6 +839,9 @@ const Map<String, String> _ruTranslations = {
   'detail_oil_change': 'Замена масла',
   'detail_fuel': 'АЗС',
   'detail_ev_charge': 'Зарядка электромобилей',
+  'detail_show': 'показать',
+  'detail_hide': 'скрыть',
+  'detail_reviews': 'ОТЗЫВОВ',
 
   // QR Scanner (additional)
   'qr_login_required': 'Требуется вход',
@@ -908,6 +964,7 @@ const Map<String, String> _ruTranslations = {
 
   // Weather
   'wash_rating': 'Рейтинг мойки',
+  'map_rating': 'Рейтинг',
   'weather_forecast': 'Прогноз погоды',
   'weather_recommendation': 'Рекомендация',
   'weather_current_temp': 'Текущая температура:',
@@ -1005,16 +1062,28 @@ const Map<String, String> _ruTranslations = {
   'delete_item': 'Удалить',
   'nothing_found': 'Ничего не найдено',
   'nothing_found_desc': 'Ничего не найдено по запросу',
-  'location_permission_title': 'Разрешите\nгеолокацию',
-  'location_permission_desc': 'Разрешите доступ к местоположению в настройках, чтобы видеть ближайшие автомойки',
+  'location_permission_title': 'Разрешить геолокацию',
+  'location_permission_desc': 'YuvGO нужен доступ к вашему местоположению, чтобы показывать ближайшие автомойки на карте.',
+  'location_permission_allow': 'Разрешить',
+  'location_permission_deny': 'Не сейчас',
+  'camera_permission_title': 'Разрешить камеру',
+  'camera_permission_desc': 'YuvGO нужен доступ к камере для сканирования QR-кодов на автомойках.',
+  'camera_permission_allow': 'Разрешить',
+  'camera_permission_deny': 'Не сейчас',
   'not_now': 'Не сейчас',
   'open_settings': 'Открыть настройки',
   'open_24_7': '24/7 ОТКРЫТО',
-  'open_until': 'ОТКРЫТО ДО',
-  'closed_until': 'ЗАКРЫТО ДО',
+  'open_until': 'Открыто до',
+  'closed_until': 'Закрыто до',
   'status_open': 'ОТКРЫТО',
   'status_closed': 'ЗАКРЫТО',
+  'status_open_until': 'Открыто до %s',
+  'status_closed_until': 'Закрыто до %s',
   'car_wash_default': 'Автомойка',
+  'auth_guard_title': 'Войти',
+  'auth_guard_desc': 'Чтобы использовать этот раздел, войдите или зарегистрируйтесь.',
+  'auth_guard_login_btn': 'Войти',
+  'auth_guard_register_btn': 'Зарегистрироваться',
 
   // Visit dates & statuses
   'today': 'Сегодня',
@@ -1035,6 +1104,29 @@ const Map<String, String> _ruTranslations = {
 
   // Settings
   'settings_app_language': 'Язык приложения',
+
+  // Delete account
+  'profile_delete_account': 'Удалить аккаунт',
+  'profile_delete_account_confirm': 'Вы уверены, что хотите навсегда удалить аккаунт? Все ваши данные будут удалены и не могут быть восстановлены.',
+
+  // Permission dialogs
+  'permission_camera_title': 'Доступ к камере',
+  'permission_camera_desc': 'YuvGO нужен доступ к камере для сканирования QR-кодов на автомойках',
+  'permission_camera_denied': 'Доступ к камере отключен. Пожалуйста, включите его в Настройках для сканирования QR-кодов.',
+  'permission_location_title': 'Доступ к геолокации',
+  'permission_location_desc': 'YuvGO нужна ваша геолокация для отображения ближайших автомоек на карте',
+  'permission_location_denied': 'Доступ к геолокации отключен. Пожалуйста, включите его в Настройках.',
+  'permission_photos_title': 'Доступ к фотогалерее',
+  'permission_photos_desc': 'YuvGO нужен доступ к вашим фото для установки фото профиля',
+  'permission_photos_denied': 'Доступ к фотогалерее отключен. Пожалуйста, включите его в Настройках.',
+  'permission_allow': 'Разрешить',
+  'permission_deny': 'Не сейчас',
+  'permission_open_settings': 'Открыть настройки',
+
+  // Plan localization helpers
+  'days_short': 'дней',
+  'currency_suffix': 'сум',
+  'plan_days_visits': '%d дней · %v посещений',
 };
 
 // Uzbek Translations
@@ -1076,6 +1168,7 @@ const Map<String, String> _uzTranslations = {
   'home_weather_bad': "Bugun tavsiya etilmaydi",
   'home_categories': 'Kategoriyalar',
   'home_nearest': 'Eng yaqin avtomoykalar',
+  'home_no_nearby': 'Yaqin atrofda avtomoykalar topilmadi',
   'home_recent': "So'nggi tashriflar",
   'home_see_all': 'Barchasi',
   'home_no_recent': "So'nggi tashriflar yo'q",
@@ -1117,6 +1210,9 @@ const Map<String, String> _uzTranslations = {
   // Profile
   'profile_title': 'Profil',
   'profile_edit': 'Tahrirlash',
+  'camera': 'Kamera',
+  'gallery': 'Galereya',
+  'profile_saved': 'Profil muvaffaqiyatli saqlandi',
   'profile_name': 'Ism',
   'profile_phone': 'Telefon',
   'profile_email': 'Email',
@@ -1279,6 +1375,9 @@ const Map<String, String> _uzTranslations = {
   'detail_oil_change': 'Moy almashtirish',
   'detail_fuel': "Yoqilg'i quyish",
   'detail_ev_charge': 'Elektr zaryadlash stansiyasi',
+  'detail_show': 'ko\'rsatish',
+  'detail_hide': 'yashirish',
+  'detail_reviews': 'TA BAHO',
 
   // QR Scanner (additional)
   'qr_login_required': "Ro'yxatdan o'ting",
@@ -1401,6 +1500,7 @@ const Map<String, String> _uzTranslations = {
 
   // Weather
   'wash_rating': 'Yuvish reytingi',
+  'map_rating': 'Reyting',
   'weather_forecast': 'Ob-havo prognozi',
   'weather_recommendation': 'Tavsiya',
   'weather_current_temp': 'Hozirgi havo harorati:',
@@ -1498,16 +1598,28 @@ const Map<String, String> _uzTranslations = {
   'delete_item': 'O\'chirish',
   'nothing_found': 'Hech narsa topilmadi',
   'nothing_found_desc': 'so\'roviga aloqador hech narsa topilmadi',
-  'location_permission_title': 'Geolokatsiyangizga\nruxsat bering',
-  'location_permission_desc': 'Sizga yaqin avtomoykalarni ko\'rishimiz uchun sozlamalarda joylashuv ma\'lumotiga ruxsat bering',
+  'location_permission_title': 'Joylashuvga ruxsat bering',
+  'location_permission_desc': 'YuvGO xaritada yaqin avtomoykalarni ko\'rsatish uchun joylashuvingizga kirish kerak.',
+  'location_permission_allow': 'Ruxsat berish',
+  'location_permission_deny': 'Hozir emas',
+  'camera_permission_title': 'Kameraga ruxsat bering',
+  'camera_permission_desc': 'YuvGO avtomoykadagi QR-kodni skanerlash uchun kameraga kirish kerak.',
+  'camera_permission_allow': 'Ruxsat berish',
+  'camera_permission_deny': 'Hozir emas',
   'not_now': 'Hozir emas',
   'open_settings': 'Sozlamalarni ochish',
   'open_24_7': '24/7 OCHIQ',
-  'open_until': 'GACHA OCHIQ',
-  'closed_until': 'GACHA YOPIQ',
+  'open_until': 'gacha ochiq',
+  'closed_until': 'gacha yopiq',
   'status_open': 'OCHIQ',
   'status_closed': 'YOPIQ',
+  'status_open_until': '%s gacha ochiq',
+  'status_closed_until': '%s gacha yopiq',
   'car_wash_default': 'Avtomoyka',
+  'auth_guard_title': 'Tizimga kiring',
+  'auth_guard_desc': 'Bu bo\'limdan foydalanish uchun avval tizimga kiring yoki ro\'yxatdan o\'ting.',
+  'auth_guard_login_btn': 'Tizimga kirish',
+  'auth_guard_register_btn': 'Ro\'yxatdan o\'tish',
 
   // Visit dates & statuses
   'today': 'Bugun',
@@ -1528,4 +1640,27 @@ const Map<String, String> _uzTranslations = {
 
   // Settings
   'settings_app_language': 'Ilova tili',
+
+  // Delete account
+  'profile_delete_account': 'Akkauntni o\'chirish',
+  'profile_delete_account_confirm': 'Akkauntingizni butunlay o\'chirishni xohlaysizmi? Barcha ma\'lumotlaringiz o\'chiriladi va tiklanmaydi.',
+
+  // Permission dialogs
+  'permission_camera_title': 'Kameraga ruxsat',
+  'permission_camera_desc': 'YuvGO avtomoykadagi QR-kodni skanerlash uchun kameradan foydalanishi kerak',
+  'permission_camera_denied': 'Kameraga ruxsat o\'chirilgan. QR-kodni skanerlash uchun Sozlamalarda yoqing.',
+  'permission_location_title': 'Joylashuvga ruxsat',
+  'permission_location_desc': 'YuvGO xaritada yaqin atrofdagi avtomoykalarni ko\'rsatish uchun joylashuvingizdan foydalanishi kerak',
+  'permission_location_denied': 'Joylashuvga ruxsat o\'chirilgan. Yaqin avtomoykalarni ko\'rish uchun Sozlamalarda yoqing.',
+  'permission_photos_title': 'Foto kutubxonaga ruxsat',
+  'permission_photos_desc': 'YuvGO profil rasmingizni o\'rnatish uchun fotolaringizdan foydalanishi kerak',
+  'permission_photos_denied': 'Foto kutubxonaga ruxsat o\'chirilgan. Sozlamalarda yoqing.',
+  'permission_allow': 'Ruxsat berish',
+  'permission_deny': 'Hozir emas',
+  'permission_open_settings': 'Sozlamalarni ochish',
+
+  // Plan localization helpers
+  'days_short': 'kun',
+  'currency_suffix': 'so\'m',
+  'plan_days_visits': '%d kun · %v tashrif',
 };

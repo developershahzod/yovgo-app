@@ -637,7 +637,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                   child: GestureDetector(
                     onTap: () => setState(() => _descExpanded = !_descExpanded),
                     child: Text(
-                      _descExpanded ? ' yashirish' : 'ko\'rsatish',
+                      _descExpanded ? ' ${context.tr('detail_hide')}' : context.tr('detail_show'),
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Color(0xFF0A0C13), fontFamily: 'Mulish'),
                     ),
                   ),
@@ -709,7 +709,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                       ],
                     ),
                     Text(
-                      _reviewCount > 0 ? '$_reviewCount TA BAHO' : 'REYTING',
+                      _reviewCount > 0 ? '$_reviewCount ${context.tr('detail_reviews')}' : context.tr('detail_rating'),
                       style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF8F96A0), letterSpacing: 0.5),
                     ),
                   ],
