@@ -24,6 +24,15 @@ class FullApiService {
   static const _storage = FlutterSecureStorage();
   static const _tokenKey = 'auth_token';
   static const _userKey = 'user_data';
+  static const _phoneKey = 'user_phone';
+
+  static Future<void> savePhone(String phone) async {
+    await _storage.write(key: _phoneKey, value: phone);
+  }
+
+  static Future<String> getSavedPhone() async {
+    return await _storage.read(key: _phoneKey) ?? '';
+  }
 
   // Initialize interceptors
   static void initialize() {

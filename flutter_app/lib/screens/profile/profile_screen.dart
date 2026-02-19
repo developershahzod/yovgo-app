@@ -39,17 +39,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) setState(() { _isLoggedIn = false; _isLoading = false; });
         return;
       }
+
+      // Load saved phone immediately as fallback
+      final savedPhone = await FullApiService.getSavedPhone();
+      if (mounted) setState(() { _isLoggedIn = true; _phone = savedPhone; });
       
-      setState(() => _isLoggedIn = true);
-      
-      // Load user profile
+      // Load user profile from API
       try {
         final response = await FullApiService.get('/api/user/me');
         if (mounted && response.statusCode == 200) {
           final userData = response.data;
+          final apiPhone = userData['phone_number']?.toString() ?? '';
+          final apiName = userData['full_name']?.toString() ?? '';
+          if (apiPhone.isNotEmpty) await FullApiService.savePhone(apiPhone);
           setState(() {
-            _fullName = userData['full_name'] ?? '';
-            _phone = userData['phone_number'] ?? '';
+            _fullName = apiName;
+            _phone = apiPhone.isNotEmpty ? apiPhone : savedPhone;
           });
         }
       } catch (_) {}

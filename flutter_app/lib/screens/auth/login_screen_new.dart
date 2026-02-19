@@ -100,6 +100,7 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
         code: code,
       );
       if (!mounted) return;
+      await FullApiService.savePhone(phone);
       final isNew = result['is_new_user'] == true;
       final hasName = (result['user']?['full_name']?.toString() ?? '').trim().isNotEmpty;
       if (isNew || !hasName) {
