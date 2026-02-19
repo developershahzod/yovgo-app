@@ -69,7 +69,9 @@ class FullApiService {
     return token != null && token.isNotEmpty;
   }
 
-  /// Returns true if user has a token AND a non-empty full_name (profile complete)
+  /// Returns true if user has a token AND a non-empty full_name (profile complete).
+  /// On any API error, returns true — a user with a valid token should never be
+  /// redirected to login just because the profile endpoint failed.
   static Future<bool> isProfileComplete() async {
     try {
       final token = await getToken();
@@ -77,9 +79,11 @@ class FullApiService {
       final response = await _dio.get('/api/user/users/me');
       final user = response.data['user'] ?? response.data;
       final fullName = user['full_name']?.toString() ?? '';
+      // Only redirect to name-collection if we got a valid response AND name is empty
       return fullName.trim().isNotEmpty;
     } catch (_) {
-      return false;
+      // API failed (network/timeout/server error) — don't block logged-in user
+      return true;
     }
   }
 
