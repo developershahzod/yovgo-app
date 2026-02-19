@@ -31,8 +31,8 @@ auth_handler = AuthHandler()
 sms_codes = {}
 
 # Eskiz SMS config
-ESKIZ_EMAIL = "developershahzod@gmail.com"
-ESKIZ_PASSWORD = "71fUbNlGfE0lFU33n8svAmITSXSfV9OLL5mfBEXR"
+ESKIZ_EMAIL = "avazbek.7@gmail.com"
+ESKIZ_PASSWORD = "EJNXOrDWvdHk9Xk62T9s1UKe8ftlNIn2ZTHdjRPL"
 ESKIZ_AUTH_URL = "https://notify.eskiz.uz/api/auth/login"
 ESKIZ_SMS_URL = "https://notify.eskiz.uz/api/message/sms/send"
 ESKIZ_FROM = "4546"
@@ -114,7 +114,7 @@ async def send_verification_code(data: SendCodeRequest):
     }
     
     # Send SMS via Eskiz (must match approved template ID 39117 exactly)
-    sms_message = f"{code} — ваш код верификации для входа в мобильное приложение Õsma"
+    sms_message = f"{code} — ваш код верификации для входа в мобильное приложение YuvGO"
     try:
         result = await send_sms_eskiz(phone, sms_message)
         print(f"[ESKIZ RESULT] {phone}: {result}")
@@ -339,6 +339,34 @@ async def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
     
     return user
 
+@app.get("/users/stats")
+async def get_user_stats_admin(db: Session = Depends(get_db)):
+    """Return aggregated user stats - no auth, no limit needed"""
+    from sqlalchemy import func, cast, Date
+    from datetime import date, timedelta
+    total = db.query(func.count(User.id)).scalar() or 0
+    active = db.query(func.count(User.id)).filter(User.is_active == True).scalar() or 0
+    today = date.today()
+    new_today = db.query(func.count(User.id)).filter(
+        cast(User.created_at, Date) == today
+    ).scalar() or 0
+    week_ago = today - timedelta(days=7)
+    new_this_week = db.query(func.count(User.id)).filter(
+        User.created_at >= week_ago
+    ).scalar() or 0
+    month_ago = today - timedelta(days=30)
+    new_this_month = db.query(func.count(User.id)).filter(
+        User.created_at >= month_ago
+    ).scalar() or 0
+    return {
+        "total": total,
+        "active": active,
+        "new_today": new_today,
+        "new_this_week": new_this_week,
+        "new_this_month": new_this_month,
+    }
+
+
 @app.get("/users/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: str,
@@ -391,6 +419,51 @@ async def delete_user(user_id: str, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "User deleted successfully"}
 
+@app.delete("/me")
+async def delete_own_account(
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthHandler.get_current_user)
+):
+    """Soft-delete own account (Apple App Store requirement). Marks as deleted, does not remove data."""
+    from datetime import datetime
+    user_id = current_user.get("sub")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.is_deleted = True
+    user.is_active = False
+    user.deleted_at = datetime.utcnow()
+    db.commit()
+    return {"message": "Account deleted successfully"}
+
+@app.put("/me")
+async def update_current_user_profile(
+    user_data: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthHandler.get_current_user)
+):
+    """Update current user's own profile (full_name, email) using JWT token"""
+    user_id = current_user.get("sub")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    for field, value in user_data.dict(exclude_unset=True).items():
+        if value is not None:
+            setattr(user, field, value)
+
+    db.commit()
+    db.refresh(user)
+
+    return {
+        "id": str(user.id),
+        "phone_number": user.phone_number,
+        "email": user.email,
+        "full_name": user.full_name,
+        "is_verified": user.is_verified,
+        "is_active": user.is_active,
+    }
+
 @app.get("/me")
 async def get_current_user_profile(
     db: Session = Depends(get_db),
@@ -415,12 +488,18 @@ async def get_current_user_profile(
 @app.get("/users", response_model=List[UserResponse])
 async def list_users(
     skip: int = 0,
-    limit: int = 20,
+    limit: int = 10000,
+    search: Optional[str] = None,
     db: Session = Depends(get_db),
-    current_admin = Depends(AuthHandler.get_current_admin)
 ):
-    """List all users (admin only)"""
-    users = db.query(User).offset(skip).limit(limit).all()
+    """List all users (admin only - no auth needed, internal service)"""
+    query = db.query(User)
+    if search:
+        query = query.filter(
+            (User.phone_number.ilike(f"%{search}%")) |
+            (User.full_name.ilike(f"%{search}%"))
+        )
+    users = query.order_by(User.created_at.desc()).offset(skip).limit(limit).all()
     return users
 
 # Vehicle Management
