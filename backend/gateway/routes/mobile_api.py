@@ -301,6 +301,43 @@ async def search_car_washes(
     }
 
 
+# Known default/placeholder descriptions stored in DB (Uzbek) that need translation
+_UZ_DEFAULT_DESCRIPTIONS = {
+    "Premium avtomoyka xizmatlari",
+    "premium avtomoyka xizmatlari",
+    "Premium avtomoyka xizmati. Yuqori sifatli xizmat.",
+    "premium avtomoyka xizmati. yuqori sifatli xizmat.",
+    "Yuqori sifatli avtomoyka xizmati",
+    "yuqori sifatli avtomoyka xizmati",
+}
+
+# Uzbek-specific words that indicate a description is Uzbek-only placeholder
+_UZ_INDICATOR_WORDS = ["xizmatlari", "xizmati", "avtomoyka", "yuqori sifatli", "shoxobcha"]
+
+def _is_uz_placeholder(desc: str) -> bool:
+    """Return True if description looks like a generic Uzbek placeholder."""
+    lower = desc.lower()
+    if lower in _UZ_DEFAULT_DESCRIPTIONS:
+        return True
+    # Short generic Uzbek descriptions (< 80 chars) with Uzbek indicator words
+    if len(desc) < 80 and any(w in lower for w in _UZ_INDICATOR_WORDS):
+        return True
+    return False
+
+def _localize_description(description: str | None, name: str, lang: str) -> str:
+    """Return localized description. If DB stores a known Uzbek default, translate it."""
+    desc = (description or "").strip()
+    # Empty or known Uzbek placeholder → return localized fallback
+    if not desc or _is_uz_placeholder(desc):
+        if lang == "ru":
+            return f"{name} — это не просто автомойка, это знак уважения к вашему автомобилю. Мы используем современные технологии и химию премиум-класса, чтобы ваш автомобиль выглядел как новый."
+        elif lang == "en":
+            return f"{name} is not just a car wash — it's a sign of respect for your vehicle. We use the latest technologies and premium chemicals to make your car look brand new."
+        else:
+            return f"{name} bu shunchaki avtoyuvish shoxobchasi emas, bu sizning avtomobilingizga bo'lgan hurmatimiz namunasidir. Biz eng zamonaviy texnologiyalar va premium sifatli kimyoviy vositalar yordamida avtomobilingizni yangiday ko'rinishga keltiramiz."
+    return desc
+
+
 @router.get("/car-washes/{partner_id}")
 async def get_car_wash_detail(
     partner_id: str,
@@ -396,11 +433,7 @@ async def get_car_wash_detail(
             "is_premium": partner.is_premium or False,
             "is_24_hours": getattr(partner, 'is_24_hours', False) or False,
             "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
-            "description": partner.description or (
-                "Премиум услуги автомойки" if lang == "ru" else
-                "Premium car wash services" if lang == "en" else
-                "Premium avtomoyka xizmatlari"
-            ),
+            "description": _localize_description(partner.description, partner.name, lang),
             "wash_time": getattr(partner, 'wash_time', 60) or 60,
             "services": partner.additional_services if partner.additional_services else [],
             "locations": locations_data,
