@@ -13,6 +13,8 @@ class User(Base):
     full_name = Column(String(255))
     is_verified = Column(Boolean, default=False)
     is_active = Column(Boolean, default=True)
+    is_deleted = Column(Boolean, default=False)
+    deleted_at = Column(TIMESTAMP, nullable=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
@@ -36,7 +38,11 @@ class SubscriptionPlan(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(100), nullable=False)
+    name_ru = Column(String(100))
+    name_en = Column(String(100))
     description = Column(Text)
+    description_ru = Column(Text)
+    description_en = Column(Text)
     price = Column(DECIMAL(10, 2), nullable=False)
     currency = Column(String(3), default="UZS")
     duration_days = Column(Integer, nullable=False)
@@ -67,7 +73,11 @@ class Partner(Base):
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False)
+    name_ru = Column(String(255))
+    name_en = Column(String(255))
     description = Column(Text)
+    description_ru = Column(Text)
+    description_en = Column(Text)
     email = Column(String(255))
     phone_number = Column(String(20))
     address = Column(Text)

@@ -48,7 +48,11 @@ class VehicleResponse(VehicleBase):
 # Subscription Plan Schemas
 class SubscriptionPlanBase(BaseModel):
     name: str
+    name_ru: Optional[str] = None
+    name_en: Optional[str] = None
     description: Optional[str] = None
+    description_ru: Optional[str] = None
+    description_en: Optional[str] = None
     price: float
     currency: str = "UZS"
     duration_days: int
@@ -90,7 +94,11 @@ class SubscriptionResponse(BaseModel):
 # Partner Schemas
 class PartnerBase(BaseModel):
     name: str
+    name_ru: Optional[str] = None
+    name_en: Optional[str] = None
     description: Optional[str] = None
+    description_ru: Optional[str] = None
+    description_en: Optional[str] = None
     email: Optional[EmailStr] = None
     phone_number: Optional[str] = None
     address: Optional[str] = None
@@ -112,7 +120,11 @@ class PartnerCreate(PartnerBase):
 
 class PartnerUpdate(BaseModel):
     name: Optional[str] = None
+    name_ru: Optional[str] = None
+    name_en: Optional[str] = None
     description: Optional[str] = None
+    description_ru: Optional[str] = None
+    description_en: Optional[str] = None
     email: Optional[EmailStr] = None
     phone_number: Optional[str] = None
     address: Optional[str] = None
@@ -137,6 +149,10 @@ class PartnerResponse(PartnerBase):
     is_active: bool
     rating: Optional[float] = None
     created_at: datetime
+    name_ru: Optional[str] = None
+    name_en: Optional[str] = None
+    description_ru: Optional[str] = None
+    description_en: Optional[str] = None
     
     class Config:
         from_attributes = True
@@ -205,7 +221,14 @@ class VisitResponse(BaseModel):
     user_phone: Optional[str] = None
     user_email: Optional[str] = None
     partner_name: Optional[str] = None
-    
+    location_name: Optional[str] = None
+    location_address: Optional[str] = None
+    vehicle_plate: Optional[str] = None
+    vehicle_brand: Optional[str] = None
+    vehicle_model: Optional[str] = None
+    vehicle_name: Optional[str] = None
+    vehicle_type: Optional[str] = None
+
     class Config:
         from_attributes = True
 

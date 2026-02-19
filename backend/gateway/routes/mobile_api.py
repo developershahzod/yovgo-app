@@ -327,7 +327,6 @@ def _is_uz_placeholder(desc: str) -> bool:
 def _localize_description(description: str | None, name: str, lang: str) -> str:
     """Return localized description. If DB stores a known Uzbek default, translate it."""
     desc = (description or "").strip()
-    # Empty or known Uzbek placeholder → return localized fallback
     if not desc or _is_uz_placeholder(desc):
         if lang == "ru":
             return f"{name} — это не просто автомойка, это знак уважения к вашему автомобилю. Мы используем современные технологии и химию премиум-класса, чтобы ваш автомобиль выглядел как новый."
@@ -336,6 +335,20 @@ def _localize_description(description: str | None, name: str, lang: str) -> str:
         else:
             return f"{name} bu shunchaki avtoyuvish shoxobchasi emas, bu sizning avtomobilingizga bo'lgan hurmatimiz namunasidir. Biz eng zamonaviy texnologiyalar va premium sifatli kimyoviy vositalar yordamida avtomobilingizni yangiday ko'rinishga keltiramiz."
     return desc
+
+def _localize_description_full(partner, lang: str) -> str:
+    """Use DB multilingual description fields first, fall back to placeholder detection."""
+    name = partner.name or ""
+    if lang == "ru":
+        db_val = getattr(partner, 'description_ru', None)
+        if db_val and db_val.strip():
+            return db_val.strip()
+    elif lang == "en":
+        db_val = getattr(partner, 'description_en', None)
+        if db_val and db_val.strip():
+            return db_val.strip()
+    # Fall back to uz description with placeholder detection
+    return _localize_description(partner.description, name, lang)
 
 
 @router.get("/car-washes/{partner_id}")
@@ -413,7 +426,7 @@ async def get_car_wash_detail(
         "success": True,
         "partner": {
             "id": str(partner.id),
-            "name": partner.name,
+            "name": (getattr(partner, f'name_{lang}', None) or partner.name) if lang != 'uz' else partner.name,
             "address": partner.address or "",
             "latitude": float(partner.latitude) if partner.latitude else None,
             "longitude": float(partner.longitude) if partner.longitude else None,
@@ -433,7 +446,7 @@ async def get_car_wash_detail(
             "is_premium": partner.is_premium or False,
             "is_24_hours": getattr(partner, 'is_24_hours', False) or False,
             "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
-            "description": _localize_description(partner.description, partner.name, lang),
+            "description": _localize_description_full(partner, lang),
             "wash_time": getattr(partner, 'wash_time', 60) or 60,
             "services": partner.additional_services if partner.additional_services else [],
             "locations": locations_data,

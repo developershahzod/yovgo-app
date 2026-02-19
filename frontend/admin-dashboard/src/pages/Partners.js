@@ -24,7 +24,11 @@ const Partners = () => {
   });
   const [partnerForm, setPartnerForm] = useState({
     name: '',
+    name_ru: '',
+    name_en: '',
     description: '',
+    description_ru: '',
+    description_en: '',
     phone: '',
     email: '',
     address: '',
@@ -100,7 +104,11 @@ const Partners = () => {
     setEditingPartner(null);
     setPartnerForm({
       name: '',
+      name_ru: '',
+      name_en: '',
       description: '',
+      description_ru: '',
+      description_en: '',
       phone: '',
       email: '',
       address: '',
@@ -153,7 +161,11 @@ const Partners = () => {
     setEditingPartner(partner);
     setPartnerForm({
       name: partner.name,
+      name_ru: partner.name_ru || '',
+      name_en: partner.name_en || '',
       description: partner.description || '',
+      description_ru: partner.description_ru || '',
+      description_en: partner.description_en || '',
       phone: partner.phone || '',
       email: partner.email || '',
       address: partner.address || '',
@@ -506,7 +518,7 @@ const Partners = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Partner Name *
+                    Partner Name (UZ) *
                   </label>
                   <input
                     type="text"
@@ -536,17 +548,74 @@ const Partners = () => {
                 </div>
               </div>
 
+              {/* Multilingual Names */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    🇷🇺 Name (RU)
+                  </label>
+                  <input
+                    type="text"
+                    value={partnerForm.name_ru}
+                    onChange={(e) => setPartnerForm({ ...partnerForm, name_ru: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Название на русском"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    🇬🇧 Name (EN)
+                  </label>
+                  <input
+                    type="text"
+                    value={partnerForm.name_en}
+                    onChange={(e) => setPartnerForm({ ...partnerForm, name_en: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    placeholder="Name in English"
+                  />
+                </div>
+              </div>
+
+              {/* Description UZ */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
+                  Description (UZ)
                 </label>
                 <textarea
                   value={partnerForm.description}
                   onChange={(e) => setPartnerForm({ ...partnerForm, description: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                   rows="2"
-                  placeholder="Professional car wash services..."
+                  placeholder="O'zbek tilida tavsif..."
                 />
+              </div>
+
+              {/* Multilingual Descriptions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    🇷🇺 Description (RU)
+                  </label>
+                  <textarea
+                    value={partnerForm.description_ru}
+                    onChange={(e) => setPartnerForm({ ...partnerForm, description_ru: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    rows="2"
+                    placeholder="Описание на русском языке..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    🇬🇧 Description (EN)
+                  </label>
+                  <textarea
+                    value={partnerForm.description_en}
+                    onChange={(e) => setPartnerForm({ ...partnerForm, description_en: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                    rows="2"
+                    placeholder="Description in English..."
+                  />
+                </div>
               </div>
 
               {/* Contact Info */}
