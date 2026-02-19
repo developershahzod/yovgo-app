@@ -30,6 +30,9 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
     if (args is Map<String, dynamic> && args['phone'] != null && !_alreadyVerified) {
       _phoneController.text = args['phone'];
       _alreadyVerified = true;
+    } else if (args == null && !_alreadyVerified) {
+      // Coming from splash — user has token but no full_name, just show name field
+      _alreadyVerified = true;
     }
   }
 
@@ -118,17 +121,10 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
     }
     setState(() { _isLoading = true; _error = null; });
     try {
-      // User already verified from login — update name via verify-code again with fullName
-      final phone = _phoneController.text.trim();
-      await FullApiService.verifyCode(
-        phoneNumber: phone,
-        code: '11111',
-        fullName: name,
-      );
+      await FullApiService.updateMyProfile(fullName: name);
       if (mounted) Navigator.pushReplacementNamed(context, '/main');
     } catch (e) {
-      // Even if update fails, let user proceed
-      if (mounted) Navigator.pushReplacementNamed(context, '/main');
+      if (mounted) setState(() => _error = context.tr('auth_error_network'));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

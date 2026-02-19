@@ -2,7 +2,7 @@
 Mobile API Routes for Flutter App
 New endpoints specifically designed for the redesigned mobile app
 """
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Request
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
@@ -818,6 +818,35 @@ async def get_my_profile(
             "phone_number": user.phone_number,
             "email": user.email,
             "avatar_url": None,
+        }
+    }
+
+
+@router.put("/users/me")
+async def update_my_profile(
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """Update current user profile (full_name, email)"""
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    body = await request.json()
+    if 'full_name' in body and body['full_name']:
+        user.full_name = body['full_name']
+    if 'email' in body and body['email']:
+        user.email = body['email']
+    db.commit()
+    db.refresh(user)
+    return {
+        "success": True,
+        "user": {
+            "id": str(user.id),
+            "full_name": user.full_name,
+            "phone_number": user.phone_number,
+            "email": user.email,
         }
     }
 

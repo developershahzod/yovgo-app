@@ -69,6 +69,20 @@ class FullApiService {
     return token != null && token.isNotEmpty;
   }
 
+  /// Returns true if user has a token AND a non-empty full_name (profile complete)
+  static Future<bool> isProfileComplete() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return false;
+      final response = await _dio.get('/api/user/users/me');
+      final user = response.data['user'] ?? response.data;
+      final fullName = user['full_name']?.toString() ?? '';
+      return fullName.trim().isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ==================== USER SERVICE ====================
   
   /// Send SMS verification code to phone number
@@ -137,6 +151,22 @@ class FullApiService {
       if (response.data['access_token'] != null) {
         await saveToken(response.data['access_token']);
       }
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Update current user's profile (full_name, email) using JWT token
+  static Future<Map<String, dynamic>> updateMyProfile({
+    String? fullName,
+    String? email,
+  }) async {
+    try {
+      final response = await _dio.put('/api/user/users/me', data: {
+        if (fullName != null) 'full_name': fullName,
+        if (email != null) 'email': email,
+      });
       return response.data;
     } catch (e) {
       rethrow;

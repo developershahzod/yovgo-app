@@ -11,43 +11,17 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with TickerProviderStateMixin {
+    with SingleTickerProviderStateMixin {
   late AnimationController _waveController;
-  late AnimationController _logoController;
-  late AnimationController _shimmerController;
-
-  late Animation<double> _logoScale;
-  late Animation<double> _logoFade;
-  late Animation<Offset> _logoSlide;
-  late Animation<double> _waveSlide;
 
   @override
   void initState() {
     super.initState();
 
-    // Wave animation — smooth continuous flowing motion
     _waveController = AnimationController(
       duration: const Duration(milliseconds: 4000),
       vsync: this,
     )..repeat();
-    _waveSlide = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _waveController, curve: Curves.linear),
-    );
-
-    // Logo controller (kept for compatibility, not used for animation)
-    _logoController = AnimationController(
-      duration: const Duration(milliseconds: 1),
-      vsync: this,
-    );
-    _logoFade = Tween<double>(begin: 1.0, end: 1.0).animate(_logoController);
-    _logoScale = Tween<double>(begin: 1.0, end: 1.0).animate(_logoController);
-    _logoSlide = Tween<Offset>(begin: Offset.zero, end: Offset.zero).animate(_logoController);
-
-    // Shimmer glow animation
-    _shimmerController = AnimationController(
-      duration: const Duration(milliseconds: 1800),
-      vsync: this,
-    )..repeat(reverse: true);
 
     _checkAuthAndNavigate();
   }
@@ -57,21 +31,29 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
     final prefs = await SharedPreferences.getInstance();
     final onboardingCompleted = prefs.getBool('onboarding_completed') ?? false;
-    final isLoggedIn = await FullApiService.isLoggedIn();
     if (!onboardingCompleted) {
       Navigator.pushReplacementNamed(context, '/onboarding');
-    } else if (isLoggedIn) {
+      return;
+    }
+    final isLoggedIn = await FullApiService.isLoggedIn();
+    if (!isLoggedIn) {
+      Navigator.pushReplacementNamed(context, '/login');
+      return;
+    }
+    // User has token — check if profile is complete (has full_name)
+    final profileComplete = await FullApiService.isProfileComplete();
+    if (!mounted) return;
+    if (profileComplete) {
       Navigator.pushReplacementNamed(context, '/main');
     } else {
-      Navigator.pushReplacementNamed(context, '/login');
+      // Token exists but no name — send to register to complete profile
+      Navigator.pushReplacementNamed(context, '/register');
     }
   }
 
   @override
   void dispose() {
     _waveController.dispose();
-    _logoController.dispose();
-    _shimmerController.dispose();
     super.dispose();
   }
 
@@ -82,87 +64,22 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: const Color(0xFF00BFFE),
       body: Stack(
         children: [
-          // Cyan background
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFF00BFFE), Color(0xFF00A8E8)],
+          // All 4 wave bands drawn in one full-screen painter
+          AnimatedBuilder(
+            animation: _waveController,
+            builder: (context, _) => Positioned.fill(
+              child: CustomPaint(
+                painter: _TopWavePainter(_waveController.value),
               ),
             ),
           ),
 
-          // Animated top waves (dark navy)
-          AnimatedBuilder(
-            animation: _waveSlide,
-            builder: (context, child) {
-              return Positioned(
-                top: -30,
-                left: -60,
-                right: -60,
-                child: CustomPaint(
-                  size: Size(size.width + 120, size.height * 0.38),
-                  painter: _AnimatedWavePainter(
-                    isTop: true,
-                    animValue: _waveSlide.value,
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // Animated bottom waves (dark navy)
-          AnimatedBuilder(
-            animation: _waveSlide,
-            builder: (context, child) {
-              return Positioned(
-                bottom: -30,
-                left: -60,
-                right: -60,
-                child: CustomPaint(
-                  size: Size(size.width + 120, size.height * 0.38),
-                  painter: _AnimatedWavePainter(
-                    isTop: false,
-                    animValue: _waveSlide.value,
-                  ),
-                ),
-              );
-            },
-          ),
-
-          // Logo centered — animated entrance
+          // Centered logo
           Center(
-            child: SlideTransition(
-              position: _logoSlide,
-              child: FadeTransition(
-                opacity: _logoFade,
-                child: ScaleTransition(
-                  scale: _logoScale,
-                  child: AnimatedBuilder(
-                    animation: _shimmerController,
-                    builder: (context, child) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.white.withOpacity(0.15 + 0.1 * _shimmerController.value),
-                              blurRadius: 30 + 15 * _shimmerController.value,
-                              spreadRadius: 5 + 5 * _shimmerController.value,
-                            ),
-                          ],
-                        ),
-                        child: child,
-                      );
-                    },
-                    child: Image.asset(
-                      'assets/images/Logo.png',
-                      width: 220,
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ),
+            child: Image.asset(
+              'assets/images/Logo.png',
+              width: size.width * 0.58,
+              fit: BoxFit.contain,
             ),
           ),
         ],
@@ -171,99 +88,161 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-class _AnimatedWavePainter extends CustomPainter {
-  final bool isTop;
-  final double animValue;
+// ─── Wave painter: pixel-perfect match to screenshot ─────────────────────────
+// 4 bands: 2 from top (scroll L→R), 2 from bottom (scroll R→L)
+// Each band is ~10% screen height thick, amplitude ~6% screen height
+class _TopWavePainter extends CustomPainter {
+  final double t;
+  _TopWavePainter(this.t);
 
-  _AnimatedWavePainter({required this.isTop, required this.animValue});
+  static const Color _navy = Color(0xFF0D1B2A);
 
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = const Color(0xFF0A0C13)
-      ..style = PaintingStyle.fill;
+  // Build a smooth wave path using cubic bezier curves (1 full sine cycle across width)
+  Path _wavePath(Size size, double centerY, double amp, double phase) {
+    final w = size.width;
+    final path = Path();
+    const segments = 2; // 2 full sine cycles across screen width
+    final segW = w / segments;
+
+    path.moveTo(0, centerY + amp * sin(2 * pi * phase));
+
+    for (int i = 0; i < segments; i++) {
+      final x0 = i * segW;
+      final x1 = (i + 0.5) * segW;
+      final x2 = (i + 1.0) * segW;
+      final y0 = centerY + amp * sin(2 * pi * (x0 / w + phase));
+      final y1 = centerY + amp * sin(2 * pi * (x1 / w + phase));
+      final y2 = centerY + amp * sin(2 * pi * (x2 / w + phase));
+      // Cubic bezier through midpoints
+      path.cubicTo(
+        x0 + segW * 0.25, y0,
+        x1 - segW * 0.25, y1,
+        x1, y1,
+      );
+      path.cubicTo(
+        x1 + segW * 0.25, y1,
+        x2 - segW * 0.25, y2,
+        x2, y2,
+      );
+    }
+    return path;
+  }
+
+  // Draw a band from screen top down to a wavy bottom edge
+  void _drawTopBand(Canvas canvas, Size size, Paint paint,
+      double bottomCenterY, double amp, double phase) {
+    final w = size.width;
+    final wavePath = _wavePath(size, bottomCenterY, amp, phase);
+    final path = Path()
+      ..moveTo(0, 0)
+      ..lineTo(w, 0)
+      ..lineTo(w, bottomCenterY + amp + 2)
+      ..addPath(wavePath, Offset.zero)
+      ..lineTo(0, bottomCenterY + amp + 2)
+      ..close();
+
+    // Simpler approach: fill from top to wave
+    final fillPath = Path();
+    fillPath.moveTo(0, 0);
+    fillPath.lineTo(w, 0);
+    // Draw wave right edge
+    fillPath.lineTo(w, bottomCenterY + amp * sin(2 * pi * (1.0 + phase)));
+    // Trace wave right→left
+    const steps = 120;
+    for (int i = steps; i >= 0; i--) {
+      final x = w * i / steps;
+      final y = bottomCenterY + amp * sin(2 * pi * (x / w + phase));
+      fillPath.lineTo(x, y);
+    }
+    fillPath.close();
+    canvas.drawPath(fillPath, paint);
+  }
+
+  // Draw a floating band between two wavy edges (same phase = same shape, offset by thickness)
+  void _drawFloatingBand(Canvas canvas, Size size, Paint paint,
+      double topCenterY, double thickness, double amp, double phase) {
+    final w = size.width;
+    const steps = 120;
+
+    final path = Path();
+    // Top wave edge left→right
+    for (int i = 0; i <= steps; i++) {
+      final x = w * i / steps;
+      final y = topCenterY + amp * sin(2 * pi * (x / w + phase));
+      if (i == 0) path.moveTo(x, y); else path.lineTo(x, y);
+    }
+    // Bottom wave edge right→left (shifted down by thickness)
+    for (int i = steps; i >= 0; i--) {
+      final x = w * i / steps;
+      final y = topCenterY + thickness + amp * sin(2 * pi * (x / w + phase));
+      path.lineTo(x, y);
+    }
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  // Draw a band from screen bottom up to a wavy top edge
+  void _drawBottomBand(Canvas canvas, Size size, Paint paint,
+      double topCenterY, double amp, double phase) {
     final w = size.width;
     final h = size.height;
+    const steps = 120;
 
-    // Gentle animated horizontal offset for smooth flowing wave
-    final shift = sin(animValue * 2 * pi) * w * 0.04;
-    final shift2 = sin((animValue + 0.35) * 2 * pi) * w * 0.035;
-
-    // Wave band thickness
-    final bandH = h * 0.20;
-
-    if (isTop) {
-      // Wave band 1 — top edge, thick S-curve
-      final p1 = Path();
-      p1.moveTo(-60, 0);
-      p1.lineTo(w + 60, 0);
-      // Bottom edge of band 1: wide S-curve
-      p1.lineTo(w + 60, h * 0.18 + shift);
-      p1.cubicTo(
-        w * 0.72 + shift, h * 0.02,
-        w * 0.28 + shift, h * 0.42,
-        -60, h * 0.12 + shift,
-      );
-      p1.close();
-      canvas.drawPath(p1, paint);
-
-      // Wave band 2 — below band 1 with gap, thick S-curve
-      final y2Top = h * 0.30;
-      final p2 = Path();
-      // Top edge of band 2
-      p2.moveTo(-60, y2Top + shift2);
-      p2.cubicTo(
-        w * 0.30 + shift2, y2Top + bandH * 1.6,
-        w * 0.70 + shift2, y2Top - bandH * 0.6,
-        w + 60, y2Top + bandH * 0.5 + shift2,
-      );
-      // Bottom edge of band 2
-      p2.lineTo(w + 60, y2Top + bandH + shift2);
-      p2.cubicTo(
-        w * 0.70 + shift2, y2Top + bandH - bandH * 0.6,
-        w * 0.30 + shift2, y2Top + bandH + bandH * 1.6,
-        -60, y2Top + bandH * 0.5 + shift2,
-      );
-      p2.close();
-      canvas.drawPath(p2, paint);
-    } else {
-      // Wave band 1 — upper band in bottom section
-      final y1Top = h * 0.30;
-      final p1 = Path();
-      // Top edge
-      p1.moveTo(-60, y1Top - shift);
-      p1.cubicTo(
-        w * 0.30 - shift, y1Top - bandH * 0.6,
-        w * 0.70 - shift, y1Top + bandH * 1.6,
-        w + 60, y1Top + bandH * 0.5 - shift,
-      );
-      // Bottom edge
-      p1.lineTo(w + 60, y1Top + bandH - shift);
-      p1.cubicTo(
-        w * 0.70 - shift, y1Top + bandH + bandH * 1.6,
-        w * 0.30 - shift, y1Top + bandH - bandH * 0.6,
-        -60, y1Top + bandH * 0.5 - shift,
-      );
-      p1.close();
-      canvas.drawPath(p1, paint);
-
-      // Wave band 2 — bottom edge, thick S-curve
-      final p2 = Path();
-      // Top edge of band 2: wide S-curve
-      p2.moveTo(-60, h * 0.72 - shift2);
-      p2.cubicTo(
-        w * 0.28 - shift2, h * 0.58,
-        w * 0.72 - shift2, h * 0.98,
-        w + 60, h * 0.82 - shift2,
-      );
-      // Fill to bottom
-      p2.lineTo(w + 60, h + 30);
-      p2.lineTo(-60, h + 30);
-      p2.close();
-      canvas.drawPath(p2, paint);
+    final path = Path();
+    // Start at top-left of wave
+    path.moveTo(0, topCenterY + amp * sin(2 * pi * phase));
+    // Trace wave left→right (same direction as _drawFloatingBand top edge)
+    for (int i = 1; i <= steps; i++) {
+      final x = w * i / steps;
+      final y = topCenterY + amp * sin(2 * pi * (x / w + phase));
+      path.lineTo(x, y);
     }
+    // Close down to bottom-right, across bottom, up to start
+    path.lineTo(w, h);
+    path.lineTo(0, h);
+    path.close();
+    canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(_AnimatedWavePainter oldDelegate) => oldDelegate.animValue != animValue;
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = _navy..style = PaintingStyle.fill;
+    final h = size.height;
+
+    // Amplitude: ~6% of screen height for big smooth S-curves
+    final amp = h * 0.06;
+    // Band thickness: ~9% of screen height
+    final thick = h * 0.09;
+
+    // Top group scrolls left→right
+    final phaseTop = t;
+    // Bottom group scrolls right→left (opposite direction = mirror effect)
+    final phaseBot = -t;
+
+    // ── TOP: BAND 1 solid from top, wavy bottom edge at ~18% ──
+    _drawTopBand(canvas, size, paint, h * 0.18, amp, phaseTop);
+
+    // ── TOP: BAND 2 floating, top edge at ~27%, thickness 9% ──
+    _drawFloatingBand(canvas, size, paint, h * 0.27, thick, amp, phaseTop);
+
+    // ── BOTTOM: BAND 3 floating, bottom edge at ~73% (= 1 - 0.27), thickness 9% ──
+    // top edge at 73%-9% = 64%
+    _drawFloatingBand(canvas, size, paint, h * 0.64, thick, amp, phaseBot);
+
+    // ── BOTTOM: BAND 4 solid from bottom, wavy top edge at ~82% (= 1 - 0.18) ──
+    _drawBottomBand(canvas, size, paint, h * 0.82, amp, phaseBot);
+  }
+
+  @override
+  bool shouldRepaint(_TopWavePainter old) => old.t != t;
+}
+
+// Unused — kept for compatibility
+class _BottomWavePainter extends CustomPainter {
+  final double t;
+  _BottomWavePainter(this.t);
+  @override
+  void paint(Canvas canvas, Size size) {}
+  @override
+  bool shouldRepaint(_BottomWavePainter old) => false;
 }

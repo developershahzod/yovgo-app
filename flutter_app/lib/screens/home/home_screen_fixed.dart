@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:geolocator/geolocator.dart';
@@ -7,6 +8,7 @@ import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
 import '../../widgets/ios_weather_icon.dart';
+import '../../widgets/permission_modal.dart';
 import '../main_navigation_fixed.dart';
 
 class HomeScreenFixed extends StatefulWidget {
@@ -20,7 +22,7 @@ class HomeScreenFixed extends StatefulWidget {
 
 class _HomeScreenFixedState extends State<HomeScreenFixed> {
   // Global shared location state — ask permission once across all screens
-  static bool _locationPermissionAsked = false;
+  bool _locationPermissionAsked = false;
   static bool _locationObtained = false;
   static double _cachedLat = 41.311;
   static double _cachedLng = 69.279;
@@ -44,6 +46,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
 
   // Weather
   Map<String, dynamic>? _weatherData;
+  bool _weatherLoading = true;
 
   // Promo plan for banner
   Map<String, dynamic>? _promoPlan;
@@ -58,11 +61,13 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
   @override
   void initState() {
     super.initState();
-    _loadHomeData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadHomeData();
+    });
   }
 
   void refreshData() {
-    _loadHomeData();
+    if (mounted) _loadHomeData();
   }
 
   /// Try to get user location in the background. Never blocks API loading.
@@ -78,10 +83,13 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
 
-      // Only request permission once per app session
+      // Show custom modal then trigger native — only once per session
       if (permission == LocationPermission.denied && !_locationPermissionAsked) {
         _locationPermissionAsked = true;
-        permission = await Geolocator.requestPermission();
+        if (!mounted) return;
+        final granted = await showLocationPermissionModal(context);
+        if (!granted) return;
+        permission = await Geolocator.checkPermission();
       }
 
       if (permission == LocationPermission.denied ||
@@ -166,7 +174,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
             _totalVisits = sub['total_visits'] ?? sub['visit_limit'] ?? 0;
             if (_totalVisits == 0) {
               final rem = sub['remaining_visits'] ?? sub['visits_remaining'] ?? 0;
-              _totalVisits = _usedVisits + (rem as int);
+              _totalVisits = _usedVisits + ((rem as num).toInt());
             }
           }
           _savedAmount = sub['saved_amount'] ?? (_usedVisits * 15000);
@@ -186,14 +194,17 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
 
     // Load weather with cached/default location
     try {
-      final lang = context.read<LanguageProvider>().languageCode;
+      String lang = 'uz';
+      try { lang = context.read<LanguageProvider>().languageCode; } catch (_) {}
       final weather = await FullApiService.getWeatherData(
-        latitude: _userLat,
-        longitude: _userLng,
+        latitude: _userLat != 0 ? _userLat : 41.311,
+        longitude: _userLng != 0 ? _userLng : 69.279,
         lang: lang,
-      );
-      if (mounted) setState(() => _weatherData = weather);
-    } catch (_) {}
+      ).timeout(const Duration(seconds: 10));
+      if (mounted) setState(() { _weatherData = weather; _weatherLoading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _weatherLoading = false);
+    }
 
     // Load promo plan
     try {
@@ -230,23 +241,21 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
   }
 
   String _getCarWashStatus(Map<String, dynamic> p) {
-    final apiStatus = p['status']?.toString() ?? '';
-    if (apiStatus.isNotEmpty) return apiStatus;
     final isOpen = p['is_open'] == true;
     final is24h = p['is_24_hours'] == true;
-    if (is24h) return '24/7 OCHIQ';
+    if (is24h) return context.tr('status_open_24h');
     final wh = p['working_hours'];
     final closeTime = (wh is Map ? wh['close'] : null)?.toString() ?? '';
     final openTime = (wh is Map ? wh['open'] : null)?.toString() ?? '';
     if (isOpen && closeTime.isNotEmpty) {
       final t = closeTime.length >= 5 ? closeTime.substring(0, 5) : closeTime;
-      return '$t GACHA OCHIQ';
+      return context.tr('status_open_until').replaceFirst('%s', t);
     }
     if (!isOpen && openTime.isNotEmpty) {
       final t = openTime.length >= 5 ? openTime.substring(0, 5) : openTime;
-      return 'YOPIQ $t GACHA';
+      return context.tr('status_closed_until').replaceFirst('%s', t);
     }
-    return isOpen ? 'OCHIQ' : 'YOPIQ';
+    return isOpen ? context.tr('status_open') : context.tr('status_closed');
   }
 
   String _formatNumber(int n) {
@@ -261,39 +270,62 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
     return buffer.toString().split('').reversed.join();
   }
 
+  Widget _safeWidget(Widget Function() builder, {String label = ''}) {
+    try {
+      return builder();
+    } catch (e) {
+      debugPrint('HomeScreen widget error [$label]: $e');
+      return const SizedBox.shrink();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: RefreshIndicator(
-          color: AppTheme.primaryCyan,
-          onRefresh: _loadHomeData,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildTopBar(),
-                const SizedBox(height: 16),
-                if (_hasSubscription) _buildPremiumCard(),
-                if (_hasSubscription) const SizedBox(height: 16),
-                _buildWeatherWidget(),
-                const SizedBox(height: 16),
-                if (!_hasSubscription) _buildSubscriptionBanner(),
-                if (!_hasSubscription) const SizedBox(height: 16),
-                _buildCategoriesSection(),
-                const SizedBox(height: 24),
-                _buildNearestCarWashesSection(),
-                if (_isLoggedIn) const SizedBox(height: 24),
-                if (_isLoggedIn) _buildRecentVisitsSection(),
-                const SizedBox(height: 120),
-              ],
+    try {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: RefreshIndicator(
+            color: AppTheme.primaryCyan,
+            onRefresh: _loadHomeData,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _safeWidget(_buildTopBar, label: 'topBar'),
+                  const SizedBox(height: 16),
+                  if (_hasSubscription) _safeWidget(_buildPremiumCard, label: 'premiumCard'),
+                  if (_hasSubscription) const SizedBox(height: 16),
+                  _safeWidget(_buildWeatherWidget, label: 'weather'),
+                  const SizedBox(height: 16),
+                  if (!_hasSubscription) _safeWidget(_buildSubscriptionBanner, label: 'subBanner'),
+                  if (!_hasSubscription) const SizedBox(height: 16),
+                  _safeWidget(_buildCategoriesSection, label: 'categories'),
+                  const SizedBox(height: 24),
+                  _safeWidget(_buildNearestCarWashesSection, label: 'nearbyWashes'),
+                  if (_isLoggedIn) const SizedBox(height: 24),
+                  if (_isLoggedIn) _safeWidget(_buildRecentVisitsSection, label: 'recentVisits'),
+                  const SizedBox(height: 120),
+                ],
+              ),
             ),
           ),
         ),
-      ),
-    );
+      );
+    } catch (e) {
+      debugPrint('HomeScreen build error: $e');
+      // Trigger reload on next frame
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) setState(() {});
+      });
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: CircularProgressIndicator(color: AppTheme.primaryCyan),
+        ),
+      );
+    }
   }
 
   Widget _buildTopBar() {
@@ -469,7 +501,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                             const SizedBox(height: 8),
                             // 90 kunlik
                             Text(
-                              _planName.isNotEmpty ? _planName : '90 kunlik',
+                              _planName.isNotEmpty ? _planName : context.tr('days_short'),
                               style: TextStyle(
                                 color: const Color(0xFFFFEEEA),
                                 fontSize: 20,
@@ -653,8 +685,52 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
   }
 
   Widget _buildWeatherWidget() {
-    final washRating = _weatherData?['wash_rating'] ?? 0;
-    final recommendation = _weatherData?['recommendation'] ?? context.tr('home_weather_good');
+    // Show loading shimmer while weather is being fetched
+    if (_weatherLoading) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: const Color.fromRGBO(0, 0, 0, 0.08),
+                blurRadius: 20,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 60, height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0F0F0),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(width: 80, height: 14, decoration: BoxDecoration(color: const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(4))),
+                    const SizedBox(height: 6),
+                    Container(width: 140, height: 11, decoration: BoxDecoration(color: const Color(0xFFF0F0F0), borderRadius: BorderRadius.circular(4))),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final washRating = (_weatherData?['wash_rating'] ?? 0) is num ? (_weatherData!['wash_rating'] as num).toInt() : 0;
+    final recommendation = _weatherData?['recommendation']?.toString() ?? context.tr('home_weather_good');
     final forecast = (_weatherData?['forecast'] as List?) ?? [];
 
     return GestureDetector(
@@ -687,7 +763,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                     width: 60,
                     height: 38,
                     child: CustomPaint(
-                      painter: GaugePainter(washRating is int ? washRating : (washRating as num).toInt()),
+                      painter: GaugePainter(washRating.clamp(0, 100)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -958,7 +1034,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                     padding: const EdgeInsets.all(24),
                     child: Center(
                       child: Text(
-                        'Yaqin atrofda avtomoyqalar topilmadi',
+                        context.tr('home_no_nearby'),
                         style: TextStyle(color: AppTheme.textSecondary, fontSize: 14, fontFamily: 'Mulish'),
                       ),
                     ),
@@ -1575,9 +1651,19 @@ extension HomeScreenMethods on _HomeScreenFixedState {
     }
 
     final plan = _promoPlan!;
-    final price = (plan['price'] ?? 0) as num;
+    final price = num.tryParse(plan['price']?.toString() ?? '0') ?? 0;
     final days = plan['duration_days'] ?? 90;
-    final name = plan['name'] ?? '';
+    String lang = 'uz';
+    try { lang = context.read<LanguageProvider>().languageCode; } catch (_) {}
+    // Localized plan name
+    String name;
+    if (lang == 'ru' && (plan['name_ru'] ?? '').toString().isNotEmpty) {
+      name = plan['name_ru'];
+    } else if (lang == 'en' && (plan['name_en'] ?? '').toString().isNotEmpty) {
+      name = plan['name_en'];
+    } else {
+      name = plan['name'] ?? '';
+    }
 
     return GestureDetector(
       onTap: () {
@@ -1606,7 +1692,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$days kunlik obuna uchun\nmaxsus chegirma',
+                      context.tr('home_subscribe_title'),
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -1617,7 +1703,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${_formatPrice(price)} so\'m',
+                      '${_formatPrice(price)} ${lang == 'ru' ? 'сум' : lang == 'en' ? 'UZS' : 'so\'m'}',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 18,
@@ -1983,6 +2069,6 @@ class SharedLocationState {
   static double get cachedLat => _HomeScreenFixedState._cachedLat;
   static double get cachedLng => _HomeScreenFixedState._cachedLng;
   static bool get locationObtained => _HomeScreenFixedState._locationObtained;
-  static bool get permissionAsked => _HomeScreenFixedState._locationPermissionAsked;
+  static bool get permissionAsked => false;
 }
 

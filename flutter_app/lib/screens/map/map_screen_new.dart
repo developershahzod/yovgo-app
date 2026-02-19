@@ -11,6 +11,7 @@ import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
 import '../home/home_screen_fixed.dart';
+import '../../widgets/permission_modal.dart';
 
 class MapScreenNew extends StatefulWidget {
   const MapScreenNew({Key? key}) : super(key: key);
@@ -42,9 +43,13 @@ class _MapScreenNewState extends State<MapScreenNew> {
   @override
   void initState() {
     super.initState();
-    _getCurrentLocation();
-    _loadCarWashes();
-    _loadSearchHistory();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _getCurrentLocation();
+        _loadCarWashes();
+        _loadSearchHistory();
+      }
+    });
     _searchFocusNode.addListener(() {
       if (_searchFocusNode.hasFocus) {
         setState(() => _isSearchActive = true);
@@ -124,11 +129,13 @@ class _MapScreenNewState extends State<MapScreenNew> {
       final resp = await FullApiService.get('/api/mobile/car-washes/nearby', queryParameters: {
         'latitude': _currentPosition.latitude,
         'longitude': _currentPosition.longitude,
-        'radius_km': 50,
+        'radius': 50,
         'limit': 50,
       });
       if (mounted && resp.statusCode == 200) {
-        final partners = (resp.data['partners'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+        final data = resp.data;
+        final List raw = (data is Map ? (data['partners'] ?? data['car_washes'] ?? []) : data) as List? ?? [];
+        final partners = raw.cast<Map<String, dynamic>>();
         setState(() {
           _carWashes = partners;
           _filteredCarWashes = partners;
@@ -136,7 +143,9 @@ class _MapScreenNewState extends State<MapScreenNew> {
         });
         _buildMarkers();
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('loadCarWashes error: $e');
+    }
     if (mounted && _isLoading) setState(() => _isLoading = false);
   }
 
@@ -378,7 +387,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
                   const SizedBox(width: 8),
                   _buildFilterChip('nearest', context.tr('map_nearby'), Icons.near_me, AppTheme.primaryCyan),
                   const SizedBox(width: 8),
-                  _buildFilterChip('rating', context.tr('detail_rating'), Icons.star, AppTheme.yellow),
+                  _buildFilterChip('rating', context.tr('map_rating'), Icons.star, AppTheme.yellow),
                 ],
               ),
             ),
@@ -393,7 +402,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
             else if (_filteredCarWashes.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(40),
-                child: Center(child: Text(context.tr('saved_empty'), style: TextStyle(color: AppTheme.textSecondary, fontSize: 15))),
+                child: Center(child: Text(context.tr('home_no_nearby'), style: TextStyle(color: AppTheme.textSecondary, fontSize: 15))),
               )
             else
               ..._filteredCarWashes.map((p) => Padding(
@@ -766,11 +775,11 @@ class _MapScreenNewState extends State<MapScreenNew> {
     final openTime = (wh is Map ? wh['open'] : null)?.toString() ?? p['opening_time']?.toString() ?? p['open_time']?.toString() ?? '';
     if (isOpen && closeTime.isNotEmpty) {
       final t = closeTime.length >= 5 ? closeTime.substring(0, 5) : closeTime;
-      return '${context.tr('open_until')} $t';
+      return context.tr('status_open_until').replaceFirst('%s', t);
     }
     if (!isOpen && openTime.isNotEmpty) {
       final t = openTime.length >= 5 ? openTime.substring(0, 5) : openTime;
-      return '${context.tr('closed_until')} $t';
+      return context.tr('status_closed_until').replaceFirst('%s', t);
     }
     return isOpen ? context.tr('status_open') : context.tr('status_closed');
   }
@@ -1131,9 +1140,15 @@ class _MapScreenNewState extends State<MapScreenNew> {
               SizedBox(
                 width: double.infinity, height: 52,
                 child: ElevatedButton(
-                  onPressed: () => setState(() => _showLocationDialog = false),
+                  onPressed: () async {
+                    setState(() => _showLocationDialog = false);
+                    await Future.delayed(const Duration(milliseconds: 300));
+                    if (!mounted) return;
+                    final granted = await showLocationPermissionModal(context);
+                    if (granted && mounted) _getCurrentLocation();
+                  },
                   style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryCyan, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
-                  child: Text(context.tr('open_settings'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white, fontFamily: 'Mulish')),
+                  child: Text(context.tr('location_permission_allow'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white, fontFamily: 'Mulish')),
                 ),
               ),
             ],
