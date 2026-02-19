@@ -1,26 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../l10n/language_provider.dart';
 import '../config/app_theme.dart';
 
-/// LOCATION PERMISSION FLOW:
-/// 1. Already granted → return true immediately
-/// 2. Permanently denied → show Settings modal (no UI modal)
-/// 3. notDetermined (first time ever) → show UI modal → user taps Allow → native iOS dialog
-/// 4. denied (asked before, iOS won't show dialog again) → show UI modal → user taps Allow → Settings
+/// LOCATION PERMISSION FLOW (uses Geolocator — correctly maps iOS states):
+///
+/// iOS states via Geolocator:
+///   whileInUse / always  → already granted
+///   deniedForever        → permanently denied (must go to Settings)
+///   denied               → notDetermined on iOS (first time) OR user denied once
+///                          Calling requestPermission() on notDetermined → shows native dialog
+///                          Calling requestPermission() on denied → silently returns denied
+///
+/// Flow:
+///   1. granted           → return true (skip everything)
+///   2. deniedForever     → Settings modal (no UI modal)
+///   3. denied            → show UI modal → user taps Allow → call requestPermission()
+///                          → if native dialog appears and user allows: granted ✓
+///                          → if user already denied before (no dialog): show Settings modal
 Future<bool> showLocationPermissionModal(BuildContext context) async {
-  final current = await Permission.locationWhenInUse.status;
+  final current = await Geolocator.checkPermission();
 
   // Already granted
-  if (current.isGranted) return true;
+  if (current == LocationPermission.whileInUse ||
+      current == LocationPermission.always) {
+    return true;
+  }
 
-  // Permanently denied — go straight to Settings (no UI modal needed)
-  if (current.isPermanentlyDenied) {
+  // Permanently denied — must go to Settings
+  if (current == LocationPermission.deniedForever) {
     if (context.mounted) await _showSettingsModal(context, isCamera: false);
     return false;
   }
 
-  // Show our custom UI modal first
+  // Show our custom UI modal first (covers both notDetermined and denied states)
   if (!context.mounted) return false;
   final agreed = await showDialog<bool>(
     context: context,
@@ -31,18 +45,20 @@ Future<bool> showLocationPermissionModal(BuildContext context) async {
 
   if (agreed != true) return false;
 
-  // Wait for Flutter dialog animation to fully close before native dialog
-  await Future.delayed(const Duration(milliseconds: 700));
+  // Wait for Flutter dialog dismiss animation to fully complete
+  // so the native iOS dialog appears cleanly on top
+  await Future.delayed(const Duration(milliseconds: 800));
   if (!context.mounted) return false;
 
-  // Request native permission:
-  // - If notDetermined (first time): iOS shows native dialog
-  // - If denied (already asked): iOS silently returns denied → show Settings
-  final result = await Permission.locationWhenInUse.request();
+  // Request native permission — on first launch iOS shows the native dialog
+  final result = await Geolocator.requestPermission();
 
-  if (result.isGranted) return true;
+  if (result == LocationPermission.whileInUse ||
+      result == LocationPermission.always) {
+    return true;
+  }
 
-  // Denied or permanently denied — show Settings modal
+  // User denied or already denied before (no native dialog shown) → Settings
   if (context.mounted) await _showSettingsModal(context, isCamera: false);
   return false;
 }
