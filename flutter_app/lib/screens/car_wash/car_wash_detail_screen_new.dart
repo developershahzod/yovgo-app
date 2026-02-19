@@ -69,7 +69,11 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
         try {
           String lang = 'uz';
           try { lang = context.read<LanguageProvider>().languageCode; } catch (_) {}
-          final data = await FullApiService.get('/api/mobile/car-washes/$partnerId', queryParameters: {'lang': lang});
+          final args2 = ModalRoute.of(context)?.settings.arguments;
+          final locationId = (args2 is Map) ? args2['location_id']?.toString() : null;
+          final qp = <String, String>{'lang': lang};
+          if (locationId != null && locationId.isNotEmpty) qp['location_id'] = locationId;
+          final data = await FullApiService.get('/api/mobile/car-washes/$partnerId', queryParameters: qp);
           if (mounted && data.statusCode == 200) {
             final pd = data.data is Map ? data.data['partner'] ?? data.data : null;
             if (pd != null) {

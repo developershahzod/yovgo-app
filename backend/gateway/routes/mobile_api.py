@@ -355,6 +355,7 @@ def _localize_description_full(partner, lang: str) -> str:
 async def get_car_wash_detail(
     partner_id: str,
     lang: str = Query("uz", description="Language: uz, ru, en"),
+    location_id: Optional[str] = Query(None, description="Branch/location ID for branch-specific data"),
     db: Session = Depends(get_db),
 ):
     """Get detailed information about a car wash"""
@@ -362,16 +363,55 @@ async def get_car_wash_detail(
     partner = db.query(Partner).filter(Partner.id == partner_id).first()
     if not partner:
         raise HTTPException(status_code=404, detail="Car wash not found")
-    
+
+    # Load branch-specific data if location_id provided
+    branch: Optional[PartnerLocation] = None
+    if location_id:
+        branch = db.query(PartnerLocation).filter(
+            PartnerLocation.id == location_id,
+            PartnerLocation.partner_id == partner.id,
+        ).first()
+
+    # Gallery: prefer branch, fall back to partner
     gallery = []
     try:
-        if partner.gallery_urls:
+        if branch and branch.gallery_urls:
+            gallery = list(branch.gallery_urls)
+        elif partner.gallery_urls:
             gallery = list(partner.gallery_urls)
     except Exception:
         pass
-    rv = _get_partner_rating(db, partner.id)
-    
-    # Get branches/locations for this partner
+
+    # Banner/logo
+    banner = ''
+    try:
+        banner = (branch.banner_url if branch else None) or getattr(partner, 'logo_url', '') or ''
+    except Exception:
+        pass
+
+    # Working hours: prefer branch
+    wh = (branch.working_hours if branch else None) or partner.working_hours
+
+    # Phone: prefer branch
+    phone = (branch.phone_number if branch else None) or partner.phone or partner.phone_number or ""
+
+    # Name/address: prefer branch
+    display_name = (branch.name if branch else None) or partner.name
+    display_address = (branch.address if branch else None) or partner.address or ""
+    display_lat = float(branch.latitude) if (branch and branch.latitude) else (float(partner.latitude) if partner.latitude else None)
+    display_lng = float(branch.longitude) if (branch and branch.longitude) else (float(partner.longitude) if partner.longitude else None)
+
+    rv = _get_partner_rating(db, partner.id, location_id=location_id)
+
+    # Service prices from branch
+    svc_prices = []
+    try:
+        if branch and branch.service_prices:
+            svc_prices = list(branch.service_prices)
+    except Exception:
+        pass
+
+    # Get all branches/locations for this partner
     locations = db.query(PartnerLocation).filter(
         PartnerLocation.partner_id == partner.id,
         PartnerLocation.is_active == True
@@ -421,34 +461,45 @@ async def get_car_wash_detail(
             "user_name": (user.full_name if user else None) or "Foydalanuvchi",
             "created_at": review.created_at.isoformat() if review.created_at else "",
         })
-    
+
+    # Localized name
+    if lang != 'uz':
+        localized_name = getattr(partner, f'name_{lang}', None) or display_name
+    else:
+        localized_name = display_name
+    # If branch has its own name, use it directly (branch names are not translated separately)
+    if branch and branch.name:
+        localized_name = branch.name
+
     return {
         "success": True,
         "partner": {
             "id": str(partner.id),
-            "name": (getattr(partner, f'name_{lang}', None) or partner.name) if lang != 'uz' else partner.name,
-            "address": partner.address or "",
-            "latitude": float(partner.latitude) if partner.latitude else None,
-            "longitude": float(partner.longitude) if partner.longitude else None,
+            "location_id": str(branch.id) if branch else None,
+            "name": localized_name,
+            "address": display_address,
+            "latitude": display_lat,
+            "longitude": display_lng,
             "rating": rv["rating"] if rv["review_count"] > 0 else (float(partner.rating) if partner.rating else 0),
             "review_count": rv["review_count"],
-            "is_open": is_currently_open(partner),
+            "is_open": _is_location_open(wh) if branch else is_currently_open(partner),
             "images": gallery,
-            "image_url": getattr(partner, 'logo_url', None) or '',
-            "logo_url": getattr(partner, 'logo_url', None) or '',
+            "image_url": banner,
+            "logo_url": banner,
             "gallery_urls": gallery,
             "amenities": partner.amenities if partner.amenities else [],
             "additional_services": partner.additional_services if partner.additional_services else [],
-            "phone_number": partner.phone or partner.phone_number or "",
-            "phone": partner.phone or partner.phone_number or "",
-            "opening_hours": get_working_hours_str(partner),
-            "working_hours": partner.working_hours,
+            "phone_number": phone,
+            "phone": phone,
+            "opening_hours": _format_hours(wh) if wh else get_working_hours_str(partner),
+            "working_hours": wh,
             "is_premium": partner.is_premium or False,
             "is_24_hours": getattr(partner, 'is_24_hours', False) or False,
             "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
             "description": _localize_description_full(partner, lang),
             "wash_time": getattr(partner, 'wash_time', 60) or 60,
             "services": partner.additional_services if partner.additional_services else [],
+            "service_prices": svc_prices,
             "locations": locations_data,
             "reviews": reviews_data,
         }
