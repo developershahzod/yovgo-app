@@ -22,6 +22,7 @@ class MapScreenNew extends StatefulWidget {
 
 class _MapScreenNewState extends State<MapScreenNew> {
   bool _showLocationDialog = false;
+  bool _locationPermissionGranted = false;
   String _selectedFilter = '';
   List<Map<String, dynamic>> _carWashes = [];
   List<Map<String, dynamic>> _filteredCarWashes = [];
@@ -45,6 +46,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
+        _checkLocationPermission();
         _getCurrentLocation();
         _loadCarWashes();
         _loadSearchHistory();
@@ -89,6 +91,16 @@ class _MapScreenNewState extends State<MapScreenNew> {
     _saveSearchHistory();
   }
 
+  /// Check permission status only — NEVER request it here.
+  /// Permission is requested exclusively through showLocationPermissionModal.
+  Future<void> _checkLocationPermission() async {
+    final perm = await Geolocator.checkPermission();
+    final granted = perm == LocationPermission.whileInUse || perm == LocationPermission.always;
+    if (mounted && granted != _locationPermissionGranted) {
+      setState(() => _locationPermissionGranted = granted);
+    }
+  }
+
   Future<void> _getCurrentLocation() async {
     // Use shared location from HomeScreenFixed if already obtained
     final cachedLat = SharedLocationState.cachedLat;
@@ -99,6 +111,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
       if (mounted) {
         setState(() {
           _currentPosition = LatLng(cachedLat, cachedLng);
+          _locationPermissionGranted = true;
         });
         _mapController?.animateCamera(CameraUpdate.newLatLng(_currentPosition));
         _loadCarWashes();
@@ -108,8 +121,9 @@ class _MapScreenNewState extends State<MapScreenNew> {
 
     try {
       LocationPermission permission = await Geolocator.checkPermission();
-      // Never request permission from map — home screen handles that
+      // NEVER call requestPermission here — only check. Home screen handles requesting.
       if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+        if (mounted) setState(() => _locationPermissionGranted = true);
         final position = await Geolocator.getCurrentPosition(
           desiredAccuracy: LocationAccuracy.medium,
         ).timeout(const Duration(seconds: 8));
@@ -690,7 +704,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
       },
       onCameraIdle: _onCameraIdle,
       markers: _markers,
-      myLocationEnabled: true,
+      myLocationEnabled: _locationPermissionGranted,
       myLocationButtonEnabled: false,
       zoomControlsEnabled: false,
       mapToolbarEnabled: false,
@@ -1142,7 +1156,10 @@ class _MapScreenNewState extends State<MapScreenNew> {
                     await Future.delayed(const Duration(milliseconds: 300));
                     if (!mounted) return;
                     final granted = await showLocationPermissionModal(context);
-                    if (granted && mounted) _getCurrentLocation();
+                    if (granted && mounted) {
+                      setState(() => _locationPermissionGranted = true);
+                      _getCurrentLocation();
+                    }
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: AppTheme.primaryCyan, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)), elevation: 0),
                   child: Text(context.tr('location_permission_allow'), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white, fontFamily: 'Mulish')),
