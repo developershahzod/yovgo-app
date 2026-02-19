@@ -38,26 +38,30 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   }
 
   Future<void> _loadPartnerData() async {
+    _localizedFetched = true;
     try {
       final args = ModalRoute.of(context)?.settings.arguments;
-      String? partnerId;
+
+      // If full partner data passed as Map — use it directly, no re-fetch needed
       if (args is Map<String, dynamic>) {
-        // Show cached data immediately, then re-fetch with lang for localized description
-        setState(() { _partner = args; _isLoading = false; });
-        _checkFavorite(args);
-        _fetchReviews(args['id']?.toString());
+        setState(() { _partner = Map<String, dynamic>.from(args); _isLoading = false; });
+        _checkFavorite(_partner!);
+        _fetchReviews(_partner!['id']?.toString());
         _checkSubscription();
-        partnerId = args['id']?.toString();
-      } else if (args is String) {
+        return;
+      }
+
+      // If only an ID string passed — fetch from API
+      String? partnerId;
+      if (args is String) {
         partnerId = args;
       }
 
-      // Try to get partner ID from URL query/fragment parameter
+      // Try URL params as last resort
       if (partnerId == null) {
         try {
           final uri = Uri.base;
           partnerId = uri.queryParameters['id'];
-          // Also check fragment for hash routing
           if (partnerId == null && uri.fragment.contains('id=')) {
             final fragUri = Uri.tryParse('/?${uri.fragment.split('?').last}');
             partnerId = fragUri?.queryParameters['id'];
@@ -66,28 +70,20 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
       }
 
       if (partnerId != null && partnerId.isNotEmpty) {
-        try {
-          String lang = 'uz';
-          try { lang = context.read<LanguageProvider>().languageCode; } catch (_) {}
-          final args2 = ModalRoute.of(context)?.settings.arguments;
-          final locationId = (args2 is Map) ? args2['location_id']?.toString() : null;
-          final qp = <String, String>{'lang': lang};
-          if (locationId != null && locationId.isNotEmpty) qp['location_id'] = locationId;
-          final data = await FullApiService.get('/api/mobile/car-washes/$partnerId', queryParameters: qp);
-          if (mounted && data.statusCode == 200) {
-            final pd = data.data is Map ? data.data['partner'] ?? data.data : null;
-            if (pd != null) {
-              _localizedFetched = true;
-              setState(() { _partner = pd; _isLoading = false; });
-              _checkFavorite(pd);
-              _fetchReviews(pd['id']?.toString());
-              _checkSubscription();
-              return;
-            }
+        String lang = 'uz';
+        try { lang = context.read<LanguageProvider>().languageCode; } catch (_) {}
+        final data = await FullApiService.get('/api/mobile/car-washes/$partnerId', queryParameters: {'lang': lang});
+        if (mounted && data.statusCode == 200) {
+          final pd = data.data is Map ? data.data['partner'] ?? data.data : null;
+          if (pd != null) {
+            setState(() { _partner = pd; _isLoading = false; });
+            _checkFavorite(pd);
+            _fetchReviews(pd['id']?.toString());
+            _checkSubscription();
+            return;
           }
-        } catch (_) {}
+        }
       }
-      _localizedFetched = true;
     } catch (e) {
       debugPrint('Car wash detail load error: $e');
     }
