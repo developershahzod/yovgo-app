@@ -22,6 +22,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   bool _isFavorite = false;
   bool _hasSubscription = false;
   Map<String, dynamic>? _partner;
+  bool _localizedFetched = false;
 
   // Reviews
   List<Map<String, dynamic>> _reviews = [];
@@ -33,21 +34,23 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_partner == null) _loadPartnerData();
+    if (!_localizedFetched) _loadPartnerData();
   }
 
   Future<void> _loadPartnerData() async {
     try {
       final args = ModalRoute.of(context)?.settings.arguments;
+      String? partnerId;
       if (args is Map<String, dynamic>) {
+        // Show cached data immediately, then re-fetch with lang for localized description
         setState(() { _partner = args; _isLoading = false; });
         _checkFavorite(args);
         _fetchReviews(args['id']?.toString());
         _checkSubscription();
-        return;
+        partnerId = args['id']?.toString();
+      } else if (args is String) {
+        partnerId = args;
       }
-      String? partnerId;
-      if (args is String) partnerId = args;
 
       // Try to get partner ID from URL query/fragment parameter
       if (partnerId == null) {
@@ -70,6 +73,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
           if (mounted && data.statusCode == 200) {
             final pd = data.data is Map ? data.data['partner'] ?? data.data : null;
             if (pd != null) {
+              _localizedFetched = true;
               setState(() { _partner = pd; _isLoading = false; });
               _checkFavorite(pd);
               _fetchReviews(pd['id']?.toString());
@@ -79,6 +83,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
           }
         } catch (_) {}
       }
+      _localizedFetched = true;
       // Fallback: load first nearby partner
       final data = await FullApiService.get('/api/mobile/car-washes/nearby', queryParameters: {'latitude': 41.311, 'longitude': 69.279});
       if (mounted && data.statusCode == 200) {
