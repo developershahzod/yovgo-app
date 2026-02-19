@@ -84,19 +84,6 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
         } catch (_) {}
       }
       _localizedFetched = true;
-      // Fallback: load first nearby partner
-      final data = await FullApiService.get('/api/mobile/car-washes/nearby', queryParameters: {'latitude': 41.311, 'longitude': 69.279});
-      if (mounted && data.statusCode == 200) {
-        final partners = (data.data['partners'] as List?) ?? [];
-        if (partners.isNotEmpty) {
-          final first = Map<String, dynamic>.from(partners.first);
-          setState(() { _partner = first; _isLoading = false; });
-          _checkFavorite(first);
-          _fetchReviews(first['id']?.toString());
-          _checkSubscription();
-          return;
-        }
-      }
     } catch (e) {
       debugPrint('Car wash detail load error: $e');
     }
