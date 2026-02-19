@@ -3,6 +3,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'dart:ui';
 import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
@@ -81,22 +82,19 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
     if (_locationObtained) return;
 
     try {
-      LocationPermission permission = await Geolocator.checkPermission();
+      final status = await Permission.locationWhenInUse.status;
 
-      if (permission == LocationPermission.whileInUse ||
-          permission == LocationPermission.always) {
+      if (status.isGranted) {
         // Already granted — proceed to get position
       } else if (!_locationPermissionAsked) {
-        // First time this screen instance runs — show UI modal → native dialog
+        // First time this screen instance — show UI modal → native iOS dialog
         _locationPermissionAsked = true;
         if (!mounted) return;
         final granted = await showLocationPermissionModal(context);
-        if (!granted) return; // User denied or went to Settings
-        permission = await Geolocator.checkPermission();
-        if (permission != LocationPermission.whileInUse &&
-            permission != LocationPermission.always) {
-          return;
-        }
+        if (!granted) return;
+        // Re-check after modal flow
+        final newStatus = await Permission.locationWhenInUse.status;
+        if (!newStatus.isGranted) return;
       } else {
         return; // Already asked this session, don't ask again
       }
