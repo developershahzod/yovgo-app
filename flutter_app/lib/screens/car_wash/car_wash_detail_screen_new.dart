@@ -40,7 +40,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
       final args = ModalRoute.of(context)?.settings.arguments;
       if (args is Map<String, dynamic>) {
         setState(() { _partner = args; _isLoading = false; });
-        _checkFavorite(args['id']?.toString());
+        _checkFavorite(args);
         _fetchReviews(args['id']?.toString());
         _checkSubscription();
         return;
@@ -68,7 +68,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
             final pd = data.data is Map ? data.data['partner'] ?? data.data : null;
             if (pd != null) {
               setState(() { _partner = pd; _isLoading = false; });
-              _checkFavorite(pd['id']?.toString());
+              _checkFavorite(pd);
               _fetchReviews(pd['id']?.toString());
               _checkSubscription();
               return;
@@ -81,9 +81,10 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
       if (mounted && data.statusCode == 200) {
         final partners = (data.data['partners'] as List?) ?? [];
         if (partners.isNotEmpty) {
-          setState(() { _partner = Map<String, dynamic>.from(partners.first); _isLoading = false; });
-          _checkFavorite(partners.first['id']?.toString());
-          _fetchReviews(partners.first['id']?.toString());
+          final first = Map<String, dynamic>.from(partners.first);
+          setState(() { _partner = first; _isLoading = false; });
+          _checkFavorite(first);
+          _fetchReviews(first['id']?.toString());
           _checkSubscription();
           return;
         }
@@ -107,9 +108,9 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     } catch (_) {}
   }
 
-  Future<void> _checkFavorite(String? partnerId) async {
-    if (partnerId == null) return;
-    final fav = await FavoritesService.isFavorite(partnerId);
+  Future<void> _checkFavorite(Map<String, dynamic>? partner) async {
+    if (partner == null) return;
+    final fav = await FavoritesService.isFavorite(FavoritesService.getKey(partner));
     if (mounted) setState(() => _isFavorite = fav);
   }
 
@@ -475,7 +476,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                         _buildCircleBtn(_isFavorite ? Icons.bookmark : Icons.bookmark_border, () async {
                           if (_partner == null) return;
                           await FavoritesService.toggleFavorite(_partner!);
-                          final fav = await FavoritesService.isFavorite(_partner!['id']?.toString() ?? '');
+                          final fav = await FavoritesService.isFavorite(FavoritesService.getKey(_partner!));
                           if (mounted) {
                             setState(() => _isFavorite = fav);
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -852,17 +853,15 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   }
 
   String _getStatusText(Map<String, dynamic> p) {
-    final status = p['status'] ?? '';
-    if (status.isNotEmpty) return status;
     final isOpen = p['is_open'] != false;
     if (isOpen) {
       final wh = p['working_hours'];
       final close = (wh is Map) ? (wh['close'] ?? '22:00') : '22:00';
-      return '$close GACHA OCHIQ';
+      return context.tr('status_open_until').replaceFirst('%s', close);
     } else {
       final wh = p['working_hours'];
       final open = (wh is Map) ? (wh['open'] ?? '08:00') : '08:00';
-      return 'YOPIQ $open GACHA';
+      return context.tr('status_closed_until').replaceFirst('%s', open);
     }
   }
 

@@ -764,9 +764,6 @@ class _MapScreenNewState extends State<MapScreenNew> {
   }
 
   String _getStatusText(Map<String, dynamic> p) {
-    // Use pre-computed status from API if available
-    final apiStatus = p['status']?.toString() ?? '';
-    if (apiStatus.isNotEmpty) return apiStatus;
     final isOpen = p['is_open'] == true;
     final is24h = p['is_24_hours'] == true;
     if (is24h) return context.tr('open_24_7');
