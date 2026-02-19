@@ -157,6 +157,7 @@ const Map<String, String> _enTranslations = {
   'profile_about': 'About',
   'profile_logout': 'Logout',
   'profile_login': 'Login',
+  'profile_guest': 'User',
 
   // Subscription
   'sub_title': 'Subscription',
@@ -693,6 +694,7 @@ const Map<String, String> _ruTranslations = {
   'profile_about': 'О приложении',
   'profile_logout': 'Выход',
   'profile_login': 'Войти',
+  'profile_guest': 'Пользователь',
 
   // Subscription
   'sub_title': 'Подписка',
@@ -1229,6 +1231,7 @@ const Map<String, String> _uzTranslations = {
   'profile_about': 'Ilova haqida',
   'profile_logout': 'Chiqish',
   'profile_login': 'Kirish',
+  'profile_guest': 'Foydalanuvchi',
 
   // Subscription
   'sub_title': 'Obuna',

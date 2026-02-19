@@ -36,17 +36,10 @@ class _SplashScreenState extends State<SplashScreen>
       return;
     }
     final isLoggedIn = await FullApiService.isLoggedIn();
-    if (!isLoggedIn) {
-      Navigator.pushReplacementNamed(context, '/login');
-      return;
-    }
-    // User has token — check if profile is complete (has full_name)
-    final profileComplete = await FullApiService.isProfileComplete();
     if (!mounted) return;
-    if (profileComplete) {
+    if (isLoggedIn) {
       Navigator.pushReplacementNamed(context, '/main');
     } else {
-      // Token exists but no name — send to login which handles name collection
       Navigator.pushReplacementNamed(context, '/login');
     }
   }

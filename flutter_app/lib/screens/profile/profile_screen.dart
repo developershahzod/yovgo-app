@@ -25,7 +25,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _loadProfile();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadProfile();
+    });
   }
 
   Future<void> _loadProfile() async {
@@ -71,7 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _totalVisits = sub['total_visits'] ?? sub['visit_limit'] ?? 0;
               if (_totalVisits == 0) {
                 final rem = sub['remaining_visits'] ?? sub['visits_remaining'] ?? 0;
-                _totalVisits = _usedVisits + (rem as int);
+                _totalVisits = _usedVisits + (rem as num).toInt();
               }
             }
             _savedAmount = sub['saved_amount'] ?? (_usedVisits * 15000);
@@ -160,6 +162,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 Container(height: 8, color: const Color(0xFFF5F5F5)),
                 const SizedBox(height: 8),
                 _buildMenuRow(Icons.logout, context.tr('profile_logout'), onTap: () => _handleLogout()),
+                _buildDivider(),
+                _buildMenuRow(Icons.delete_forever_outlined, context.tr('profile_delete_account'),
+                    textColor: Colors.red,
+                    onTap: () => _handleDeleteAccount()),
               ],
             ],
           ),
@@ -242,7 +248,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    final name = _fullName.isNotEmpty ? _fullName : 'Foydalanuvchi';
+    final name = _fullName.isNotEmpty ? _fullName : context.tr('profile_guest');
     final phone = _phone.isNotEmpty ? _phone : '';
 
     return Row(
@@ -362,7 +368,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildMenuRow(IconData icon, String label, {String? trailing, VoidCallback? onTap}) {
+  Widget _buildMenuRow(IconData icon, String label, {String? trailing, VoidCallback? onTap, Color? textColor}) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -370,16 +376,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
         child: Row(
           children: [
-            Icon(icon, size: 24, color: AppTheme.textPrimary),
+            Icon(icon, size: 24, color: textColor ?? AppTheme.textPrimary),
             const SizedBox(width: 16),
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   fontFamily: 'Mulish',
-                  color: AppTheme.textPrimary,
+                  color: textColor ?? AppTheme.textPrimary,
                 ),
               ),
             ),
@@ -458,6 +464,84 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+  }
+
+  void _handleDeleteAccount() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 72, height: 72,
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.delete_forever, size: 36, color: Colors.red),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                context.tr('profile_delete_account'),
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Colors.red),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                context.tr('profile_delete_account_confirm'),
+                style: const TextStyle(fontSize: 14, fontFamily: 'Mulish', color: Color(0xFF666666), height: 1.5),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Text(context.tr('profile_delete_account'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF666666),
+                    side: const BorderSide(color: Color(0xFFE0E0E0)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Text(context.tr('cancel'), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish')),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    try {
+      await FullApiService.delete('/api/user/me');
+      await FullApiService.logout();
+      if (mounted) Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(context.tr('error_unknown'))),
+        );
+      }
+    }
   }
 
   void _handleLogout() async {
