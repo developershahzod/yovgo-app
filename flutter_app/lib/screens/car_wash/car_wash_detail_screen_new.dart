@@ -42,16 +42,36 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     try {
       final args = ModalRoute.of(context)?.settings.arguments;
 
-      // If full partner data passed as Map — use it directly, no re-fetch needed
       if (args is Map<String, dynamic>) {
-        setState(() { _partner = Map<String, dynamic>.from(args); _isLoading = false; });
-        _checkFavorite(_partner!);
-        _fetchReviews(_partner!['id']?.toString());
+        // Use branch data from args directly (name, address, images, phone, hours, etc.)
+        final partner = Map<String, dynamic>.from(args);
+        setState(() { _partner = partner; _isLoading = false; });
+        _checkFavorite(partner);
+        _fetchReviews(partner['id']?.toString());
         _checkSubscription();
+
+        // Only fetch localized description from the partner API and patch it in
+        final partnerId = partner['id']?.toString();
+        if (partnerId != null && partnerId.isNotEmpty) {
+          try {
+            String lang = 'uz';
+            try { lang = context.read<LanguageProvider>().languageCode; } catch (_) {}
+            final data = await FullApiService.get(
+              '/api/mobile/car-washes/$partnerId',
+              queryParameters: {'lang': lang},
+            );
+            if (mounted && data.statusCode == 200) {
+              final pd = data.data is Map ? data.data['partner'] ?? data.data : null;
+              if (pd != null && pd['description'] != null) {
+                setState(() { _partner = { ..._partner!, 'description': pd['description'] }; });
+              }
+            }
+          } catch (_) {}
+        }
         return;
       }
 
-      // If only an ID string passed — fetch from API
+      // If only an ID string passed — fetch full data from API
       String? partnerId;
       if (args is String) {
         partnerId = args;
