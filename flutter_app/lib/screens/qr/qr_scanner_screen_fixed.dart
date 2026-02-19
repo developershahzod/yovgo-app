@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
+import '../../widgets/permission_modal.dart';
 import '../main_navigation_fixed.dart';
 
 class QrScannerScreenFixed extends StatefulWidget {
@@ -15,7 +16,7 @@ class QrScannerScreenFixed extends StatefulWidget {
   State<QrScannerScreenFixed> createState() => _QrScannerScreenFixedState();
 }
 
-class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
+class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteAware {
   String _selectedVehicle = '';
   String _plateNumber = '';
   String? _selectedVehicleId;
@@ -30,16 +31,75 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
   bool _scannerPaused = false;
   MobileScannerController? _scannerController;
   bool _cameraActive = false;
+  bool _torchEnabled = false;
 
   @override
   void initState() {
     super.initState();
-    _loadUserState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadUserState();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+  }
+
+  // Called when another route is pushed on top of this one
+  @override
+  void didPushNext() {
+    // Full camera stop when navigating away
+    _stopCameraHard();
+  }
+
+  // Called when the top route is popped and this route becomes visible again
+  @override
+  void didPopNext() {
+    // Restart camera when returning to QR screen
+    if (mounted) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        if (mounted && _cameraActive) {
+          try { _scannerController?.start(); } catch (_) {}
+        }
+      });
+    }
+  }
+
+  /// Hard-stop: stop + dispose controller but keep _cameraActive=true
+  /// so didPopNext can restart it when user comes back.
+  void _stopCameraHard() {
+    try {
+      _scannerController?.stop();
+      _scannerController?.dispose();
+      _scannerController = null;
+    } catch (_) {}
+    // Recreate controller so it's ready when user returns
+    if (_cameraActive) {
+      _scannerController = MobileScannerController(
+        detectionSpeed: DetectionSpeed.normal,
+        facing: CameraFacing.back,
+      );
+    }
   }
 
   /// Start camera — called by MainNavigationFixed when QR tab is selected
   void startCamera() {
     if (_cameraActive) return;
+    _requestCameraAndStart();
+  }
+
+  Future<void> _requestCameraAndStart() async {
+    if (!mounted) return;
+    // Always re-check login state fresh before starting camera
+    final loggedIn = await FullApiService.isLoggedIn();
+    if (mounted && loggedIn != _isLoggedIn) {
+      setState(() => _isLoggedIn = loggedIn);
+    }
+    if (!mounted) return;
+    final granted = await showCameraPermissionModal(context);
+    if (!mounted) return;
+    if (!granted) return;
     _scannerController?.dispose();
     _scannerController = MobileScannerController(
       detectionSpeed: DetectionSpeed.normal,
@@ -54,12 +114,24 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
     _scannerController?.stop();
     _scannerController?.dispose();
     _scannerController = null;
-    if (mounted) setState(() { _cameraActive = false; });
+    if (mounted) setState(() { _cameraActive = false; _torchEnabled = false; });
+  }
+
+  void _toggleTorch() async {
+    if (_scannerController == null) return;
+    try {
+      await _scannerController!.toggleTorch();
+      if (mounted) setState(() => _torchEnabled = !_torchEnabled);
+    } catch (_) {}
   }
 
   @override
   void dispose() {
-    _scannerController?.dispose();
+    try {
+      _scannerController?.stop();
+      _scannerController?.dispose();
+      _scannerController = null;
+    } catch (_) {}
     super.dispose();
   }
 
@@ -75,11 +147,14 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
       // Check subscription
       try {
         final res = await FullApiService.getSubscriptionStatus();
-        final sub = res['subscription'] as Map<String, dynamic>?;
-        if (mounted && sub != null && sub['status'] == 'active') {
+        final sub = (res['subscription'] ?? res) as Map<String, dynamic>?;
+        if (mounted && sub != null && (sub['status'] == 'active' || sub['is_active'] == true)) {
           setState(() => _hasSubscription = true);
         }
-      } catch (_) {}
+      } catch (_) {
+        // If subscription check fails (network/auth), assume no subscription
+        // but do NOT block QR if user is logged in — retry on scan
+      }
 
       // Load vehicles only if logged in — prefer primary car from SharedPreferences
       try {
@@ -211,7 +286,12 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(dialogContext).pop();
-                    Navigator.of(parentContext).pushNamed('/login');
+                    // Stop camera BEFORE navigating away
+                    stopCamera();
+                    Navigator.of(parentContext).pushNamed('/login').then((_) {
+                      // Restart camera when user returns from login
+                      if (mounted) startCamera();
+                    });
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryCyan,
@@ -227,7 +307,12 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
                 child: OutlinedButton(
                   onPressed: () {
                     Navigator.of(dialogContext).pop();
-                    Navigator.of(parentContext).pushNamed('/register');
+                    // Stop camera BEFORE navigating away
+                    stopCamera();
+                    Navigator.of(parentContext).pushNamed('/login').then((_) {
+                      // Restart camera when user returns from login
+                      if (mounted) startCamera();
+                    });
                   },
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppTheme.primaryCyan,
@@ -239,7 +324,14 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
               ),
               const SizedBox(height: 10),
               TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(),
+                onPressed: () {
+                  Navigator.of(dialogContext).pop();
+                  // Resume scanner on cancel
+                  if (mounted) {
+                    setState(() { _scannedOnce = false; _scannerPaused = false; });
+                    try { _scannerController?.start(); } catch (_) {}
+                  }
+                },
                 child: Text(context.tr('qr_later'), style: const TextStyle(color: AppTheme.textSecondary, fontFamily: 'Mulish')),
               ),
             ],
@@ -332,6 +424,24 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
     });
   }
 
+  Widget _safeBuildScanner() {
+    try {
+      if (_cameraActive && !_scannerPaused && _scannerController != null) {
+        return MobileScanner(
+          controller: _scannerController!,
+          onDetect: (capture) {
+            if (_scannedOnce || _isScanning || _scannerPaused) return;
+            final barcodes = capture.barcodes;
+            if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
+              _handleQrScanned(barcodes.first.rawValue!);
+            }
+          },
+        );
+      }
+    } catch (_) {}
+    return Container(color: Colors.black);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -339,17 +449,7 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
       body: Stack(
         children: [
           // Real camera preview — only when camera is active
-          if (_cameraActive && !_scannerPaused && _scannerController != null)
-            MobileScanner(
-              controller: _scannerController!,
-              onDetect: (capture) {
-                if (_scannedOnce || _isScanning || _scannerPaused) return;
-                final barcodes = capture.barcodes;
-                if (barcodes.isNotEmpty && barcodes.first.rawValue != null) {
-                  _handleQrScanned(barcodes.first.rawValue!);
-                }
-              },
-            ),
+          _safeBuildScanner(),
           // Dark overlay
           Container(color: Colors.black.withOpacity(0.4)),
 
@@ -357,12 +457,30 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
           SafeArea(
             child: Column(
               children: [
-                // Top bar with info button
+                // Top bar with flashlight + info buttons
                 Padding(
                   padding: const EdgeInsets.all(16),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                      // Flashlight toggle
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: _torchEnabled ? Colors.yellow.withOpacity(0.3) : Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          icon: Icon(
+                            _torchEnabled ? Icons.flash_on : Icons.flash_off,
+                            color: _torchEnabled ? Colors.yellow : Colors.white,
+                            size: 20,
+                          ),
+                          onPressed: _toggleTorch,
+                        ),
+                      ),
+                      // Info button
                       Container(
                         width: 40,
                         height: 40,
@@ -414,7 +532,12 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
                 const Spacer(),
 
                 // Vehicle selector - only show if logged in with subscription
-                if (_isLoggedIn && _hasSubscription)
+                if (_isLoading)
+                  const Padding(
+                    padding: EdgeInsets.only(bottom: 24),
+                    child: CircularProgressIndicator(color: Colors.white),
+                  )
+                else if (_isLoggedIn && _hasSubscription)
                   _buildVehicleSelector()
                 else if (!_isLoggedIn)
                   _buildLoginPrompt()
@@ -506,7 +629,14 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> {
 
   Widget _buildLoginPrompt() {
     return GestureDetector(
-      onTap: () => Navigator.pushNamed(context, '/login'),
+      onTap: () {
+        // Stop camera before navigating to login
+        stopCamera();
+        Navigator.pushNamed(context, '/login').then((_) {
+          // Restart camera when user returns
+          if (mounted) startCamera();
+        });
+      },
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 20),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
