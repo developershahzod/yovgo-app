@@ -63,7 +63,9 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
 
       if (partnerId != null && partnerId.isNotEmpty) {
         try {
-          final data = await FullApiService.get('/api/mobile/car-washes/$partnerId');
+          String lang = 'uz';
+          try { lang = context.read<LanguageProvider>().languageCode; } catch (_) {}
+          final data = await FullApiService.get('/api/mobile/car-washes/$partnerId', queryParameters: {'lang': lang});
           if (mounted && data.statusCode == 200) {
             final pd = data.data is Map ? data.data['partner'] ?? data.data : null;
             if (pd != null) {
@@ -299,7 +301,16 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
       }
     }
 
-    final defaultDesc = '$name bu shunchaki avtoyuvish shoxobchasi emas, bu sizning avtomobilingizga bo\'lgan hurmatimiz namunasidir. Biz eng zamonaviy texnologiyalar va premium sifatli kimyoviy vositalar yordamida avtomobilingizni yangiday ko\'rinishga keltiramiz. Har bir detal biz uchun muhim!';
+    String lang = 'uz';
+    try { lang = context.read<LanguageProvider>().languageCode; } catch (_) {}
+    final String defaultDesc;
+    if (lang == 'ru') {
+      defaultDesc = '$name — это не просто автомойка, это знак уважения к вашему автомобилю. Мы используем современные технологии и химию премиум-класса, чтобы ваш автомобиль выглядел как новый. Каждая деталь важна для нас!';
+    } else if (lang == 'en') {
+      defaultDesc = '$name is not just a car wash — it\'s a sign of respect for your vehicle. We use the latest technologies and premium chemicals to make your car look brand new. Every detail matters to us!';
+    } else {
+      defaultDesc = '$name bu shunchaki avtoyuvish shoxobchasi emas, bu sizning avtomobilingizga bo\'lgan hurmatimiz namunasidir. Biz eng zamonaviy texnologiyalar va premium sifatli kimyoviy vositalar yordamida avtomobilingizni yangiday ko\'rinishga keltiramiz. Har bir detal biz uchun muhim!';
+    }
     final descText = description.isNotEmpty ? description : defaultDesc;
 
     return Scaffold(

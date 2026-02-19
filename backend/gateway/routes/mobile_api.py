@@ -304,6 +304,7 @@ async def search_car_washes(
 @router.get("/car-washes/{partner_id}")
 async def get_car_wash_detail(
     partner_id: str,
+    lang: str = Query("uz", description="Language: uz, ru, en"),
     db: Session = Depends(get_db),
 ):
     """Get detailed information about a car wash"""
@@ -395,7 +396,11 @@ async def get_car_wash_detail(
             "is_premium": partner.is_premium or False,
             "is_24_hours": getattr(partner, 'is_24_hours', False) or False,
             "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
-            "description": partner.description or "Premium avtomoyka xizmatlari",
+            "description": partner.description or (
+                "Премиум услуги автомойки" if lang == "ru" else
+                "Premium car wash services" if lang == "en" else
+                "Premium avtomoyka xizmatlari"
+            ),
             "wash_time": getattr(partner, 'wash_time', 60) or 60,
             "services": partner.additional_services if partner.additional_services else [],
             "locations": locations_data,
