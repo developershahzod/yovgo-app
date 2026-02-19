@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -50,8 +51,12 @@ class PermissionHelper {
 
     if (!shouldRequest) return false;
 
-    // Wait for dialog to close before native dialog appears
-    await Future.delayed(const Duration(milliseconds: 800));
+    // Wait for Flutter dialog dismiss animation + one full frame render
+    await Future.delayed(const Duration(milliseconds: 600));
+    final frameCompleter = Completer<void>();
+    WidgetsBinding.instance.addPostFrameCallback((_) => frameCompleter.complete());
+    await frameCompleter.future;
+    await Future.delayed(const Duration(milliseconds: 400));
 
     final result = await Geolocator.requestPermission();
     return result == LocationPermission.whileInUse ||

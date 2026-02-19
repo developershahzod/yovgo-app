@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -45,9 +46,16 @@ Future<bool> showLocationPermissionModal(BuildContext context) async {
 
   if (agreed != true) return false;
 
-  // Wait for Flutter dialog dismiss animation to fully complete
-  // so the native iOS dialog appears cleanly on top
-  await Future.delayed(const Duration(milliseconds: 800));
+  // Wait for Flutter dialog dismiss animation AND one full frame render
+  // before calling native iOS dialog — otherwise both appear simultaneously.
+  // iOS requires the Flutter overlay stack to be completely empty.
+  await Future.delayed(const Duration(milliseconds: 600));
+  if (!context.mounted) return false;
+  // Extra safety: wait for next frame so overlay is fully removed from tree
+  final frameCompleter = Completer<void>();
+  WidgetsBinding.instance.addPostFrameCallback((_) => frameCompleter.complete());
+  await frameCompleter.future;
+  await Future.delayed(const Duration(milliseconds: 400));
   if (!context.mounted) return false;
 
   // Request native permission — on first launch iOS shows the native dialog
