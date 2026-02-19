@@ -143,10 +143,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _buildDivider(),
               _buildMenuRow(Icons.history, context.tr('profile_history'),
                   onTap: () => Navigator.pushNamed(context, '/visit-history')),
-              _buildDivider(),
-              _buildMenuRow(Icons.credit_card_outlined, context.tr('profile_payment_methods'),
-                  trailing: _cardCount > 0 ? '$_cardCount' : null,
-                  onTap: () => Navigator.pushNamed(context, '/payment-cards')),
               
               const SizedBox(height: 24),
               // Divider line
