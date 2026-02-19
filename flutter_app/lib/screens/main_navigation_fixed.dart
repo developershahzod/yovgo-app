@@ -84,10 +84,8 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> with WidgetsB
     if (index == 2) {
       QrScannerScreenFixed.globalKey.currentState?.startCamera();
     }
-    // Refresh data when switching to home or subscription tabs
-    if (index == 0) {
-      HomeScreenFixed.globalKey.currentState?.refreshData();
-    } else if (index == 3) {
+    // Refresh subscription tab data when switching to it
+    if (index == 3) {
       MySubscriptionScreen.globalKey.currentState?.refreshData();
     }
   }

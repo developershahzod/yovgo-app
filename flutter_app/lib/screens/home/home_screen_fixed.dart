@@ -281,51 +281,37 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
 
   @override
   Widget build(BuildContext context) {
-    try {
-      return Scaffold(
-        backgroundColor: Colors.white,
-        body: SafeArea(
-          child: RefreshIndicator(
-            color: AppTheme.primaryCyan,
-            onRefresh: _loadHomeData,
-            child: SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _safeWidget(_buildTopBar, label: 'topBar'),
-                  const SizedBox(height: 16),
-                  if (_hasSubscription) _safeWidget(_buildPremiumCard, label: 'premiumCard'),
-                  if (_hasSubscription) const SizedBox(height: 16),
-                  _safeWidget(_buildWeatherWidget, label: 'weather'),
-                  const SizedBox(height: 16),
-                  if (!_hasSubscription) _safeWidget(_buildSubscriptionBanner, label: 'subBanner'),
-                  if (!_hasSubscription) const SizedBox(height: 16),
-                  _safeWidget(_buildCategoriesSection, label: 'categories'),
-                  const SizedBox(height: 24),
-                  _safeWidget(_buildNearestCarWashesSection, label: 'nearbyWashes'),
-                  if (_isLoggedIn) const SizedBox(height: 24),
-                  if (_isLoggedIn) _safeWidget(_buildRecentVisitsSection, label: 'recentVisits'),
-                  const SizedBox(height: 120),
-                ],
-              ),
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: RefreshIndicator(
+          color: AppTheme.primaryCyan,
+          onRefresh: _loadHomeData,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _safeWidget(_buildTopBar, label: 'topBar'),
+                const SizedBox(height: 16),
+                if (_hasSubscription) _safeWidget(_buildPremiumCard, label: 'premiumCard'),
+                if (_hasSubscription) const SizedBox(height: 16),
+                _safeWidget(_buildWeatherWidget, label: 'weather'),
+                const SizedBox(height: 16),
+                if (!_hasSubscription) _safeWidget(_buildSubscriptionBanner, label: 'subBanner'),
+                if (!_hasSubscription) const SizedBox(height: 16),
+                _safeWidget(_buildCategoriesSection, label: 'categories'),
+                const SizedBox(height: 24),
+                _safeWidget(_buildNearestCarWashesSection, label: 'nearbyWashes'),
+                if (_isLoggedIn) const SizedBox(height: 24),
+                if (_isLoggedIn) _safeWidget(_buildRecentVisitsSection, label: 'recentVisits'),
+                const SizedBox(height: 120),
+              ],
             ),
           ),
         ),
-      );
-    } catch (e) {
-      debugPrint('HomeScreen build error: $e');
-      // Trigger reload on next frame
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) setState(() {});
-      });
-      return Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: CircularProgressIndicator(color: AppTheme.primaryCyan),
-        ),
-      );
-    }
+      ),
+    );
   }
 
   Widget _buildTopBar() {
