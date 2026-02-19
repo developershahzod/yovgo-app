@@ -89,42 +89,41 @@ class _SplashScreenState extends State<SplashScreen>
 }
 
 // ─── Wave painter — pixel-perfect 2-band design ───────────────────────────────
-// Screenshot analysis:
-//   - Cyan bg #00BFFE
-//   - TOP band: navy solid from top edge, wavy bottom edge
-//     Wave shape: starts HIGH on left (~10% h), dips LOW in center (~26% h),
-//     rises back HIGH on right (~10% h) → 1 full inverted-U cycle
-//     → achieved with -sin (or phase=0.25 offset) so left edge is at peak
-//   - BOT band: exact vertical mirror of top band
-//   - Wave center: 18% from top / 82% from top
-//   - Amplitude: 8% of screen height
-//   - Animation: both bands scroll together (same phase t)
+// Screenshot: 2 full sine cycles across width, center 20%/80%, amplitude 7%
+// TOP  band: navy from top, wavy bottom edge using -sin (peaks at both edges)
+// BOT  band: navy from bottom, wavy top edge using +sin (exact vertical mirror)
+// Both bands animated with same phase t → scroll together
 class _TopWavePainter extends CustomPainter {
   final double t;
   _TopWavePainter(this.t);
 
   static const Color _navy = Color(0xFF0D1B2A);
-  static const int _steps = 300;
+  static const int _steps = 400;
+  // 2 full cycles across screen width
+  static const double _cycles = 2.0;
 
-  // Wave y at position x. Uses -sin so left edge starts at peak (band is thick),
-  // dips to trough in center (band is thin), returns to peak at right edge.
-  double _waveY(double x, double w, double centerY, double amp, double phase) {
-    return centerY - amp * sin(2 * pi * (x / w + phase));
+  // Top band wave: -sin gives peaks at x=0 and x=w, trough in middle
+  double _topWaveY(double x, double w, double centerY, double amp) {
+    return centerY - amp * sin(_cycles * 2 * pi * (x / w + t));
+  }
+
+  // Bottom band wave: +sin — exact vertical mirror of top
+  double _botWaveY(double x, double w, double centerY, double amp) {
+    return centerY + amp * sin(_cycles * 2 * pi * (x / w + t));
   }
 
   // Solid band from screen top down to wavy bottom edge
   void _drawTopBand(Canvas canvas, Size size, Paint paint) {
     final w = size.width;
-    final centerY = size.height * 0.18;
-    final amp = size.height * 0.08;
+    final centerY = size.height * 0.20;
+    final amp = size.height * 0.07;
 
     final path = Path();
     path.moveTo(0, 0);
     path.lineTo(w, 0);
-    // Trace wave right→left
     for (int i = _steps; i >= 0; i--) {
       final x = w * i / _steps;
-      path.lineTo(x, _waveY(x, w, centerY, amp, t));
+      path.lineTo(x, _topWaveY(x, w, centerY, amp));
     }
     path.close();
     canvas.drawPath(path, paint);
@@ -134,15 +133,14 @@ class _TopWavePainter extends CustomPainter {
   void _drawBottomBand(Canvas canvas, Size size, Paint paint) {
     final w = size.width;
     final h = size.height;
-    final centerY = h * 0.82;
-    final amp = h * 0.08;
+    final centerY = h * 0.80;
+    final amp = h * 0.07;
 
     final path = Path();
-    // Trace wave left→right — bottom band uses +sin (mirror of top)
-    path.moveTo(0, centerY + amp * sin(2 * pi * (0.0 + t)));
+    path.moveTo(0, _botWaveY(0, w, centerY, amp));
     for (int i = 1; i <= _steps; i++) {
       final x = w * i / _steps;
-      path.lineTo(x, centerY + amp * sin(2 * pi * (x / w + t)));
+      path.lineTo(x, _botWaveY(x, w, centerY, amp));
     }
     path.lineTo(w, h);
     path.lineTo(0, h);
