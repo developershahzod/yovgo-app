@@ -83,22 +83,23 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
     try {
       LocationPermission permission = await Geolocator.checkPermission();
 
-      // Show custom modal then trigger native — only once per session
-      if (permission == LocationPermission.denied && !_locationPermissionAsked) {
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
+        // Already granted — proceed to get position
+      } else if (!_locationPermissionAsked) {
+        // First time this screen instance runs — show UI modal → native dialog
         _locationPermissionAsked = true;
         if (!mounted) return;
         final granted = await showLocationPermissionModal(context);
-        if (!granted) return;
+        if (!granted) return; // User denied or went to Settings
         permission = await Geolocator.checkPermission();
+        if (permission != LocationPermission.whileInUse &&
+            permission != LocationPermission.always) {
+          return;
+        }
+      } else {
+        return; // Already asked this session, don't ask again
       }
-
-      if (permission == LocationPermission.denied ||
-          permission == LocationPermission.deniedForever) {
-        _locationPermissionAsked = true;
-        return; // Use default Tashkent coords
-      }
-
-      _locationPermissionAsked = true;
 
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.medium,
