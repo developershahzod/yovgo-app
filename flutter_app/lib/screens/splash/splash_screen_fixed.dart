@@ -88,66 +88,85 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-// ─── Wave painter — pixel-perfect 2-band design ───────────────────────────────
-// Screenshot analysis:
-//   TOP band : navy from top edge. Wavy bottom edge.
-//              Band is THIN at left edge, THICK at x≈w/4, THIN at x≈w/2,
-//              THICK at x≈3w/4, THIN at right edge.
-//              → bottom edge = centerY + amp * sin(2 * 2π * x/w + phase)
-//              → sin starts at 0 at x=0 (thin), peaks at x=w/4 (thick)
-//   BOT band : exact vertical mirror of top band.
-//              Wavy top edge = centerY - amp * sin(2 * 2π * x/w + phase)
-//   centerY top  = 21% of height
-//   centerY bot  = 79% of height
-//   amplitude    = 9% of height
-//   animation    : slow scroll, 6s period
+// ─── Wave painter — pixel-perfect design ──────────────────────────────────────
+// Screenshot has 4 separate navy wave stripes:
+//   TOP area (2 stripes):
+//     Stripe A: solid navy from screen top down to a wavy bottom edge (~10% h)
+//     Stripe B: floating navy ribbon centered at ~20% h, thickness ~6% h
+//   BOTTOM area (2 stripes) — exact vertical mirror:
+//     Stripe C: floating navy ribbon centered at ~80% h, thickness ~6% h
+//     Stripe D: solid navy from screen bottom up to a wavy top edge (~90% h)
+//   Wave shape: 1 full sine cycle across width, amplitude ~3.5% h
+//   Animation: slow horizontal scroll, 6s period
 class _TopWavePainter extends CustomPainter {
   final double t; // 0..1 animation phase
-
   _TopWavePainter(this.t);
 
   static const Color _navy = Color(0xFF0D1B2A);
-  static const int _steps = 500;
+  static const int _steps = 400;
 
-  // Top band bottom edge: sin starts at 0 (thin at edges), peaks at 1/4 and 3/4
-  double _topEdgeY(double x, double w, double centerY, double amp) {
-    return centerY + amp * sin(2 * 2 * pi * (x / w) + 2 * pi * t);
+  // Sine wave Y value — 1 cycle across width
+  double _wave(double x, double w, double centerY, double amp) {
+    return centerY + amp * sin(2 * pi * (x / w + t));
   }
 
-  // Bottom band top edge: exact mirror of top edge
-  double _botEdgeY(double x, double w, double centerY, double amp) {
-    return centerY - amp * sin(2 * 2 * pi * (x / w) + 2 * pi * t);
-  }
-
-  void _drawTopBand(Canvas canvas, Size size, Paint paint) {
+  // Draw a floating ribbon: wavy top edge and wavy bottom edge (offset by thickness)
+  void _drawRibbon(Canvas canvas, Size size, Paint paint,
+      double centerFrac, double thickFrac, double ampFrac) {
     final w = size.width;
-    final centerY = size.height * 0.21;
-    final amp = size.height * 0.09;
+    final h = size.height;
+    final center = h * centerFrac;
+    final half = h * thickFrac / 2;
+    final amp = h * ampFrac;
 
     final path = Path();
-    path.moveTo(0, 0);
-    path.lineTo(w, 0);
-    // trace wave right → left along bottom edge of band
+    // Top edge of ribbon left→right
+    path.moveTo(0, _wave(0, w, center - half, amp));
+    for (int i = 1; i <= _steps; i++) {
+      final x = w * i / _steps;
+      path.lineTo(x, _wave(x, w, center - half, amp));
+    }
+    // Bottom edge of ribbon right→left
     for (int i = _steps; i >= 0; i--) {
       final x = w * i / _steps;
-      path.lineTo(x, _topEdgeY(x, w, centerY, amp));
+      path.lineTo(x, _wave(x, w, center + half, amp));
     }
     path.close();
     canvas.drawPath(path, paint);
   }
 
-  void _drawBottomBand(Canvas canvas, Size size, Paint paint) {
+  // Draw a band anchored to screen top: solid from y=0 down to wavy bottom edge
+  void _drawTopAnchoredBand(Canvas canvas, Size size, Paint paint,
+      double edgeCenterFrac, double ampFrac) {
     final w = size.width;
     final h = size.height;
-    final centerY = h * 0.79;
-    final amp = h * 0.09;
+    final centerY = h * edgeCenterFrac;
+    final amp = h * ampFrac;
 
     final path = Path();
-    // trace wave left → right along top edge of band
-    path.moveTo(0, _botEdgeY(0, w, centerY, amp));
+    path.moveTo(0, 0);
+    path.lineTo(w, 0);
+    for (int i = _steps; i >= 0; i--) {
+      final x = w * i / _steps;
+      path.lineTo(x, _wave(x, w, centerY, amp));
+    }
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  // Draw a band anchored to screen bottom: solid from wavy top edge down to y=h
+  void _drawBottomAnchoredBand(Canvas canvas, Size size, Paint paint,
+      double edgeCenterFrac, double ampFrac) {
+    final w = size.width;
+    final h = size.height;
+    final centerY = h * edgeCenterFrac;
+    final amp = h * ampFrac;
+
+    final path = Path();
+    path.moveTo(0, _wave(0, w, centerY, amp));
     for (int i = 1; i <= _steps; i++) {
       final x = w * i / _steps;
-      path.lineTo(x, _botEdgeY(x, w, centerY, amp));
+      path.lineTo(x, _wave(x, w, centerY, amp));
     }
     path.lineTo(w, h);
     path.lineTo(0, h);
@@ -160,8 +179,15 @@ class _TopWavePainter extends CustomPainter {
     final paint = Paint()
       ..color = _navy
       ..style = PaintingStyle.fill;
-    _drawTopBand(canvas, size, paint);
-    _drawBottomBand(canvas, size, paint);
+
+    // Stripe A: anchored to top edge, wavy bottom at ~10% h
+    _drawTopAnchoredBand(canvas, size, paint, 0.10, 0.035);
+    // Stripe B: floating ribbon centered at ~20% h, thickness ~6% h
+    _drawRibbon(canvas, size, paint, 0.205, 0.06, 0.035);
+    // Stripe C: floating ribbon centered at ~80% h (mirror of B)
+    _drawRibbon(canvas, size, paint, 0.795, 0.06, 0.035);
+    // Stripe D: anchored to bottom edge, wavy top at ~90% h (mirror of A)
+    _drawBottomAnchoredBand(canvas, size, paint, 0.90, 0.035);
   }
 
   @override
