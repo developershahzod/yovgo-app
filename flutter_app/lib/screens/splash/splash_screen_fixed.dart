@@ -46,8 +46,8 @@ class _SplashScreenState extends State<SplashScreen>
     if (profileComplete) {
       Navigator.pushReplacementNamed(context, '/main');
     } else {
-      // Token exists but no name — send to register to complete profile
-      Navigator.pushReplacementNamed(context, '/register');
+      // Token exists but no name — send to login which handles name collection
+      Navigator.pushReplacementNamed(context, '/login');
     }
   }
 
