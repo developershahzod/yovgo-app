@@ -12,6 +12,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  bool _isLoading = true;
   bool _isLoggedIn = false;
   bool _isPremium = false;
   String _fullName = '';
@@ -31,10 +32,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _loadProfile() async {
+    if (mounted) setState(() => _isLoading = true);
     try {
       final loggedIn = await FullApiService.isLoggedIn();
       if (!loggedIn) {
-        if (mounted) setState(() => _isLoggedIn = false);
+        if (mounted) setState(() { _isLoggedIn = false; _isLoading = false; });
         return;
       }
       
@@ -88,9 +90,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() => _cardCount = (cards['contracts'] as List?)?.length ?? 0);
         }
       } catch (_) {}
+      if (mounted) setState(() => _isLoading = false);
     } catch (e) {
       if (mounted) {
-        setState(() => _isLoggedIn = false);
+        setState(() { _isLoggedIn = false; _isLoading = false; });
       }
     }
   }
@@ -176,6 +179,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildProfileHeader() {
+    if (_isLoading) {
+      return const SizedBox(
+        height: 80,
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
     if (!_isLoggedIn) {
       return Column(
         children: [
@@ -248,7 +257,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     }
 
-    final name = _fullName.isNotEmpty ? _fullName : context.tr('profile_guest');
+    final name = _fullName.isNotEmpty ? _fullName : _phone;
     final phone = _phone.isNotEmpty ? _phone : '';
 
     return Row(
