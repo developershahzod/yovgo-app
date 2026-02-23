@@ -183,7 +183,7 @@ class FullApiService {
     String? email,
   }) async {
     try {
-      final response = await _dio.put('/api/user/users/me', data: {
+      final response = await _dio.put('/api/user/me', data: {
         if (fullName != null) 'full_name': fullName,
         if (email != null) 'email': email,
       });

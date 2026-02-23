@@ -23,6 +23,7 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
   final _phoneController = TextEditingController(text: '+998');
   final _codeController = TextEditingController();
   final _nameController = TextEditingController();
+  final _nameFocusNode = FocusNode();
 
   _AuthStep _step = _AuthStep.phone;
   bool _isLoading = false;
@@ -35,6 +36,7 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
     _phoneController.dispose();
     _codeController.dispose();
     _nameController.dispose();
+    _nameFocusNode.dispose();
     _resendTimer?.cancel();
     super.dispose();
   }
@@ -105,8 +107,13 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
       final isNew = result['is_new_user'] == true;
       final hasName = (result['user']?['full_name']?.toString() ?? '').trim().isNotEmpty;
       if (isNew || !hasName) {
-        // New user or missing name — collect name before proceeding
+        // Dismiss numeric keyboard first, then show name step with text keyboard
+        FocusScope.of(context).unfocus();
+        await Future.delayed(const Duration(milliseconds: 300));
+        if (!mounted) return;
         setState(() { _step = _AuthStep.name; _isLoading = false; });
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (mounted) _nameFocusNode.requestFocus();
       } else {
         Navigator.pushReplacementNamed(context, '/main');
       }
@@ -298,7 +305,7 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
           icon: Icons.person_outline,
           keyboardType: TextInputType.name,
           textCapitalization: TextCapitalization.words,
-          autofocus: true,
+          focusNode: _nameFocusNode,
         ),
         const SizedBox(height: 24),
         _buildPrimaryButton(
@@ -318,6 +325,7 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
     TextInputType keyboardType = TextInputType.text,
     TextCapitalization textCapitalization = TextCapitalization.none,
     bool autofocus = false,
+    FocusNode? focusNode,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -329,6 +337,7 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
         keyboardType: keyboardType,
         textCapitalization: textCapitalization,
         autofocus: autofocus,
+        focusNode: focusNode,
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish'),
         decoration: InputDecoration(
           labelText: label,
