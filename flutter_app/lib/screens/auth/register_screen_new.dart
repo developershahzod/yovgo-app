@@ -203,7 +203,8 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
           ),
           child: TextField(
             controller: _nameController,
-            textCapitalization: TextCapitalization.none,
+            keyboardType: TextInputType.name,
+            textCapitalization: TextCapitalization.words,
             autocorrect: false,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish'),
             decoration: InputDecoration(

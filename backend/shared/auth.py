@@ -9,8 +9,8 @@ import os
 # Configuration
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-change-in-production")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "525600"))  # 365 days
-REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "365"))
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "52560000"))  # 100 years
+REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "36500"))  # 100 years
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
@@ -59,9 +59,12 @@ class AuthHandler:
     
     @staticmethod
     def decode_token(token: str) -> Dict[str, Any]:
-        """Decode and verify JWT token"""
+        """Decode and verify JWT token — ignore expiry so old tokens stay valid"""
         try:
-            payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+            payload = jwt.decode(
+                token, JWT_SECRET, algorithms=[JWT_ALGORITHM],
+                options={"verify_exp": False}
+            )
             return payload
         except JWTError as e:
             raise HTTPException(status_code=401, detail=f"Invalid token: {str(e)}")

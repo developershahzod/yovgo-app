@@ -317,14 +317,18 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     final workingHours = p['working_hours'];
     final lat = p['latitude'];
     final lng = p['longitude'];
-    final imageUrl = (p['banner_url'] ?? p['image_url'] ?? p['photo_url'] ?? p['logo_url'] ?? '').toString();
+    // Pick first non-empty banner candidate
+    final imageUrl = [
+      p['banner_url'], p['image_url'], p['photo_url'], p['logo_url']
+    ].map((e) => (e ?? '').toString().trim()).firstWhere((s) => s.isNotEmpty, orElse: () => '');
     List<String> galleryUrls = [];
     try {
       final gu = p['gallery_urls'] ?? p['images'];
-      if (gu is List) galleryUrls = gu.map((e) => e.toString()).toList();
+      if (gu is List) galleryUrls = gu.map((e) => e.toString()).where((s) => s.isNotEmpty).toList();
     } catch (_) {}
     final allImages = <String>[];
     final seenUrls = <String>{};
+    // Banner always first, then gallery
     for (final u in [imageUrl, ...galleryUrls]) {
       final url = u.toString().trim();
       if (url.isNotEmpty && url.startsWith('http') && seenUrls.add(url)) {

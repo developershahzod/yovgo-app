@@ -60,17 +60,7 @@ class FullApiService {
         onError: (error, handler) async {
           print('❌ ${error.response?.statusCode} ${error.requestOptions.uri}');
           print('Error: ${error.message}');
-          if (error.response?.statusCode == 401) {
-            // Token expired or invalid — clear it and redirect to login
-            await _storage.delete(key: _tokenKey);
-            print('🔑 Token expired/invalid — redirecting to login');
-            try {
-              final navigatorKey = _navigatorKey;
-              if (navigatorKey?.currentState != null) {
-                navigatorKey!.currentState!.pushNamedAndRemoveUntil('/login', (route) => false);
-              }
-            } catch (_) {}
-          }
+          // Never auto-logout on 401 — token is permanent, 401 may be a server issue
           return handler.next(error);
         },
       ),
