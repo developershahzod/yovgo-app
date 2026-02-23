@@ -44,22 +44,17 @@ def _check_and_expire(subscription: Subscription, db: Session) -> Subscription:
 
 def _get_partner_rating(db: Session, partner_id, location_id=None) -> dict:
     """Get real average rating and review count from reviews table.
-    If location_id is provided, tries branch-specific reviews first,
-    then falls back to all partner reviews if none found."""
+    If location_id is provided, returns ONLY that branch's reviews (no fallback).
+    If no location_id, returns partner-level reviews (location_id IS NULL)."""
     from sqlalchemy import func as sqlfunc
-    # Try branch-specific reviews first
     if location_id:
         filters = [Review.partner_id == partner_id, Review.is_visible == True, Review.location_id == location_id]
-        avg = db.query(sqlfunc.avg(Review.rating)).filter(*filters).scalar()
-        count = db.query(sqlfunc.count(Review.id)).filter(*filters).scalar() or 0
-        if count > 0:
-            return {"rating": round(float(avg), 1), "review_count": count}
-    # Fall back to all partner reviews (location_id=None or any)
-    filters = [Review.partner_id == partner_id, Review.is_visible == True]
+    else:
+        filters = [Review.partner_id == partner_id, Review.is_visible == True, Review.location_id == None]
     avg = db.query(sqlfunc.avg(Review.rating)).filter(*filters).scalar()
     count = db.query(sqlfunc.count(Review.id)).filter(*filters).scalar() or 0
     return {
-        "rating": round(float(avg), 1) if avg else 0,
+        "rating": round(float(avg), 1) if avg else 5.0,
         "review_count": count,
     }
 
@@ -463,11 +458,13 @@ async def get_car_wash_detail(
             "service_prices": loc_prices,
         })
     
-    # Get recent reviews
-    reviews = db.query(Review).filter(
-        Review.partner_id == partner.id,
-        Review.is_visible == True
-    ).order_by(Review.created_at.desc()).limit(10).all()
+    # Get recent reviews — filter by location_id if branch, else partner-level (NULL)
+    _rev_filters = [Review.partner_id == partner.id, Review.is_visible == True]
+    if location_id:
+        _rev_filters.append(Review.location_id == location_id)
+    else:
+        _rev_filters.append(Review.location_id == None)
+    reviews = db.query(Review).filter(*_rev_filters).order_by(Review.created_at.desc()).limit(10).all()
     
     reviews_data = []
     for review in reviews:
@@ -1056,16 +1053,16 @@ async def get_partner_reviews(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    """Get reviews for a car wash. If location_id provided, tries branch reviews first,
-    then falls back to all partner reviews if none found."""
+    """Get reviews for a car wash.
+    If location_id provided, returns ONLY that branch's reviews.
+    Otherwise returns partner-level reviews (location_id IS NULL)."""
     from sqlalchemy import func as sqlfunc
 
     base_filter = [Review.partner_id == partner_id, Review.is_visible == True]
     if location_id:
-        branch_filter = base_filter + [Review.location_id == location_id]
-        branch_count = db.query(sqlfunc.count(Review.id)).filter(*branch_filter).scalar() or 0
-        if branch_count > 0:
-            base_filter = branch_filter
+        base_filter.append(Review.location_id == location_id)
+    else:
+        base_filter.append(Review.location_id == None)
 
     reviews = (
         db.query(Review)
