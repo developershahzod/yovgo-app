@@ -27,12 +27,15 @@ import 'screens/subscriptions/subscription_detail_screen.dart';
 import 'screens/weather/weather_screen.dart';
 import 'widgets/auth_guard.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize API services
   ApiService.initialize();
   FullApiService.initialize();
+  FullApiService.setNavigatorKey(navigatorKey);
   
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -46,13 +49,15 @@ void main() {
   runApp(
     ChangeNotifierProvider(
       create: (_) => LanguageProvider(),
-      child: const MyApp(),
+      child: MyApp(navigatorKey: navigatorKey),
     ),
   );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  final GlobalKey<NavigatorState> navigatorKey;
+
+  const MyApp({Key? key, required this.navigatorKey}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -60,6 +65,7 @@ class MyApp extends StatelessWidget {
       builder: (context, languageProvider, child) {
         return MaterialApp(
           title: 'YuvGO',
+          navigatorKey: navigatorKey,
           debugShowCheckedModeBanner: false,
           theme: AppTheme.lightTheme,
           locale: languageProvider.locale,

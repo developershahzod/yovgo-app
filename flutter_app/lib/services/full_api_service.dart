@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'ipak_yuli_dio.dart' if (dart.library.io) 'ipak_yuli_dio_native.dart';
 
@@ -26,6 +27,11 @@ class FullApiService {
   static const _userKey = 'user_data';
   static const _phoneKey = 'user_phone';
 
+  static GlobalKey<NavigatorState>? _navigatorKey;
+  static void setNavigatorKey(GlobalKey<NavigatorState> key) {
+    _navigatorKey = key;
+  }
+
   static Future<void> savePhone(String phone) async {
     await _storage.write(key: _phoneKey, value: phone);
   }
@@ -51,9 +57,20 @@ class FullApiService {
           print('📥 ${response.statusCode} ${response.requestOptions.uri}');
           return handler.next(response);
         },
-        onError: (error, handler) {
+        onError: (error, handler) async {
           print('❌ ${error.response?.statusCode} ${error.requestOptions.uri}');
           print('Error: ${error.message}');
+          if (error.response?.statusCode == 401) {
+            // Token expired or invalid — clear it and redirect to login
+            await _storage.delete(key: _tokenKey);
+            print('🔑 Token expired/invalid — redirecting to login');
+            try {
+              final navigatorKey = _navigatorKey;
+              if (navigatorKey?.currentState != null) {
+                navigatorKey!.currentState!.pushNamedAndRemoveUntil('/login', (route) => false);
+              }
+            } catch (_) {}
+          }
           return handler.next(error);
         },
       ),
