@@ -477,9 +477,9 @@ class FullApiService {
     }
   }
 
-  // IpakYuli Staging constants (HTTPS with SSL bypass — staging cert is self-signed)
-  static const _ipakYuliUrl = 'https://partner.ecomm.staging.ipakyulibank.uz/api/transfer';
-  static const _ipakYuliToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiI1ODM1YWVkNS05ZjkwLTQ3ZWEtYmVhMS1kNzE5MzI1NGY5N2QiLCJtZXJjaGFudElkIjoiMjE2YjQzNjItOGM4Yi00MjlkLWJlOGItNTJkYmVlZTAzYTNhIiwiaWF0IjoxNzcwNzcwMjUwLCJleHAiOjE4MDIzMjc4NTB9.o9l2mUjYe2_igfgyoDGovwgnZImvOF09RRgRzQ2-Ge8';
+  // IpakYuli Production constants
+  static const _ipakYuliUrl = 'https://ecom.ipakyulibank.uz/api/transfer';
+  static const _ipakYuliToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiJlZmJlY2I5ZC02NzBlLTRlMTQtOGFmYi1jMzJmMjI0Y2ZiMDciLCJtZXJjaGFudElkIjoiMjM3NTBkYWEtODM1NS00MWIzLWJlOGYtZDllNzI3ODU0MzhmIiwiaWF0IjoxNzcxODQ0NDk4LCJleHAiOjE4MDM0MDIwOTh9.1re7ln4yC1iUaXXIhIUq_VXAUSTseryfTSE5yPLn8LI';
 
   /// Call IpakYuli Production API directly from Flutter app
   static Future<Map<String, dynamic>> createIpakYuliPaymentDirect({
@@ -499,6 +499,19 @@ class FullApiService {
         'amount': amount,
         'details': {
           'description': 'YuvGO obuna to\'lovi',
+          'ofdInfo': {
+            'Items': [
+              {
+                'Name': 'YuvGO Subscription',
+                'SPIC': '10305010001000000',
+                'PackageCode': '1344094',
+                'price': amount,
+                'count': 1,
+                'VATPercent': 0,
+                'Discount': 0,
+              }
+            ]
+          },
         },
         'success_url': 'https://app.yuvgo.uz/api/mobile/payments/success?payment_id=$paymentId',
         'fail_url': 'https://app.yuvgo.uz/#/main',
@@ -566,7 +579,7 @@ class FullApiService {
         'jsonrpc': '2.0',
         'id': DateTime.now().millisecondsSinceEpoch.toString(),
         'method': 'transfer.get',
-        'params': {'id': transferId},
+        'params': {'transfer_id': transferId},
       };
       final response = await ipakDio.post(
         _ipakYuliUrl,

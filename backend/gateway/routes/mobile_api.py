@@ -1952,6 +1952,202 @@ async def delete_vehicle(
     db.commit()
     return {"success": True, "message": "Vehicle deleted"}
 
+# ==================== PAYMENT ENDPOINTS (Mobile) ====================
+
+IPAKYULI_URL = "https://ecom.ipakyulibank.uz/api/transfer"
+IPAKYULI_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiJlZmJlY2I5ZC02NzBlLTRlMTQtOGFmYi1jMzJmMjI0Y2ZiMDciLCJtZXJjaGFudElkIjoiMjM3NTBkYWEtODM1NS00MWIzLWJlOGYtZDllNzI3ODU0MzhmIiwiaWF0IjoxNzcxODQ0NDk4LCJleHAiOjE4MDM0MDIwOTh9.1re7ln4yC1iUaXXIhIUq_VXAUSTseryfTSE5yPLn8LI"
+
+class MobilePaymentCreateRequest(BaseModel):
+    subscription_id: str
+    plan_id: Optional[str] = None
+    amount: Optional[float] = None
+
+class UpdateTransferRequest(BaseModel):
+    payment_id: str
+    transfer_id: str
+
+class ConfirmSuccessRequest(BaseModel):
+    payment_id: str
+    transfer_id: str
+
+@router.post("/payments/create")
+async def mobile_create_payment(
+    request: MobilePaymentCreateRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Create payment record for a subscription — returns order_id and payment_id"""
+    import uuid as _uuid
+    user_id = current_user.get("sub")
+
+    subscription = db.query(Subscription).filter(
+        Subscription.id == request.subscription_id,
+        Subscription.user_id == user_id
+    ).first()
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == subscription.plan_id).first()
+    amount = request.amount or (float(plan.price) if plan else 0.0)
+
+    order_id = f"YUVGO_{_uuid.uuid4().hex[:12].upper()}"
+
+    payment = Payment(
+        user_id=user_id,
+        subscription_id=subscription.id,
+        amount=amount,
+        currency="UZS",
+        provider="ipakyuli",
+        status="pending",
+        payment_metadata={"order_id": order_id}
+    )
+    db.add(payment)
+    db.commit()
+    db.refresh(payment)
+
+    return {
+        "success": True,
+        "payment_id": str(payment.id),
+        "order_id": order_id,
+        "amount": amount,
+    }
+
+
+@router.post("/payments/update-transfer")
+async def mobile_update_transfer(
+    request: UpdateTransferRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Save IpakYuli transfer_id to payment record"""
+    payment = db.query(Payment).filter(Payment.id == request.payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    payment.transaction_id = request.transfer_id
+    meta = payment.payment_metadata or {}
+    meta["transfer_id"] = request.transfer_id
+    payment.payment_metadata = meta
+    db.commit()
+
+    return {"success": True}
+
+
+@router.post("/payments/confirm-success")
+async def mobile_confirm_payment_success(
+    request: ConfirmSuccessRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Mark payment as completed and activate subscription"""
+    payment = db.query(Payment).filter(Payment.id == request.payment_id).first()
+    if not payment:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    payment.status = "completed"
+    payment.transaction_id = request.transfer_id
+    db.commit()
+
+    # Activate subscription
+    subscription = db.query(Subscription).filter(
+        Subscription.id == payment.subscription_id
+    ).first()
+    if subscription and subscription.status != "active":
+        subscription.status = "active"
+        db.commit()
+
+    return {"success": True, "subscription_status": "active"}
+
+
+@router.get("/payments/success")
+async def mobile_payment_success(
+    payment_id: str,
+    db: Session = Depends(get_db)
+):
+    """IpakYuli success redirect URL — activates subscription"""
+    payment = db.query(Payment).filter(Payment.id == payment_id).first()
+    if payment:
+        payment.status = "completed"
+        db.commit()
+        subscription = db.query(Subscription).filter(
+            Subscription.id == payment.subscription_id
+        ).first()
+        if subscription:
+            subscription.status = "active"
+            db.commit()
+
+    return {"success": True, "message": "Payment successful, subscription activated"}
+
+
+@router.get("/payments/status/{transfer_id}")
+async def mobile_payment_status(
+    transfer_id: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Check payment status from local DB"""
+    payment = db.query(Payment).filter(
+        Payment.transaction_id == transfer_id
+    ).first()
+    if not payment:
+        return {"success": False, "status": "not_found"}
+    return {
+        "success": True,
+        "status": payment.status,
+        "payment_id": str(payment.id),
+        "amount": float(payment.amount) if payment.amount else 0,
+    }
+
+
+@router.post("/payments/webhook/ipakyuli")
+async def ipakyuli_webhook(
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    """IpakYuli webhook — auto-activates subscription on payment success"""
+    try:
+        data = await request.json()
+        print(f"📩 IpakYuli webhook: {data}")
+        transfer_id = data.get("transactionId") or data.get("transfer_id")
+        order_id = data.get("orderId") or data.get("order_id")
+        status = (data.get("status") or "").lower()
+
+        if not transfer_id:
+            return {"code": 0}
+
+        payment = db.query(Payment).filter(
+            Payment.transaction_id == transfer_id
+        ).first()
+
+        if not payment and order_id:
+            meta_match = db.query(Payment).all()
+            for p in meta_match:
+                if p.payment_metadata and p.payment_metadata.get("order_id") == order_id:
+                    payment = p
+                    break
+
+        if payment:
+            if status == "success":
+                payment.status = "completed"
+                payment.transaction_id = transfer_id
+                db.commit()
+                subscription = db.query(Subscription).filter(
+                    Subscription.id == payment.subscription_id
+                ).first()
+                if subscription:
+                    subscription.status = "active"
+                    db.commit()
+                    print(f"✅ Subscription {subscription.id} activated via webhook")
+            elif status in ["failed", "canceled", "expired"]:
+                payment.status = "failed"
+                db.commit()
+
+        return {"code": 0}
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        return {"code": 0}
+
+
 @router.get("/vehicles/all")
 async def get_all_vehicles(
     db: Session = Depends(get_db),
