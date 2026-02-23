@@ -20,6 +20,41 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="YuvGo Subscription Service", version="1.0.0")
 
+
+def _check_and_expire(subscription: Subscription, db: Session) -> Subscription:
+    """
+    Auto-expire a subscription if:
+      1. end_date has passed (time expired)
+      2. visits_remaining == 0 AND not unlimited (visits exhausted)
+    Saves to DB if status changed. Returns the updated subscription.
+    """
+    if subscription.status != "active":
+        return subscription
+
+    now = datetime.utcnow()
+    expired = False
+
+    # Condition 1: time expired
+    if subscription.end_date and subscription.end_date < now:
+        expired = True
+
+    # Condition 2: visits exhausted (non-unlimited)
+    if not subscription.is_unlimited:
+        remaining = subscription.visits_remaining or 0
+        if remaining <= 0:
+            expired = True
+
+    if expired:
+        subscription.status = "expired"
+        db.commit()
+        db.refresh(subscription)
+        print(f"⏰ Subscription {subscription.id} auto-expired: "
+              f"end_date={subscription.end_date}, "
+              f"visits_remaining={subscription.visits_remaining}, "
+              f"is_unlimited={subscription.is_unlimited}")
+
+    return subscription
+
 @app.get("/")
 async def root():
     return {"service": "YuvGo Subscription Service", "version": "1.0.0"}
@@ -27,6 +62,25 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+# Stats endpoint — must be before /subscriptions/* routes to avoid conflicts
+@app.get("/stats")
+async def get_subscription_stats(db: Session = Depends(get_db)):
+    """Return aggregated subscription stats - no limit needed"""
+    from sqlalchemy import func
+    total = db.query(func.count(Subscription.id)).scalar() or 0
+    active = db.query(func.count(Subscription.id)).filter(Subscription.status == 'active').scalar() or 0
+    expired = db.query(func.count(Subscription.id)).filter(Subscription.status == 'expired').scalar() or 0
+    pending = db.query(func.count(Subscription.id)).filter(Subscription.status == 'pending').scalar() or 0
+    cancelled = db.query(func.count(Subscription.id)).filter(Subscription.status == 'cancelled').scalar() or 0
+    return {
+        "total": total,
+        "active": active,
+        "expired": expired,
+        "pending": pending,
+        "cancelled": cancelled,
+    }
+
 
 # Subscription Plans
 @app.get("/plans", response_model=List[SubscriptionPlanResponse])
@@ -109,7 +163,15 @@ async def create_subscription(
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    # Check if user already has active subscription
+    # Auto-expire any active subscriptions that have run out before blocking new purchase
+    active_subs = db.query(Subscription).filter(
+        Subscription.user_id == user_id,
+        Subscription.status == "active"
+    ).all()
+    for sub in active_subs:
+        _check_and_expire(sub, db)
+
+    # Now check if user still has a genuinely active subscription
     existing = db.query(Subscription).filter(
         Subscription.user_id == user_id,
         Subscription.status == "active"
@@ -150,18 +212,26 @@ async def get_subscription_status(
     db: Session = Depends(get_db),
     current_user = Depends(AuthHandler.get_current_user)
 ):
-    """Get user's current subscription status"""
+    """Get user's current subscription status — auto-expires if time or visits exhausted"""
     user_id = current_user.get("sub")
-    
-    subscription = db.query(Subscription).filter(
+
+    # Check all active subscriptions for this user and auto-expire if needed
+    active_subs = db.query(Subscription).filter(
         Subscription.user_id == user_id,
         Subscription.status == "active"
-    ).first()
-    
-    if not subscription:
+    ).all()
+
+    valid = None
+    for sub in active_subs:
+        sub = _check_and_expire(sub, db)
+        if sub.status == "active":
+            valid = sub
+            break
+
+    if not valid:
         raise HTTPException(status_code=404, detail="No active subscription found")
-    
-    return subscription
+
+    return valid
 
 @app.post("/subscriptions/{subscription_id}/cancel")
 async def cancel_subscription(
@@ -402,6 +472,34 @@ async def delete_subscription(subscription_id: str, db: Session = Depends(get_db
     db.delete(subscription)
     db.commit()
     return {"message": "Subscription deleted successfully"}
+
+
+
+@app.post("/subscriptions/expire-check")
+async def run_expiry_check(db: Session = Depends(get_db)):
+    """
+    Bulk check all active subscriptions and expire those that have:
+    - Passed their end_date
+    - Exhausted visits (non-unlimited)
+    Can be called by a cron job or admin.
+    """
+    active_subs = db.query(Subscription).filter(
+        Subscription.status == "active"
+    ).all()
+
+    expired_ids = []
+    for sub in active_subs:
+        before = sub.status
+        _check_and_expire(sub, db)
+        if sub.status == "expired":
+            expired_ids.append(str(sub.id))
+
+    return {
+        "checked": len(active_subs),
+        "expired": len(expired_ids),
+        "expired_ids": expired_ids
+    }
+
 
 if __name__ == "__main__":
     import uvicorn

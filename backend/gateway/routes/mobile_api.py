@@ -24,6 +24,23 @@ get_current_user = AuthHandler.get_current_user
 router = APIRouter(tags=["Mobile App"])
 
 
+def _check_and_expire(subscription: Subscription, db: Session) -> Subscription:
+    """Auto-expire subscription if end_date passed OR visits exhausted."""
+    if subscription.status != "active":
+        return subscription
+    expired = False
+    if subscription.end_date and subscription.end_date < datetime.utcnow():
+        expired = True
+    if not subscription.is_unlimited and (subscription.visits_remaining or 0) <= 0:
+        expired = True
+    if expired:
+        subscription.status = "expired"
+        db.commit()
+        db.refresh(subscription)
+    return subscription
+
+
+
 def _get_partner_rating(db: Session, partner_id, location_id=None) -> dict:
     """Get real average rating and review count from reviews table.
     If location_id is provided, returns rating for that specific branch."""
@@ -552,12 +569,18 @@ async def get_active_subscription(
     
     user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
     
-    subscription = db.query(Subscription).filter(
+    # Check all active subs and auto-expire if time/visits exhausted
+    active_subs = db.query(Subscription).filter(
         Subscription.user_id == user_id,
-        Subscription.status == "active",
-        Subscription.end_date > datetime.utcnow()
-    ).first()
-    
+        Subscription.status == "active"
+    ).all()
+    subscription = None
+    for sub in active_subs:
+        sub = _check_and_expire(sub, db)
+        if sub.status == "active":
+            subscription = sub
+            break
+
     if not subscription:
         return {
             "success": True,
@@ -665,13 +688,20 @@ async def create_subscription(
     
     user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
     
-    # Check if user already has active subscription
+    # Auto-expire any exhausted/timed-out subscriptions before checking
+    stale_subs = db.query(Subscription).filter(
+        Subscription.user_id == user_id,
+        Subscription.status == "active"
+    ).all()
+    for sub in stale_subs:
+        _check_and_expire(sub, db)
+
+    # Check if user still has a genuinely active subscription
     existing = db.query(Subscription).filter(
         Subscription.user_id == user_id,
-        Subscription.status == "active",
-        Subscription.end_date > datetime.utcnow()
+        Subscription.status == "active"
     ).first()
-    
+
     if existing:
         # Return existing active subscription instead of blocking
         return {
@@ -815,10 +845,13 @@ async def qr_checkin(
     # Update subscription counters
     subscription.visits_used = (subscription.visits_used or 0) + 1
     if not subscription.is_unlimited and subscription.visits_remaining is not None:
-        subscription.visits_remaining -= 1
-    
+        subscription.visits_remaining = max(0, subscription.visits_remaining - 1)
+
     db.commit()
     db.refresh(visit)
+
+    # Auto-expire subscription if visits just ran out
+    _check_and_expire(subscription, db)
     
     plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == subscription.plan_id).first()
     
