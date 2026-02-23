@@ -108,10 +108,11 @@ async def get_nearby_car_washes(
         if distance > radius_km:
             continue
         
+        p_banner = getattr(partner, 'logo_url', None) or ''
         gallery = []
         try:
             if partner.gallery_urls:
-                gallery = list(partner.gallery_urls)
+                gallery = [u for u in list(partner.gallery_urls) if u != p_banner]
         except Exception:
             pass
         rv = _get_partner_rating(db, partner.id)
@@ -126,10 +127,10 @@ async def get_nearby_car_washes(
             "review_count": rv["review_count"],
             "is_open": is_currently_open(partner),
             "images": gallery,
-            "image_url": getattr(partner, 'logo_url', None) or '',
-            "logo_url": getattr(partner, 'logo_url', None) or '',
+            "image_url": p_banner,
+            "logo_url": p_banner,
             "gallery_urls": gallery,
-            "banner_url": getattr(partner, 'logo_url', None) or '',
+            "banner_url": p_banner,
             "amenities": partner.amenities if partner.amenities else [],
             "additional_services": partner.additional_services if partner.additional_services else [],
             "phone_number": partner.phone or partner.phone_number or "",
@@ -158,19 +159,21 @@ async def get_nearby_car_washes(
         partner = db.query(Partner).filter(Partner.id == loc.partner_id).first()
         if not partner or not partner.is_active:
             continue
-        # Build gallery
-        gallery = []
-        try:
-            if loc.gallery_urls:
-                gallery = list(loc.gallery_urls)
-            elif partner.gallery_urls:
-                gallery = list(partner.gallery_urls)
-        except Exception:
-            pass
         # Build banner
         banner = ''
         try:
             banner = loc.banner_url or getattr(partner, 'logo_url', '') or ''
+        except Exception:
+            pass
+        # Build gallery — exclude banner so Flutter slider always shows banner first
+        gallery = []
+        try:
+            raw_gallery = []
+            if loc.gallery_urls:
+                raw_gallery = list(loc.gallery_urls)
+            elif partner.gallery_urls:
+                raw_gallery = list(partner.gallery_urls)
+            gallery = [u for u in raw_gallery if u != banner]
         except Exception:
             pass
         # Working hours: prefer location, fallback to partner
