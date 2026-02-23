@@ -299,7 +299,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     final workingHours = p['working_hours'];
     final lat = p['latitude'];
     final lng = p['longitude'];
-    final imageUrl = (p['image_url'] ?? p['photo_url'] ?? p['logo_url'] ?? '').toString();
+    final imageUrl = (p['banner_url'] ?? p['image_url'] ?? p['photo_url'] ?? p['logo_url'] ?? '').toString();
     List<String> galleryUrls = [];
     try {
       final gu = p['gallery_urls'] ?? p['images'];
@@ -307,7 +307,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     } catch (_) {}
     final allImages = <String>[];
     final seenUrls = <String>{};
-    for (final u in [...galleryUrls, imageUrl]) {
+    for (final u in [imageUrl, ...galleryUrls]) {
       final url = u.toString().trim();
       if (url.isNotEmpty && url.startsWith('http') && seenUrls.add(url)) {
         allImages.add(url);

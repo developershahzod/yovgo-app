@@ -330,12 +330,16 @@ const Branches = () => {
             {/* Branch Banner */}
             <div className="relative h-40 bg-gradient-to-br from-emerald-400 to-emerald-600 overflow-hidden">
               {branch.banner_url ? (
-                <img src={branch.banner_url} alt={branch.name} className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Building2 size={48} className="text-white/40" />
-                </div>
-              )}
+                <img
+                  src={branch.banner_url}
+                  alt={branch.name}
+                  className="w-full h-full object-cover"
+                  onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling && (e.target.nextSibling.style.display = 'flex'); }}
+                />
+              ) : null}
+              <div className="w-full h-full flex items-center justify-center" style={{display: branch.banner_url ? 'none' : 'flex'}}>
+                <Building2 size={48} className="text-white/40" />
+              </div>
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
               <div className="absolute bottom-3 left-4 right-4">
                 <h3 className="text-lg font-bold text-white">{branch.name}</h3>
@@ -398,7 +402,7 @@ const Branches = () => {
                   <div className="flex gap-1.5 overflow-hidden rounded-lg">
                     {branch.gallery_urls.slice(0, 3).map((url, idx) => (
                       <div key={idx} className="w-16 h-16 rounded-md overflow-hidden bg-gray-100 flex-shrink-0">
-                        <img src={url} alt="" className="w-full h-full object-cover" />
+                        <img src={url} alt="" className="w-full h-full object-cover" onError={(e) => { e.target.style.display='none'; }} />
                       </div>
                     ))}
                     {branch.gallery_urls.length > 3 && (
