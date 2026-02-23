@@ -44,11 +44,18 @@ def _check_and_expire(subscription: Subscription, db: Session) -> Subscription:
 
 def _get_partner_rating(db: Session, partner_id, location_id=None) -> dict:
     """Get real average rating and review count from reviews table.
-    If location_id is provided, returns rating for that specific branch."""
+    If location_id is provided, tries branch-specific reviews first,
+    then falls back to all partner reviews if none found."""
     from sqlalchemy import func as sqlfunc
-    filters = [Review.partner_id == partner_id, Review.is_visible == True]
+    # Try branch-specific reviews first
     if location_id:
-        filters.append(Review.location_id == location_id)
+        filters = [Review.partner_id == partner_id, Review.is_visible == True, Review.location_id == location_id]
+        avg = db.query(sqlfunc.avg(Review.rating)).filter(*filters).scalar()
+        count = db.query(sqlfunc.count(Review.id)).filter(*filters).scalar() or 0
+        if count > 0:
+            return {"rating": round(float(avg), 1), "review_count": count}
+    # Fall back to all partner reviews (location_id=None or any)
+    filters = [Review.partner_id == partner_id, Review.is_visible == True]
     avg = db.query(sqlfunc.avg(Review.rating)).filter(*filters).scalar()
     count = db.query(sqlfunc.count(Review.id)).filter(*filters).scalar() or 0
     return {
@@ -1049,12 +1056,16 @@ async def get_partner_reviews(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    """Get reviews for a car wash. If location_id provided, show only that branch's reviews."""
+    """Get reviews for a car wash. If location_id provided, tries branch reviews first,
+    then falls back to all partner reviews if none found."""
     from sqlalchemy import func as sqlfunc
 
     base_filter = [Review.partner_id == partner_id, Review.is_visible == True]
     if location_id:
-        base_filter.append(Review.location_id == location_id)
+        branch_filter = base_filter + [Review.location_id == location_id]
+        branch_count = db.query(sqlfunc.count(Review.id)).filter(*branch_filter).scalar() or 0
+        if branch_count > 0:
+            base_filter = branch_filter
 
     reviews = (
         db.query(Review)
@@ -1065,13 +1076,8 @@ async def get_partner_reviews(
         .all()
     )
 
-    total = db.query(sqlfunc.count(Review.id)).filter(
-        *base_filter
-    ).scalar() or 0
-
-    avg_rating = db.query(sqlfunc.avg(Review.rating)).filter(
-        *base_filter
-    ).scalar()
+    total = db.query(sqlfunc.count(Review.id)).filter(*base_filter).scalar() or 0
+    avg_rating = db.query(sqlfunc.avg(Review.rating)).filter(*base_filter).scalar()
 
     # Rating distribution
     dist = {}
