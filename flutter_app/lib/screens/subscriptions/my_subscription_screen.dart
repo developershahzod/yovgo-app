@@ -12,7 +12,7 @@ class MySubscriptionScreen extends StatefulWidget {
   State<MySubscriptionScreen> createState() => _MySubscriptionScreenState();
 }
 
-class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
+class _MySubscriptionScreenState extends State<MySubscriptionScreen> with WidgetsBindingObserver {
   // null = guest, 'active', 'expired'
   String? _status;
   String _planName = '';
@@ -28,9 +28,23 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _loadSubscription();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      _loadSubscription();
+    }
   }
 
   void refreshData() {

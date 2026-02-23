@@ -3,6 +3,7 @@ Mobile API Routes for Flutter App
 New endpoints specifically designed for the redesigned mobile app
 """
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List, Optional
@@ -517,146 +518,125 @@ async def get_car_wash_detail(
 
 @router.get("/subscriptions/plans")
 async def get_subscription_plans(
-    db: Session = Depends(get_db),
+    request: Request,
 ):
-    """Get all available subscription plans"""
-    
-    plans = db.query(SubscriptionPlan).filter(SubscriptionPlan.is_active == True).all()
-    
-    result = []
-    for plan in plans:
-        result.append({
-            "id": str(plan.id),
-            "name": plan.name or "",
-            "name_ru": plan.name_ru or plan.name or "",
-            "name_en": plan.name_en or plan.name or "",
-            "description": plan.description or "",
-            "description_ru": plan.description_ru or plan.description or "",
-            "description_en": plan.description_en or plan.description or "",
-            "price": float(plan.price),
-            "currency": plan.currency or "UZS",
-            "duration_days": plan.duration_days,
-            "visit_limit": plan.visit_limit,
-            "is_unlimited": plan.is_unlimited or False,
-            "features": [
-                f"{plan.visit_limit} ta tashrif" if plan.visit_limit else "Cheksiz tashrif",
-                "Barcha hamkor avtomoykalar",
-                "24/7 qo'llab-quvvatlash",
-                "Chegirmalar va bonuslar"
-            ],
-            "is_popular": "premium" in plan.name.lower() or "90" in str(plan.duration_days),
-            "discount": None,
-        })
-    
-    return {
-        "success": True,
-        "plans": result,
-        "count": len(result)
-    }
+    """Get all available subscription plans — proxied to subscription service"""
+    import httpx, os
+    sub_url = os.getenv("SUBSCRIPTION_SERVICE_URL", "http://subscription_service:8002")
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.get(f"{sub_url}/plans", params=dict(request.query_params))
+            raw = resp.json()
+            plans = raw if isinstance(raw, list) else raw.get("plans", [])
+            result = []
+            for p in plans:
+                if not p.get("is_active", True):
+                    continue
+                visit_limit = p.get("visit_limit")
+                duration = p.get("duration_days", 30)
+                result.append({
+                    "id": p.get("id", ""),
+                    "name": p.get("name", ""),
+                    "name_ru": p.get("name_ru") or p.get("name", ""),
+                    "name_en": p.get("name_en") or p.get("name", ""),
+                    "description": p.get("description", ""),
+                    "description_ru": p.get("description_ru") or p.get("description", ""),
+                    "description_en": p.get("description_en") or p.get("description", ""),
+                    "price": float(p.get("price", 0)),
+                    "currency": p.get("currency", "UZS"),
+                    "duration_days": duration,
+                    "visit_limit": visit_limit,
+                    "is_unlimited": p.get("is_unlimited", False),
+                    "features": [
+                        f"{visit_limit} ta tashrif" if visit_limit else "Cheksiz tashrif",
+                        "Barcha hamkor avtomoykalar",
+                        "24/7 qo'llab-quvvatlash",
+                        "Chegirmalar va bonuslar",
+                    ],
+                    "is_popular": duration >= 90,
+                    "discount": None,
+                })
+            return JSONResponse(content={"success": True, "plans": result, "count": len(result)}, status_code=200)
+        except Exception as e:
+            raise HTTPException(status_code=503, detail=f"Subscription service unavailable: {e}")
 
 
 @router.get("/subscriptions/active")
 async def get_active_subscription(
-    db: Session = Depends(get_db),
+    request: Request,
     current_user: User = Depends(get_current_user)
 ):
-    """Get user's active subscription"""
-    
-    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
-    
-    # Check all active subs and auto-expire if time/visits exhausted
-    active_subs = db.query(Subscription).filter(
-        Subscription.user_id == user_id,
-        Subscription.status == "active"
-    ).all()
-    subscription = None
-    for sub in active_subs:
-        sub = _check_and_expire(sub, db)
-        if sub.status == "active":
-            subscription = sub
-            break
-
-    if not subscription:
-        return {
-            "success": True,
-            "subscription": None
-        }
-    
-    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == subscription.plan_id).first()
-    
-    # Calculate days remaining
-    days_remaining = (subscription.end_date - datetime.utcnow()).days
-    if days_remaining < 0:
-        days_remaining = 0
-    
-    # Count actual visits from visits table
-    actual_visits = db.query(Visit).filter(
-        Visit.user_id == user_id,
-        Visit.created_at >= subscription.start_date
-    ).count()
-    
-    used = max(subscription.visits_used or 0, actual_visits)
-    saved_amount = used * 15000
-    
-    return {
-        "success": True,
-        "subscription": {
-            "id": str(subscription.id),
-            "plan_id": str(subscription.plan_id),
-            "plan_name": plan.name if plan else "Unknown",
-            "plan_name_ru": (plan.name_ru or plan.name) if plan else "Unknown",
-            "plan_name_en": (plan.name_en or plan.name) if plan else "Unknown",
-            "duration_days": plan.duration_days if plan else 30,
-            "start_date": subscription.start_date.isoformat(),
-            "end_date": subscription.end_date.isoformat(),
-            "days_remaining": days_remaining,
-            "total_visits": plan.visit_limit if plan else 0,
-            "used_visits": used,
-            "remaining_visits": subscription.visits_remaining or 0,
-            "is_unlimited": subscription.is_unlimited or False,
-            "is_active": subscription.status == "active",
-            "status": subscription.status,
-            "saved_amount": saved_amount,
-        }
-    }
+    """Get user's active subscription — proxied to subscription service"""
+    import httpx, os
+    sub_url = os.getenv("SUBSCRIPTION_SERVICE_URL", "http://subscription_service:8002")
+    headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host",)}
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.get(f"{sub_url}/subscriptions/status", headers=headers)
+            if resp.status_code == 404:
+                return JSONResponse(content={"success": True, "subscription": None}, status_code=200)
+            data = resp.json()
+            # Normalize to expected Flutter format
+            if isinstance(data, dict) and "id" in data:
+                plan_id = data.get("plan_id", "")
+                # Fetch plan details for name translations
+                plan_resp = await client.get(f"{sub_url}/plans/{plan_id}")
+                plan = plan_resp.json() if plan_resp.status_code == 200 else {}
+                end_date = data.get("end_date", "")
+                days_remaining = 0
+                if end_date:
+                    try:
+                        from datetime import datetime as _dt
+                        days_remaining = (_dt.fromisoformat(end_date.replace("Z","+00:00").replace("+00:00","")) - _dt.utcnow()).days
+                        if days_remaining < 0: days_remaining = 0
+                    except Exception: pass
+                used = data.get("visits_used", 0) or 0
+                return JSONResponse(content={
+                    "success": True,
+                    "subscription": {
+                        "id": data.get("id", ""),
+                        "plan_id": plan_id,
+                        "plan_name": plan.get("name", data.get("plan_name", "")),
+                        "plan_name_ru": plan.get("name_ru") or plan.get("name", ""),
+                        "plan_name_en": plan.get("name_en") or plan.get("name", ""),
+                        "duration_days": plan.get("duration_days", 30),
+                        "start_date": data.get("start_date", ""),
+                        "end_date": end_date,
+                        "days_remaining": days_remaining,
+                        "total_visits": plan.get("visit_limit", 0),
+                        "used_visits": used,
+                        "remaining_visits": data.get("visits_remaining", 0) or 0,
+                        "is_unlimited": data.get("is_unlimited", False),
+                        "is_active": data.get("status") == "active",
+                        "status": data.get("status", ""),
+                        "saved_amount": used * 15000,
+                    }
+                }, status_code=200)
+            return JSONResponse(content={"success": True, "subscription": None}, status_code=200)
+        except Exception as e:
+            raise HTTPException(status_code=503, detail=f"Subscription service unavailable: {e}")
 
 
 @router.get("/subscriptions/my")
 async def get_my_subscriptions(
-    db: Session = Depends(get_db),
+    request: Request,
     current_user: User = Depends(get_current_user)
 ):
-    """Get all user subscriptions"""
-    
-    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
-    
-    subscriptions = db.query(Subscription).filter(
-        Subscription.user_id == user_id
-    ).order_by(Subscription.created_at.desc()).all()
-    
-    result = []
-    for subscription in subscriptions:
-        plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == subscription.plan_id).first()
-        
-        result.append({
-            "id": str(subscription.id),
-            "plan_id": str(subscription.plan_id),
-            "plan_name": plan.name if plan else "Unknown",
-            "start_date": subscription.start_date.isoformat(),
-            "end_date": subscription.end_date.isoformat(),
-            "total_visits": plan.visit_limit if plan else 0,
-            "used_visits": subscription.visits_used or 0,
-            "remaining_visits": subscription.visits_remaining or 0,
-            "is_unlimited": subscription.is_unlimited or False,
-            "is_active": subscription.status == "active",
-            "status": subscription.status,
-        })
-    
-    return {
-        "success": True,
-        "subscriptions": result,
-        "count": len(result)
-    }
+    """Get all user subscriptions — proxied to subscription service"""
+    import httpx, os
+    sub_url = os.getenv("SUBSCRIPTION_SERVICE_URL", "http://subscription_service:8002")
+    headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host",)}
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            user_id = current_user.get("sub") if isinstance(current_user, dict) else str(current_user.id)
+            resp = await client.get(f"{sub_url}/subscriptions/by-user/{user_id}", headers=headers)
+            if resp.status_code == 200:
+                data = resp.json()
+                subs = data if isinstance(data, list) else data.get("subscriptions", [])
+                return JSONResponse(content={"success": True, "subscriptions": subs, "count": len(subs)}, status_code=200)
+            return JSONResponse(content={"success": True, "subscriptions": [], "count": 0}, status_code=200)
+        except Exception as e:
+            raise HTTPException(status_code=503, detail=f"Subscription service unavailable: {e}")
 
 
 class CreateSubscriptionRequest(BaseModel):
@@ -665,71 +645,31 @@ class CreateSubscriptionRequest(BaseModel):
 
 @router.post("/subscriptions/create")
 async def create_subscription(
-    request: CreateSubscriptionRequest,
-    db: Session = Depends(get_db),
+    body: CreateSubscriptionRequest,
+    raw_request: Request,
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new subscription"""
-    plan_id = request.plan_id
-    
-    # Validate plan_id is a valid UUID
-    import uuid as _uuid
-    try:
-        _uuid.UUID(plan_id)
-    except (ValueError, AttributeError):
-        raise HTTPException(status_code=400, detail="Noto'g'ri tarif ID formati")
-    
-    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == plan_id).first()
-    if not plan:
-        raise HTTPException(status_code=404, detail="Plan not found")
-    
-    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
-    
-    # Auto-expire any exhausted/timed-out subscriptions before checking
-    stale_subs = db.query(Subscription).filter(
-        Subscription.user_id == user_id,
-        Subscription.status == "active"
-    ).all()
-    for sub in stale_subs:
-        _check_and_expire(sub, db)
-
-    # Check if user still has a genuinely active subscription
-    existing = db.query(Subscription).filter(
-        Subscription.user_id == user_id,
-        Subscription.status == "active"
-    ).first()
-
-    if existing:
-        # Return existing active subscription instead of blocking
-        return {
-            "success": True,
-            "message": "Active subscription found",
-            "subscription_id": str(existing.id),
-            "already_active": True
-        }
-    
-    # Create new subscription
-    subscription = Subscription(
-        user_id=user_id,
-        plan_id=plan_id,
-        start_date=datetime.utcnow(),
-        end_date=datetime.utcnow() + timedelta(days=plan.duration_days),
-        status="pending",
-        visits_used=0,
-        visits_remaining=plan.visit_limit or 0,
-        is_unlimited=plan.is_unlimited if hasattr(plan, 'is_unlimited') else False,
-        auto_renew=False
-    )
-    
-    db.add(subscription)
-    db.commit()
-    db.refresh(subscription)
-    
-    return {
-        "success": True,
-        "message": "Subscription created successfully",
-        "subscription_id": str(subscription.id)
-    }
+    """Create a new subscription — proxied to subscription service"""
+    import httpx, os
+    sub_url = os.getenv("SUBSCRIPTION_SERVICE_URL", "http://subscription_service:8002")
+    headers = {k: v for k, v in raw_request.headers.items() if k.lower() not in ("host",)}
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        try:
+            resp = await client.post(
+                f"{sub_url}/subscriptions",
+                headers=headers,
+                json=body.dict()
+            )
+            data = resp.json()
+            if resp.status_code in (200, 201):
+                return JSONResponse(content={
+                    "success": True,
+                    "message": "Subscription created successfully",
+                    "subscription_id": data.get("id", ""),
+                }, status_code=200)
+            return JSONResponse(content=data, status_code=resp.status_code)
+        except Exception as e:
+            raise HTTPException(status_code=503, detail=f"Subscription service unavailable: {e}")
 
 
 # ==================== QR & VISIT ENDPOINTS ====================
