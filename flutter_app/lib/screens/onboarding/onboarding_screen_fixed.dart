@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../config/app_theme.dart';
+import '../../l10n/language_provider.dart';
 
 class OnboardingScreenFixed extends StatefulWidget {
   const OnboardingScreenFixed({Key? key}) : super(key: key);
@@ -35,6 +37,24 @@ class _OnboardingScreenFixedState extends State<OnboardingScreenFixed> {
           'description': 'Используя подписку, тратьте меньше на мойку автомобиля и регулярно экономьте деньги',
         },
       ];
+    } else if (_selectedLanguage == 'en') {
+      return [
+        {
+          'icon': Icons.workspace_premium,
+          'title': 'Premium Car Washes',
+          'description': 'High-quality car wash services with careful attention to your vehicle.',
+        },
+        {
+          'icon': Icons.qr_code_scanner,
+          'title': 'Fast & Easy Management',
+          'description': 'Scan the QR code and manage your car wash process quickly and easily.',
+        },
+        {
+          'icon': Icons.attach_money,
+          'title': 'Save Money With Us',
+          'description': 'Use a subscription to spend less on car washing and save money regularly.',
+        },
+      ];
     } else {
       return [
         {
@@ -56,12 +76,34 @@ class _OnboardingScreenFixedState extends State<OnboardingScreenFixed> {
     }
   }
 
-  String get _welcomeTitle => _selectedLanguage == 'ru' ? 'Добро пожаловать' : 'Xush kelibsiz';
-  String get _welcomeDescription => _selectedLanguage == 'ru'
-      ? 'YuvGO позволяет быстро и удобно управлять услугами автомойки.'
-      : 'YuvGO avtomobil yuvish xizmatlarini tez va qulay tarzda boshqarish imkonini beradi.';
-  String get _buttonText => _selectedLanguage == 'ru' ? 'Начинать' : 'Boshlash';
-  String get _languageText => _selectedLanguage == 'ru' ? 'Русский' : 'O\'zbekcha';
+  String get _welcomeTitle {
+    switch (_selectedLanguage) {
+      case 'ru': return 'Добро пожаловать';
+      case 'en': return 'Welcome';
+      default: return 'Xush kelibsiz';
+    }
+  }
+  String get _welcomeDescription {
+    switch (_selectedLanguage) {
+      case 'ru': return 'YuvGO позволяет быстро и удобно управлять услугами автомойки.';
+      case 'en': return 'YuvGO lets you quickly and easily manage car wash services.';
+      default: return 'YuvGO avtomobil yuvish xizmatlarini tez va qulay tarzda boshqarish imkonini beradi.';
+    }
+  }
+  String get _buttonText {
+    switch (_selectedLanguage) {
+      case 'ru': return 'Начать';
+      case 'en': return 'Get Started';
+      default: return 'Boshlash';
+    }
+  }
+  String get _languageText {
+    switch (_selectedLanguage) {
+      case 'ru': return 'Русский';
+      case 'en': return 'English';
+      default: return 'O\'zbekcha';
+    }
+  }
 
   @override
   void dispose() {
@@ -116,7 +158,9 @@ class _OnboardingScreenFixedState extends State<OnboardingScreenFixed> {
                                 ),
                                 child: _selectedLanguage == 'ru'
                                     ? _buildRussianFlag()
-                                    : _buildUzbekFlag(),
+                                    : _selectedLanguage == 'en'
+                                        ? _buildEnglishFlag()
+                                        : _buildUzbekFlag(),
                               ),
                               const SizedBox(width: 8),
                               Text(
@@ -228,6 +272,8 @@ class _OnboardingScreenFixedState extends State<OnboardingScreenFixed> {
                           final prefs = await SharedPreferences.getInstance();
                           await prefs.setBool('onboarding_completed', true);
                           if (context.mounted) {
+                            Provider.of<LanguageProvider>(context, listen: false)
+                                .setLanguage(_selectedLanguage);
                             Navigator.of(context).pushReplacementNamed('/login');
                           }
                         },
@@ -273,9 +319,11 @@ class _OnboardingScreenFixedState extends State<OnboardingScreenFixed> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          _buildLanguageOption('uz', 'O\'zbekcha', _buildUzbekFlag()),
+                          Divider(height: 1, color: Colors.grey[200]),
                           _buildLanguageOption('ru', 'Русский', _buildRussianFlag()),
                           Divider(height: 1, color: Colors.grey[200]),
-                          _buildLanguageOption('uz', 'O\'zbekcha', _buildUzbekFlag()),
+                          _buildLanguageOption('en', 'English', _buildEnglishFlag()),
                         ],
                       ),
                     ),
@@ -329,6 +377,16 @@ class _OnboardingScreenFixedState extends State<OnboardingScreenFixed> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildEnglishFlag() {
+    return Column(
+      children: [
+        Expanded(flex: 1, child: Container(color: const Color(0xFF012169))),
+        Expanded(flex: 1, child: Container(color: Colors.white)),
+        Expanded(flex: 1, child: Container(color: const Color(0xFFC8102E))),
+      ],
     );
   }
 

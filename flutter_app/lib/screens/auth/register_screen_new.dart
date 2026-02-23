@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
@@ -132,6 +133,12 @@ class _RegisterScreenNewState extends State<RegisterScreenNew> {
 
   @override
   Widget build(BuildContext context) {
+    return Consumer<LanguageProvider>(
+      builder: (context, _, __) => _buildScaffold(context),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     final canGoBack = Navigator.of(context).canPop();
     return Scaffold(
       backgroundColor: Colors.white,
