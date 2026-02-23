@@ -32,7 +32,7 @@ const Subscriptions = () => {
   const [showSubModal, setShowSubModal] = useState(false);
   const [editingSub, setEditingSub] = useState(null);
   const [subForm, setSubForm] = useState({ status: '', plan_id: '', end_date: '', visits_used: 0, visits_remaining: 0, is_unlimited: false, auto_renew: false });
-  const [planForm, setPlanForm] = useState({ name: '', description: '', price: '', currency: 'UZS', duration_days: '', visit_limit: '', is_unlimited: false, is_active: true });
+  const [planForm, setPlanForm] = useState({ name: '', name_ru: '', name_en: '', description: '', description_ru: '', description_en: '', price: '', currency: 'UZS', duration_days: '', visit_limit: '', is_unlimited: false, is_active: true });
   const [modalError, setModalError] = useState('');
   const [modalSuccess, setModalSuccess] = useState('');
 
@@ -41,8 +41,8 @@ const Subscriptions = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const plansResponse = await axios.get(`${API_URL}/api/subscription/plans`);
-      const plansData = plansResponse.data || [];
+      const plansResponse = await axios.get(`${API_URL}/api/mobile/subscriptions/plans`);
+      const plansData = plansResponse.data?.plans || plansResponse.data || [];
       setPlans(plansData);
 
       let subsData = [];
@@ -143,8 +143,8 @@ const Subscriptions = () => {
     return m[status] || m.pending;
   };
 
-  const handleCreatePlan = () => { setEditingPlan(null); setPlanForm({ name: '', description: '', price: '', currency: 'UZS', duration_days: '', visit_limit: '', is_unlimited: false, is_active: true }); setModalError(''); setModalSuccess(''); setShowPlanModal(true); };
-  const handleEditPlan = (plan) => { setEditingPlan(plan); setPlanForm({ name: plan.name, description: plan.description, price: plan.price, currency: plan.currency, duration_days: plan.duration_days, visit_limit: plan.visit_limit || '', is_unlimited: plan.is_unlimited, is_active: plan.is_active }); setModalError(''); setModalSuccess(''); setShowPlanModal(true); };
+  const handleCreatePlan = () => { setEditingPlan(null); setPlanForm({ name: '', name_ru: '', name_en: '', description: '', description_ru: '', description_en: '', price: '', currency: 'UZS', duration_days: '', visit_limit: '', is_unlimited: false, is_active: true }); setModalError(''); setModalSuccess(''); setShowPlanModal(true); };
+  const handleEditPlan = (plan) => { setEditingPlan(plan); setPlanForm({ name: plan.name || '', name_ru: plan.name_ru || '', name_en: plan.name_en || '', description: plan.description || '', description_ru: plan.description_ru || '', description_en: plan.description_en || '', price: plan.price, currency: plan.currency, duration_days: plan.duration_days, visit_limit: plan.visit_limit || '', is_unlimited: plan.is_unlimited, is_active: plan.is_active }); setModalError(''); setModalSuccess(''); setShowPlanModal(true); };
 
   const handleSavePlan = async (e) => {
     e.preventDefault();
@@ -203,8 +203,14 @@ const Subscriptions = () => {
                   <h3 className="font-semibold text-lg">{plan.name}</h3>
                   {plan.is_active ? <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">Faol</span> : <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">Nofaol</span>}
                 </div>
+                <div className="space-y-1 mb-2">
+                  {plan.name_ru && <p className="text-xs text-gray-500">🇷🇺 {plan.name_ru}</p>}
+                  {plan.name_en && <p className="text-xs text-gray-500">🇬🇧 {plan.name_en}</p>}
+                </div>
                 <p className="text-2xl font-bold text-primary mb-2">{Number(plan.price).toLocaleString()} {plan.currency}</p>
-                <p className="text-sm text-gray-600 mb-3">{plan.description}</p>
+                <p className="text-sm text-gray-600 mb-1">🇺🇿 {plan.description}</p>
+                {plan.description_ru && <p className="text-xs text-gray-500 mb-1">🇷🇺 {plan.description_ru}</p>}
+                {plan.description_en && <p className="text-xs text-gray-500 mb-3">🇬🇧 {plan.description_en}</p>}
                 <div className="space-y-1 text-sm text-gray-600">
                   <div className="flex items-center gap-2"><Calendar className="h-3 w-3" /><span>{plan.duration_days} kun</span></div>
                   <div className="flex items-center gap-2"><Users className="h-3 w-3" /><span>{plan.is_unlimited ? 'Cheksiz' : plan.visit_limit} tashrif</span></div>
@@ -370,11 +376,25 @@ const Subscriptions = () => {
             {modalError && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{modalError}</div>}
             {modalSuccess && <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-600">{modalSuccess}</div>}
             <form onSubmit={handleSavePlan} className="space-y-4">
+              {/* Names */}
+              <div className="border border-gray-200 rounded-lg p-3 space-y-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nomi (Name)</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div><label className="block text-xs font-medium text-gray-600 mb-1">🇺🇿 O'zbekcha *</label><input type="text" value={planForm.name} onChange={e => setPlanForm({...planForm, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" required placeholder="Oylik - 10" /></div>
+                  <div><label className="block text-xs font-medium text-gray-600 mb-1">🇷🇺 Ruscha</label><input type="text" value={planForm.name_ru} onChange={e => setPlanForm({...planForm, name_ru: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Месячный - 10" /></div>
+                  <div><label className="block text-xs font-medium text-gray-600 mb-1">🇬🇧 English</label><input type="text" value={planForm.name_en} onChange={e => setPlanForm({...planForm, name_en: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" placeholder="Monthly - 10" /></div>
+                </div>
+              </div>
+              {/* Descriptions */}
+              <div className="border border-gray-200 rounded-lg p-3 space-y-3">
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Tavsif (Description)</p>
+                <div><label className="block text-xs font-medium text-gray-600 mb-1">🇺🇿 O'zbekcha *</label><textarea value={planForm.description} onChange={e => setPlanForm({...planForm, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows="2" required placeholder="30 kunga 10 ta tashrif" /></div>
+                <div><label className="block text-xs font-medium text-gray-600 mb-1">🇷🇺 Ruscha</label><textarea value={planForm.description_ru} onChange={e => setPlanForm({...planForm, description_ru: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows="2" placeholder="10 посещений на 30 дней" /></div>
+                <div><label className="block text-xs font-medium text-gray-600 mb-1">🇬🇧 English</label><textarea value={planForm.description_en} onChange={e => setPlanForm({...planForm, description_en: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm" rows="2" placeholder="10 visits for 30 days" /></div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-gray-700 mb-1">Nomi *</label><input type="text" value={planForm.name} onChange={e => setPlanForm({...planForm, name: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" required /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Narxi (UZS) *</label><input type="number" value={planForm.price} onChange={e => setPlanForm({...planForm, price: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" required min="0" /></div>
               </div>
-              <div><label className="block text-sm font-medium text-gray-700 mb-1">Tavsif *</label><textarea value={planForm.description} onChange={e => setPlanForm({...planForm, description: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" rows="2" required /></div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Muddat (kun) *</label><input type="number" value={planForm.duration_days} onChange={e => setPlanForm({...planForm, duration_days: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" required min="1" /></div>
                 <div><label className="block text-sm font-medium text-gray-700 mb-1">Tashrif limiti</label><input type="number" value={planForm.visit_limit} onChange={e => setPlanForm({...planForm, visit_limit: e.target.value})} className="w-full px-3 py-2 border border-gray-300 rounded-lg" disabled={planForm.is_unlimited} min="1" /></div>

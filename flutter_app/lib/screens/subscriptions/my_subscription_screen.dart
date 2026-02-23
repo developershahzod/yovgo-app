@@ -54,9 +54,17 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
             } catch (_) {}
           }
           final usedVisits = sub['used_visits'] ?? sub['visits_used'] ?? 0;
+          final lang = Provider.of<LanguageProvider>(context, listen: false).languageCode;
           setState(() {
             _status = sub['status'];
-            String rawPlanName = sub['plan_name'] ?? '';
+            String rawPlanName;
+            if (lang == 'ru' && (sub['plan_name_ru'] ?? '').toString().isNotEmpty) {
+              rawPlanName = sub['plan_name_ru'];
+            } else if (lang == 'en' && (sub['plan_name_en'] ?? '').toString().isNotEmpty) {
+              rawPlanName = sub['plan_name_en'];
+            } else {
+              rawPlanName = sub['plan_name'] ?? '';
+            }
             if (rawPlanName.isEmpty) rawPlanName = '${sub['duration_days'] ?? 90}';
             _planName = rawPlanName;
             _daysLeft = sub['days_remaining'] ?? daysLeft;
