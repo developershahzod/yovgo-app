@@ -385,20 +385,25 @@ async def get_car_wash_detail(
             PartnerLocation.partner_id == partner.id,
         ).first()
 
-    # Gallery: prefer branch, fall back to partner
-    gallery = []
-    try:
-        if branch and branch.gallery_urls:
-            gallery = list(branch.gallery_urls)
-        elif partner.gallery_urls:
-            gallery = list(partner.gallery_urls)
-    except Exception:
-        pass
-
-    # Banner/logo
+    # Banner: prefer branch banner, fallback to partner logo
     banner = ''
     try:
         banner = (branch.banner_url if branch else None) or getattr(partner, 'logo_url', '') or ''
+    except Exception:
+        pass
+
+    # Gallery: prefer branch, fall back to partner — always exclude banner to avoid duplication
+    gallery = []
+    try:
+        raw_gallery = []
+        if branch and branch.gallery_urls:
+            raw_gallery = list(branch.gallery_urls)
+        elif partner.gallery_urls:
+            raw_gallery = list(partner.gallery_urls)
+        gallery = [u for u in raw_gallery if u != banner]
+        # If banner is still empty, use first gallery item as banner
+        if not banner and gallery:
+            banner = gallery.pop(0)
     except Exception:
         pass
 
@@ -501,6 +506,7 @@ async def get_car_wash_detail(
             "images": gallery,
             "image_url": banner,
             "logo_url": banner,
+            "banner_url": banner,
             "gallery_urls": gallery,
             "amenities": partner.amenities if partner.amenities else [],
             "additional_services": partner.additional_services if partner.additional_services else [],

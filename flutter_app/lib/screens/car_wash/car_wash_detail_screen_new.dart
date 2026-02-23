@@ -50,20 +50,38 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
         _fetchReviews(partner['id']?.toString());
         _checkSubscription();
 
-        // Only fetch localized description from the partner API and patch it in
+        // Fetch localized description + correct branch images from the partner API
         final partnerId = partner['id']?.toString();
+        final locationId = partner['location_id']?.toString();
         if (partnerId != null && partnerId.isNotEmpty) {
           try {
             String lang = 'uz';
             try { lang = context.read<LanguageProvider>().languageCode; } catch (_) {}
+            final qp = <String, String>{'lang': lang};
+            if (locationId != null && locationId.isNotEmpty) qp['location_id'] = locationId;
             final data = await FullApiService.get(
               '/api/mobile/car-washes/$partnerId',
-              queryParameters: {'lang': lang},
+              queryParameters: qp,
             );
             if (mounted && data.statusCode == 200) {
               final pd = data.data is Map ? data.data['partner'] ?? data.data : null;
-              if (pd != null && pd['description'] != null) {
-                setState(() { _partner = { ..._partner!, 'description': pd['description'] }; });
+              if (pd != null) {
+                final patch = <String, dynamic>{};
+                if (pd['description'] != null) patch['description'] = pd['description'];
+                // Use API banner/gallery only if current args are missing them
+                final curBanner = (_partner?['banner_url'] ?? _partner?['image_url'] ?? '').toString();
+                final apiBanner = (pd['banner_url'] ?? pd['image_url'] ?? '').toString();
+                if (curBanner.isEmpty && apiBanner.isNotEmpty) {
+                  patch['banner_url'] = apiBanner;
+                  patch['image_url'] = apiBanner;
+                }
+                final curGallery = _partner?['gallery_urls'];
+                final apiGallery = pd['gallery_urls'];
+                if ((curGallery == null || (curGallery is List && curGallery.isEmpty)) &&
+                    apiGallery is List && apiGallery.isNotEmpty) {
+                  patch['gallery_urls'] = apiGallery;
+                }
+                if (patch.isNotEmpty) setState(() { _partner = { ..._partner!, ...patch }; });
               }
             }
           } catch (_) {}
