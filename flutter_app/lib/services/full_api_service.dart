@@ -467,80 +467,26 @@ class FullApiService {
     }
   }
 
-  // IpakYuli Production constants
-  static const _ipakYuliUrl = 'https://ecom.ipakyulibank.uz/api/transfer';
-  static const _ipakYuliToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjYXNoYm94SWQiOiJlZmJlY2I5ZC02NzBlLTRlMTQtOGFmYi1jMzJmMjI0Y2ZiMDciLCJtZXJjaGFudElkIjoiMjM3NTBkYWEtODM1NS00MWIzLWJlOGYtZDllNzI3ODU0MzhmIiwiaWF0IjoxNzcxODQ0NDk4LCJleHAiOjE4MDM0MDIwOTh9.1re7ln4yC1iUaXXIhIUq_VXAUSTseryfTSE5yPLn8LI';
-
-  /// Call IpakYuli Production API directly from Flutter app
+  /// Create IpakYuli payment via backend (avoids mobile SSL/network issues)
   static Future<Map<String, dynamic>> createIpakYuliPaymentDirect({
     required String orderId,
     required int amount,
     required String paymentId,
   }) async {
-
-    final ipakDio = createIpakYuliDio();
-
-    final payload = {
-      'jsonrpc': '2.0',
-      'id': orderId,
-      'method': 'transfer.create_token',
-      'params': {
+    try {
+      final response = await _dio.post('/api/payment/ipakyuli/create-payment-direct', data: {
         'order_id': orderId,
         'amount': amount,
-        'details': {
-          'description': 'YuvGO obuna to\'lovi',
-          'ofdInfo': {
-            'Items': [
-              {
-                'Name': 'YuvGO Subscription',
-                'SPIC': '10305010001000000',
-                'PackageCode': '1344094',
-                'price': amount,
-                'count': 1,
-                'VATPercent': 0,
-                'Discount': 0,
-              }
-            ]
-          },
-        },
-        'success_url': 'https://app.yuvgo.uz/api/mobile/payments/success?payment_id=$paymentId',
-        'fail_url': 'https://app.yuvgo.uz/#/main',
-      },
-    };
-
-    try {
-      final response = await ipakDio.post(
-        _ipakYuliUrl,
-        data: payload,
-        options: Options(headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_ipakYuliToken',
-        }),
-      );
+        'payment_id': paymentId,
+      });
       final data = response.data;
-      print('[IpakYuli create] response: $data');
-      if (data['error'] != null) {
-        throw Exception(data['error']['message'] ?? 'IpakYuli xatolik');
-      }
-      final result = data['result'] ?? {};
-
-      // Save transfer_id to backend
-      try {
-        final transferId = result['transfer_id']?.toString();
-        if (transferId != null) {
-          await _dio.post('/api/mobile/payments/update-transfer', data: {
-            'payment_id': paymentId,
-            'transfer_id': transferId,
-          });
-        }
-      } catch (_) {}
-
+      print('[IpakYuli create via backend] response: $data');
       return {
-        'payment_url': result['payment_url'],
-        'transfer_id': result['transfer_id'],
+        'payment_url': data['payment_url'],
+        'transfer_id': data['transfer_id'],
       };
     } catch (e) {
-      print('IpakYuli direct call error: $e');
+      print('IpakYuli backend call error: $e');
       rethrow;
     }
   }
@@ -555,44 +501,19 @@ class FullApiService {
     }
   }
 
-  /// Check IpakYuli transfer status directly from Flutter
-  /// and activate subscription via backend if payment succeeded
+
+  /// Check IpakYuli transfer status via backend (avoids mobile SSL/network issues)
   static Future<String> checkIpakYuliPaymentDirect({
     required String transferId,
     required String paymentId,
   }) async {
-
-    final ipakDio = createIpakYuliDio();
-
     try {
-      final payload = {
-        'jsonrpc': '2.0',
-        'id': DateTime.now().millisecondsSinceEpoch.toString(),
-        'method': 'transfer.get',
-        'params': {'transfer_id': transferId},
-      };
-      final response = await ipakDio.post(
-        _ipakYuliUrl,
-        data: payload,
-        options: Options(headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $_ipakYuliToken',
-        }),
-      );
-      final data = response.data;
-      final result = data['result'] ?? {};
-      final status = (result['status'] ?? '').toString().toLowerCase();
-      print('[IpakYuli status check] transfer $transferId: $status');
-
-      // If payment succeeded, tell backend to activate subscription
-      if (status == 'success') {
-        try {
-          await _dio.post('/api/mobile/payments/confirm-success', data: {
-            'payment_id': paymentId,
-            'transfer_id': transferId,
-          });
-        } catch (_) {}
-      }
+      final response = await _dio.post('/api/payment/ipakyuli/check-status', data: {
+        'transfer_id': transferId,
+        'payment_id': paymentId,
+      });
+      final status = (response.data['status'] ?? 'unknown').toString().toLowerCase();
+      print('[IpakYuli status via backend] transfer $transferId: $status');
       return status;
     } catch (e) {
       print('[IpakYuli status check error] $e');
