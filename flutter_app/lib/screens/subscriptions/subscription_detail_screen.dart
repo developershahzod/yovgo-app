@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
+import '../../l10n/language_provider.dart';
 
 class SubscriptionDetailScreen extends StatelessWidget {
   const SubscriptionDetailScreen({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    return Consumer<LanguageProvider>(
+      builder: (context, _, __) => _buildScaffold(context),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.darkNavy,
       body: SafeArea(
@@ -37,7 +45,7 @@ class SubscriptionDetailScreen extends StatelessWidget {
                   children: [
                     // Title
                     Text(
-                      'Tabriklaymiz! Siz YuvGO obunachisiga aylandingiz!',
+                      context.tr('sub_detail_congrats'),
                       style: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,
@@ -47,7 +55,7 @@ class SubscriptionDetailScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      '1 yillik obunamiz bilan siz quyidagilarga ega bo\'lasiz:',
+                      context.tr('sub_detail_benefits_intro'),
                       style: TextStyle(
                         fontSize: 14,
                         color: AppTheme.white.withOpacity(0.8),
@@ -59,24 +67,24 @@ class SubscriptionDetailScreen extends StatelessWidget {
                     // Benefits
                     _buildBenefit(
                       icon: Icons.workspace_premium,
-                      title: 'Premium avtomoyklarga kirish imkoni',
-                      description: 'Endi siz bizning obunamiz orqali har qanday premium avtomoykaga kirishingiz va xizmatidan foydalanishingiz mumkin bo\'ladi',
+                      title: context.tr('sub_detail_benefit1_title'),
+                      description: context.tr('sub_detail_benefit1_desc'),
                     ),
                     
                     const SizedBox(height: 24),
                     
                     _buildBenefit(
                       icon: Icons.store,
-                      title: 'Ilovamizdagi 60 dan ortiq avtomoyklarga kirishingiz mumkin',
-                      description: 'Istagan avtomoykangizga tashrif buyuring va QR kodni skanerlash orqali yuvish xizmatidan foydalaning',
+                      title: context.tr('sub_detail_benefit2_title'),
+                      description: context.tr('sub_detail_benefit2_desc'),
                     ),
                     
                     const SizedBox(height: 24),
                     
                     _buildBenefit(
                       icon: Icons.attach_money,
-                      title: '~30% dan ko\'proq pul tejadingiz',
-                      description: 'Ushbu obunani sotib olboq avtomoyklarga ishlatishingiz mumkin bo\'lgan pulingizni ~30% ini tejadingiz',
+                      title: context.tr('sub_detail_benefit3_title'),
+                      description: context.tr('sub_detail_benefit3_desc'),
                     ),
                     
                     const SizedBox(height: 40),
@@ -150,7 +158,7 @@ class SubscriptionDetailScreen extends StatelessWidget {
                     elevation: 0,
                   ),
                   child: Text(
-                    'Asosiy sahifaga qaytish',
+                    context.tr('sub_detail_back_home'),
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,

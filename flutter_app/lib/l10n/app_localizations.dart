@@ -369,6 +369,17 @@ const Map<String, String> _enTranslations = {
   'view_car_washes': 'View car washes',
   'car_wash_count': '+ 60 car washes',
 
+  // Subscription Detail
+  'sub_detail_congrats': 'Congratulations! You are now a YuvGO subscriber!',
+  'sub_detail_benefits_intro': 'With our 1-year subscription you get:',
+  'sub_detail_benefit1_title': 'Access to premium car washes',
+  'sub_detail_benefit1_desc': 'With our subscription you can visit any premium car wash and use their services',
+  'sub_detail_benefit2_title': 'Access to 60+ car washes in the app',
+  'sub_detail_benefit2_desc': 'Visit any car wash and use the washing service by scanning the QR code',
+  'sub_detail_benefit3_title': 'Save ~30% or more',
+  'sub_detail_benefit3_desc': 'By purchasing this subscription you save ~30% of the money you spend on car washes',
+  'sub_detail_back_home': 'Back to Home',
+
   // Car Wash Detail
   'wash_prices': 'Wash Prices',
   'services_note': 'Additional services are not included in the subscription and require separate payment',
@@ -906,6 +917,17 @@ const Map<String, String> _ruTranslations = {
   'view_car_washes': 'Посмотреть автомойки',
   'car_wash_count': '+ 60 автомоек',
 
+  // Subscription Detail
+  'sub_detail_congrats': 'Поздравляем! Вы стали подписчиком YuvGO!',
+  'sub_detail_benefits_intro': 'С нашей годовой подпиской вы получаете:',
+  'sub_detail_benefit1_title': 'Доступ к премиум автомойкам',
+  'sub_detail_benefit1_desc': 'С нашей подпиской вы можете посещать любую премиум автомойку и пользоваться их услугами',
+  'sub_detail_benefit2_title': 'Доступ к 60+ автомойкам в приложении',
+  'sub_detail_benefit2_desc': 'Посетите любую автомойку и воспользуйтесь услугой мойки, отсканировав QR-код',
+  'sub_detail_benefit3_title': 'Экономия ~30% и более',
+  'sub_detail_benefit3_desc': 'Купив эту подписку, вы экономите ~30% денег, которые тратите на автомойки',
+  'sub_detail_back_home': 'На главную',
+
   // Car Wash Detail
   'wash_prices': 'Цены на мойку',
   'services_note': 'Дополнительные услуги не входят в подписку и оплачиваются отдельно',
@@ -1442,6 +1464,17 @@ const Map<String, String> _uzTranslations = {
   'sub_banner_desc': 'Sizga mos keladigan obuna turini tanlang',
   'view_car_washes': 'Avtomoykalarni ko\'rish',
   'car_wash_count': '+ 60 avtomoykalar',
+
+  // Subscription Detail
+  'sub_detail_congrats': 'Tabriklaymiz! Siz YuvGO obunachisiga aylandingiz!',
+  'sub_detail_benefits_intro': '1 yillik obunamiz bilan siz quyidagilarga ega bo\'lasiz:',
+  'sub_detail_benefit1_title': 'Premium avtomoyklarga kirish imkoni',
+  'sub_detail_benefit1_desc': 'Obunamiz orqali har qanday premium avtomoykaga kirishingiz va xizmatidan foydalanishingiz mumkin',
+  'sub_detail_benefit2_title': 'Ilovamizdagi 60 dan ortiq avtomoyklarga kirish',
+  'sub_detail_benefit2_desc': 'Istagan avtomoykangizga tashrif buyuring va QR kodni skanerlash orqali yuvish xizmatidan foydalaning',
+  'sub_detail_benefit3_title': '~30% dan ko\'proq pul tejaysiz',
+  'sub_detail_benefit3_desc': 'Ushbu obunani sotib olib avtomoyklarga sarflaydigan pulingizning ~30% ini tejaysiz',
+  'sub_detail_back_home': 'Asosiy sahifaga qaytish',
 
   // Car Wash Detail
   'wash_prices': 'Moyka narxlari',

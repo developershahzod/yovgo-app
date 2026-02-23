@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
 
@@ -53,6 +54,12 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return Consumer<LanguageProvider>(
+      builder: (context, _, __) => _buildScaffold(context),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -145,11 +152,49 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     );
   }
 
-  Widget _buildPlanCard(Map<String, dynamic> plan) {
-    final name = plan['name'] ?? '${plan['duration_days']} kunlik';
+  String _localizedField(Map<String, dynamic> plan, String baseKey) {
+    final lang = context.read<LanguageProvider>().languageCode;
+    if (lang == 'ru') {
+      final val = plan['${baseKey}_ru'];
+      if (val != null && (val as String).isNotEmpty) return val;
+    } else if (lang == 'en') {
+      final val = plan['${baseKey}_en'];
+      if (val != null && (val as String).isNotEmpty) return val;
+    }
+    return plan[baseKey] ?? '';
+  }
+
+  String _buildSubtitle(Map<String, dynamic> plan) {
+    final lang = context.read<LanguageProvider>().languageCode;
+    final days = plan['duration_days'] ?? 0;
+    final visits = plan['visit_limit'] ?? 0;
+    final isUnlimited = plan['is_unlimited'] == true;
+
+    if (lang == 'ru') {
+      final visitsStr = isUnlimited ? 'безлимит' : '$visits посещений';
+      return '$days дней · $visitsStr';
+    } else if (lang == 'en') {
+      final visitsStr = isUnlimited ? 'unlimited' : '$visits visits';
+      return '$days days · $visitsStr';
+    } else {
+      final visitsStr = isUnlimited ? 'cheksiz' : '$visits ta tashrif';
+      return '$days kun · $visitsStr';
+    }
+  }
+
+  String _priceLabel(Map<String, dynamic> plan) {
+    final lang = context.read<LanguageProvider>().languageCode;
     final price = plan['price'] ?? 0;
+    if (lang == 'ru') return '${_fmt(price)} сум';
+    if (lang == 'en') return '${_fmt(price)} UZS';
+    return "${_fmt(price)} so'm";
+  }
+
+  Widget _buildPlanCard(Map<String, dynamic> plan) {
+    final name = _localizedField(plan, 'name').isNotEmpty
+        ? _localizedField(plan, 'name')
+        : '${plan['duration_days']} kunlik';
     final durationDays = plan['duration_days'] ?? 0;
-    final visitLimit = plan['visit_limit'] ?? 0;
 
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/checkout', arguments: plan),
@@ -161,7 +206,6 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
         ),
         child: Row(
           children: [
-            // Plan image thumbnail
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.asset(
@@ -186,9 +230,9 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
                 children: [
                   Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                   const SizedBox(height: 4),
-                  Text('${_fmt(price)} so\'m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
+                  Text(_priceLabel(plan), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
                   const SizedBox(height: 2),
-                  Text('$durationDays kun · $visitLimit ta tashrif', style: const TextStyle(fontSize: 13, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
+                  Text(_buildSubtitle(plan), style: const TextStyle(fontSize: 13, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
                 ],
               ),
             ),

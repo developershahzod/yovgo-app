@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
@@ -204,7 +205,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final planName = _plan?['name'] ?? '${_plan?['duration_days'] ?? 90} kunlik';
+    return Consumer<LanguageProvider>(
+      builder: (context, _, __) => _buildScaffold(context),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
+    final lang = Provider.of<LanguageProvider>(context, listen: false).languageCode;
+    String planName;
+    if (lang == 'ru' && (_plan?['name_ru'] ?? '').toString().isNotEmpty) {
+      planName = _plan!['name_ru'];
+    } else if (lang == 'en' && (_plan?['name_en'] ?? '').toString().isNotEmpty) {
+      planName = _plan!['name_en'];
+    } else {
+      planName = _plan?['name'] ?? '${_plan?['duration_days'] ?? 90} ${context.tr('days_short')}';
+    }
     final price = _plan?['price'] ?? 0;
     final durationDays = _plan?['duration_days'] ?? 0;
     final visitLimit = _plan?['visit_limit'] ?? 0;
@@ -273,9 +288,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   children: [
                     Text(name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                     const SizedBox(height: 4),
-                    Text('${_fmt(price)} so\'m', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
+                    Text('${_fmt(price)} ${context.tr('currency_suffix')}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF00BFFE), fontFamily: 'Mulish')),
                     const SizedBox(height: 2),
-                    Text('$durationDays kun · $visitLimit ta tashrif', style: const TextStyle(fontSize: 13, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
+                    Text(context.tr('plan_days_visits').replaceFirst('%d', '$durationDays').replaceFirst('%v', '$visitLimit'), style: const TextStyle(fontSize: 13, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
                   ],
                 ),
               ),

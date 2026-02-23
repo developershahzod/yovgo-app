@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
 
@@ -27,11 +28,13 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
   @override
   void initState() {
     super.initState();
-    _loadSubscription();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _loadSubscription();
+    });
   }
 
   void refreshData() {
-    _loadSubscription();
+    if (mounted) _loadSubscription();
   }
 
   Future<void> _loadSubscription() async {
@@ -53,7 +56,9 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
           final usedVisits = sub['used_visits'] ?? sub['visits_used'] ?? 0;
           setState(() {
             _status = sub['status'];
-            _planName = sub['plan_name'] ?? '${sub['duration_days'] ?? 90} kunlik obuna';
+            String rawPlanName = sub['plan_name'] ?? '';
+            if (rawPlanName.isEmpty) rawPlanName = '${sub['duration_days'] ?? 90}';
+            _planName = rawPlanName;
             _daysLeft = sub['days_remaining'] ?? daysLeft;
             _endDate = endDateStr;
             _visitsUsed = usedVisits;
@@ -91,6 +96,12 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return Consumer<LanguageProvider>(
+      builder: (context, _, __) => _buildScaffold(context),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -384,7 +395,11 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
   String _formatEndDate(String dateStr) {
     try {
       final dt = DateTime.parse(dateStr);
-      const months = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+      final lang = Provider.of<LanguageProvider>(context, listen: false).languageCode;
+      final monthsUz = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
+      final monthsRu = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+      final monthsEn = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      final months = lang == 'ru' ? monthsRu : (lang == 'en' ? monthsEn : monthsUz);
       return '${months[dt.month - 1]} ${dt.day}';
     } catch (_) {
       return dateStr;
@@ -404,7 +419,16 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> {
   }
 
   Widget _buildPlanPriceCard(Map<String, dynamic> plan, {required bool canBuy}) {
-    final name = plan['name'] ?? '${plan['duration_days']} kunlik';
+    String lang;
+    try { lang = Provider.of<LanguageProvider>(context, listen: false).languageCode; } catch (_) { lang = 'uz'; }
+    String name;
+    if (lang == 'ru' && (plan['name_ru'] ?? '').toString().isNotEmpty) {
+      name = plan['name_ru'];
+    } else if (lang == 'en' && (plan['name_en'] ?? '').toString().isNotEmpty) {
+      name = plan['name_en'];
+    } else {
+      name = plan['name'] ?? '${plan['duration_days']} ${context.tr('days_short')}';
+    }
     final price = (plan['price'] is num) ? (plan['price'] as num).toInt() : 0;
     final durationDays = plan['duration_days'] ?? 0;
     final visitLimit = plan['visit_limit'];
