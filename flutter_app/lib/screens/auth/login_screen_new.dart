@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:dio/dio.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
@@ -141,6 +142,12 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
 
   @override
   Widget build(BuildContext context) {
+    return Consumer<LanguageProvider>(
+      builder: (context, _, __) => _buildScaffold(context),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     final canGoBack = Navigator.of(context).canPop();
     final showBack = _step != _AuthStep.phone || canGoBack;
 
@@ -170,7 +177,6 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
       ),
     );
   }
-
   // ─── Step 1: Phone ────────────────────────────────────────────────────────
   Widget _buildPhoneStep(bool canGoBack) {
     return Column(
@@ -290,6 +296,8 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
           controller: _nameController,
           label: context.tr('auth_fullname'),
           icon: Icons.person_outline,
+          keyboardType: TextInputType.name,
+          textCapitalization: TextCapitalization.words,
           autofocus: true,
         ),
         const SizedBox(height: 24),
@@ -308,6 +316,7 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
     required String label,
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
+    TextCapitalization textCapitalization = TextCapitalization.none,
     bool autofocus = false,
   }) {
     return Container(
@@ -318,6 +327,7 @@ class _LoginScreenNewState extends State<LoginScreenNew> {
       child: TextField(
         controller: controller,
         keyboardType: keyboardType,
+        textCapitalization: textCapitalization,
         autofocus: autofocus,
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish'),
         decoration: InputDecoration(
