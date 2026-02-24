@@ -533,47 +533,38 @@ async def get_car_wash_detail(
 
 @router.get("/subscriptions/plans")
 async def get_subscription_plans(
-    request: Request,
+    db: Session = Depends(get_db),
 ):
-    """Get all available subscription plans — proxied to subscription service"""
-    import httpx, os
-    sub_url = os.getenv("SUBSCRIPTION_SERVICE_URL", "http://subscription_service:8002")
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        try:
-            resp = await client.get(f"{sub_url}/plans", params=dict(request.query_params))
-            raw = resp.json()
-            plans = raw if isinstance(raw, list) else raw.get("plans", [])
-            result = []
-            for p in plans:
-                if not p.get("is_active", True):
-                    continue
-                visit_limit = p.get("visit_limit")
-                duration = p.get("duration_days", 30)
-                result.append({
-                    "id": p.get("id", ""),
-                    "name": p.get("name", ""),
-                    "name_ru": p.get("name_ru") or p.get("name", ""),
-                    "name_en": p.get("name_en") or p.get("name", ""),
-                    "description": p.get("description", ""),
-                    "description_ru": p.get("description_ru") or p.get("description", ""),
-                    "description_en": p.get("description_en") or p.get("description", ""),
-                    "price": float(p.get("price", 0)),
-                    "currency": p.get("currency", "UZS"),
-                    "duration_days": duration,
-                    "visit_limit": visit_limit,
-                    "is_unlimited": p.get("is_unlimited", False),
-                    "features": [
-                        f"{visit_limit} ta tashrif" if visit_limit else "Cheksiz tashrif",
-                        "Barcha hamkor avtomoykalar",
-                        "24/7 qo'llab-quvvatlash",
-                        "Chegirmalar va bonuslar",
-                    ],
-                    "is_popular": duration >= 90,
-                    "discount": None,
-                })
-            return JSONResponse(content={"success": True, "plans": result, "count": len(result)}, status_code=200)
-        except Exception as e:
-            raise HTTPException(status_code=503, detail=f"Subscription service unavailable: {e}")
+    """Get all available subscription plans — served directly from gateway DB"""
+    from shared.models import SubscriptionPlan
+    plans = db.query(SubscriptionPlan).filter(SubscriptionPlan.is_active == True).all()
+    result = []
+    for p in plans:
+        visit_limit = p.visit_limit
+        duration = p.duration_days
+        result.append({
+            "id": str(p.id),
+            "name": p.name or "",
+            "name_ru": p.name_ru or p.name or "",
+            "name_en": p.name_en or p.name or "",
+            "description": p.description or "",
+            "description_ru": p.description_ru or p.description or "",
+            "description_en": p.description_en or p.description or "",
+            "price": float(p.price),
+            "currency": p.currency or "UZS",
+            "duration_days": duration,
+            "visit_limit": visit_limit,
+            "is_unlimited": p.is_unlimited or False,
+            "features": [
+                f"{visit_limit} ta tashrif" if visit_limit else "Cheksiz tashrif",
+                "Barcha hamkor avtomoykalar",
+                "24/7 qo'llab-quvvatlash",
+                "Chegirmalar va bonuslar",
+            ],
+            "is_popular": duration >= 90,
+            "discount": None,
+        })
+    return JSONResponse(content={"success": True, "plans": result, "count": len(result)}, status_code=200)
 
 
 @router.get("/subscriptions/active")
