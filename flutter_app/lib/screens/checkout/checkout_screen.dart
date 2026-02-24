@@ -80,18 +80,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (_isProcessing || _plan == null) return;
     setState(() => _isProcessing = true);
     try {
-      // Step 1: Create subscription (or get existing active one)
+      // Step 1: Create subscription as pending — activated only after payment
       final subResult = await FullApiService.createSubscription(
         planId: _plan!['id'].toString(),
         autoRenew: false,
       );
-      
-      // If user already has active subscription, show success
-      if (subResult['already_active'] == true) {
-        if (mounted) _showSuccessDialog();
-        return;
-      }
-      
+
       final subscriptionId = subResult['id']?.toString() ?? subResult['subscription_id']?.toString();
       if (subscriptionId == null) throw Exception(context.tr('sub_create_error'));
 

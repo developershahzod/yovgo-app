@@ -178,22 +178,32 @@ async def create_subscription(
     ).first()
     if existing:
         raise HTTPException(status_code=400, detail="User already has active subscription")
-    
+
+    # Cancel any stale pending subscriptions before creating a new one
+    stale_pending = db.query(Subscription).filter(
+        Subscription.user_id == user_id,
+        Subscription.status == "pending"
+    ).all()
+    for stale in stale_pending:
+        stale.status = "cancelled"
+    if stale_pending:
+        db.commit()
+
     # Get plan
     plan = db.query(SubscriptionPlan).filter(
         SubscriptionPlan.id == subscription_data.plan_id
     ).first()
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
-    
-    # Create subscription
+
+    # Create subscription as pending — activated only after payment confirmation
     start_date = datetime.utcnow()
     end_date = calculate_subscription_end_date(start_date, plan.duration_days)
-    
+
     subscription = Subscription(
         user_id=user_id,
         plan_id=plan.id,
-        status="active",  # Активируем сразу для тестирования
+        status="pending",
         start_date=start_date,
         end_date=end_date,
         visits_remaining=plan.visit_limit if plan.visit_limit else 0,
