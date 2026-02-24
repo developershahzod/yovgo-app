@@ -312,7 +312,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                 if (_hasSubscription) const SizedBox(height: 16),
                 _safeWidget(_buildWeatherWidget, label: 'weather'),
                 const SizedBox(height: 16),
-                if (!_hasSubscription) _safeWidget(_buildSubscriptionBanner, label: 'subBanner'),
+                if (!_hasSubscription) _safeWidget(() => _buildSubscriptionBanner(Provider.of<LanguageProvider>(context, listen: false).languageCode), label: 'subBanner'),
                 if (!_hasSubscription) const SizedBox(height: 16),
                 _safeWidget(_buildCategoriesSection, label: 'categories'),
                 const SizedBox(height: 24),
@@ -1644,7 +1644,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
     return buffer.toString().split('').reversed.join();
   }
 
-  Widget _buildSubscriptionBanner() {
+  Widget _buildSubscriptionBanner([String lang = 'uz']) {
     if (_promoPlan == null) {
       // Fallback: show static banner that navigates to subscriptions
       return _buildStaticBanner();
@@ -1653,8 +1653,6 @@ extension HomeScreenMethods on _HomeScreenFixedState {
     final plan = _promoPlan!;
     final price = num.tryParse(plan['price']?.toString() ?? '0') ?? 0;
     final days = plan['duration_days'] ?? 90;
-    String lang = 'uz';
-    try { lang = context.watch<LanguageProvider>().languageCode; } catch (_) {}
     // Localized plan name
     String name;
     if (lang == 'ru' && (plan['name_ru'] ?? '').toString().isNotEmpty) {
