@@ -174,7 +174,7 @@ class IpakYuliClient:
             }
         """
         params = {
-            "transfer_id": transfer_id
+            "id": transfer_id
         }
         return await self._make_request("transfer", "transfer.get", params)
     
