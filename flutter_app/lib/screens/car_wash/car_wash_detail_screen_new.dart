@@ -36,7 +36,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     String lang = 'uz';
-    try { lang = context.read<LanguageProvider>().languageCode; } catch (_) {}
+    try { lang = Provider.of<LanguageProvider>(context, listen: false).languageCode; } catch (_) {}
     if (!_localizedFetched || lang != _lastLang) {
       _lastLang = lang;
       _localizedFetched = false;
@@ -352,7 +352,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     }
 
     String lang = 'uz';
-    try { lang = context.read<LanguageProvider>().languageCode; } catch (_) {}
+    try { lang = Provider.of<LanguageProvider>(context, listen: true).languageCode; } catch (_) {}
     // Pick localized description: prefer lang-specific field, fall back to base description
     String localizedDesc;
     if (lang == 'ru') {
