@@ -4,6 +4,8 @@ import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
 import 'payment_webview_screen.dart';
+import '../qr/qr_scanner_screen_fixed.dart';
+import '../subscriptions/my_subscription_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -600,7 +602,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               Text(context.tr('sub_activated'), textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0))),
               const SizedBox(height: 24),
               SizedBox(width: double.infinity, height: 48, child: ElevatedButton(
-                onPressed: () => Navigator.of(ctx).pushNamedAndRemoveUntil('/main', (route) => false),
+                onPressed: () {
+                  Navigator.of(ctx).pushNamedAndRemoveUntil('/main', (route) => false);
+                  QrScannerScreenFixed.globalKey.currentState?.refreshSubscription();
+                  MySubscriptionScreen.globalKey.currentState?.refreshData();
+                },
                 child: const Text('OK'),
               )),
             ],

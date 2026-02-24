@@ -90,6 +90,12 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
     _requestCameraAndStart();
   }
 
+  /// Called after payment success to re-check subscription status immediately
+  void refreshSubscription() {
+    if (!mounted) return;
+    _loadUserState();
+  }
+
   Future<void> _requestCameraAndStart() async {
     if (!mounted) return;
     // Always re-check login state fresh before starting camera
