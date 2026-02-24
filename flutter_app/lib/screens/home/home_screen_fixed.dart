@@ -70,6 +70,14 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
     if (mounted) _loadHomeData();
   }
 
+  /// Instantly update visit counter after QR checkin without full reload
+  void updateVisitCount(int remaining) {
+    if (!mounted) return;
+    setState(() {
+      _usedVisits = _totalVisits > 0 ? _totalVisits - remaining : _usedVisits + 1;
+    });
+  }
+
   /// Try to get user location in the background. Never blocks API loading.
   /// After location is obtained, reloads car washes with real coords.
   Future<void> _getUserLocationInBackground() async {
