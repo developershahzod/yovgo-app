@@ -155,9 +155,8 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
       try {
         final res = await FullApiService.getSubscriptionStatus();
         final sub = (res['subscription'] ?? res) as Map<String, dynamic>?;
-        if (mounted && sub != null && (sub['status'] == 'active' || sub['is_active'] == true)) {
-          setState(() => _hasSubscription = true);
-        }
+        final isActive = sub != null && (sub['status'] == 'active' || sub['is_active'] == true);
+        if (mounted) setState(() => _hasSubscription = isActive);
       } catch (_) {
         // If subscription check fails (network/auth), assume no subscription
         // but do NOT block QR if user is logged in — retry on scan

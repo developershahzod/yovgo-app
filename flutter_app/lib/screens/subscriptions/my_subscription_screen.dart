@@ -139,7 +139,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> with Widget
               ? const Center(child: CircularProgressIndicator())
               : SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
-                  child: _status == null
+                  child: (_status == null || _status == 'expired' || (!_isUnlimited && _visitsRemaining <= 0 && _visitsLimit > 0))
                       ? _buildGuest(context)
                       : _buildSubscribed(context),
                 ),
