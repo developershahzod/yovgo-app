@@ -194,6 +194,11 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
 
   Future<void> _handleQrScanned(String qrToken) async {
     if (_isScanning || _scannedOnce || _scannerPaused) return;
+    // Prevent same QR within 30 seconds
+    if (_lastScannedToken == qrToken && _lastScanTime != null &&
+        DateTime.now().difference(_lastScanTime!).inSeconds < 30) {
+      return;
+    }
     _scannedOnce = true;
     _lastScannedToken = qrToken;
     _lastScanTime = DateTime.now();
@@ -202,6 +207,12 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
     // Not logged in → go to registration
     if (!_isLoggedIn) {
       _showAuthRequiredDialog();
+      return;
+    }
+
+    // No subscription → go to subscriptions
+    if (!_hasSubscription) {
+      _showSubscriptionRequiredDialog();
       return;
     }
 
@@ -215,13 +226,16 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
 
       if (mounted) {
         setState(() => _isScanning = false);
-        // Instantly update both screens from checkin response — no API call, no race
+        // Instantly update both screens from checkin response — no API call needed
         final remaining = result['remaining_visits'];
         if (remaining != null) {
           final rem = int.tryParse(remaining.toString()) ?? 0;
           HomeScreenFixed.globalKey.currentState?.updateVisitCount(rem);
           MySubscriptionScreen.globalKey.currentState?.updateVisitCount(rem);
         }
+        // Background refresh to sync full state
+        MySubscriptionScreen.globalKey.currentState?.refreshData();
+        HomeScreenFixed.globalKey.currentState?.refreshData();
         _showCheckinSuccessDialog(
           result['partner_name'] ?? context.tr('qr_car_wash'),
           result['remaining_visits']?.toString() ?? '',
@@ -230,25 +244,27 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
       }
     } catch (e) {
       if (mounted) {
-        final msg = e.toString();
-        if (msg.contains('No active subscription') || msg.contains('Visit limit reached')) {
-          setState(() { _hasSubscription = false; _isScanning = false; _scannedOnce = false; });
+        String msg = e.toString();
+        if (msg.contains('No active subscription') || msg.contains('subscription')) {
           _showSubscriptionRequiredDialog();
-          return;
-        } else if (msg.contains('429') || msg.contains('juda tez') || msg.contains('too fast')) {
+        } else if (msg.contains('Visit limit reached')) {
+          msg = context.tr('qr_visit_limit');
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Skanerlash juda tez! Biroz kuting.'), backgroundColor: Colors.orange),
+            SnackBar(content: Text(msg), backgroundColor: Colors.red),
           );
         } else if (msg.contains('401') || msg.contains('Unauthorized')) {
           _showAuthRequiredDialog();
-          return;
         } else {
+          msg = context.tr('qr_error_retry');
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(context.tr('qr_error_retry')), backgroundColor: Colors.red),
+            SnackBar(content: Text(msg), backgroundColor: Colors.red),
           );
         }
-        // Reset scanner state so user can retry
-        setState(() { _isScanning = false; _scannedOnce = false; });
+        // Reset scanner state on error so user can retry
+        setState(() {
+          _isScanning = false;
+          _scannedOnce = false;
+        });
         _scannerController?.start();
       }
     }
@@ -412,12 +428,10 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
           _isScanning = false;
           _scannerPaused = true;
           _scannedOnce = false;
-          _lastScannedToken = null;  // Allow same QR to be scanned again
-          _lastScanTime = null;
         });
-        _loadUserState(); // Refresh subscription status
-        // Short delay before allowing scanner to resume
-        Future.delayed(const Duration(seconds: 2), () {
+        _loadUserState(); // Refresh subscription counters
+        // Delay before allowing scanner to resume (prevent immediate re-scan)
+        Future.delayed(const Duration(seconds: 3), () {
           if (mounted) {
             setState(() => _scannerPaused = false);
             _scannerController?.start();
@@ -540,10 +554,12 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
                     padding: EdgeInsets.only(bottom: 24),
                     child: CircularProgressIndicator(color: Colors.white),
                   )
-                else if (_isLoggedIn)
+                else if (_isLoggedIn && _hasSubscription)
                   _buildVehicleSelector()
                 else if (!_isLoggedIn)
-                  _buildLoginPrompt(),
+                  _buildLoginPrompt()
+                else if (!_hasSubscription)
+                  _buildSubscribePrompt(),
 
                 const SizedBox(height: 100), // Space for bottom nav
               ],

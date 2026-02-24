@@ -196,21 +196,16 @@ from sqlalchemy.orm import Session as _Session
 from shared.models import Vehicle as _Vehicle
 from shared.auth import AuthHandler as _AuthHandler
 from shared.database import get_db as _get_db
+import uuid as _uuid
 
-def _get_user_id_from_request(request: Request) -> str:
-    auth = request.headers.get("Authorization", "")
-    token = auth.replace("Bearer ", "").strip()
-    if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    try:
-        payload = _AuthHandler.decode_token(token)
-        return payload.get("sub") or payload.get("user_id") or payload.get("id")
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid token")
+_get_current_user = _AuthHandler.get_current_user
 
 @app.get("/api/user/vehicles")
-async def get_user_vehicles(request: Request, db: _Session = Depends(_get_db)):
-    user_id = _get_user_id_from_request(request)
+async def get_user_vehicles(
+    db: _Session = Depends(_get_db),
+    current_user: dict = Depends(_get_current_user)
+):
+    user_id = current_user.get("sub")
     vehicles = db.query(_Vehicle).filter(
         _Vehicle.user_id == user_id,
         _Vehicle.is_active == True
@@ -232,12 +227,14 @@ async def get_user_vehicles(request: Request, db: _Session = Depends(_get_db)):
     ])
 
 @app.post("/api/user/vehicles")
-async def add_user_vehicle(request: Request, db: _Session = Depends(_get_db)):
-    user_id = _get_user_id_from_request(request)
+async def add_user_vehicle(
+    request: Request,
+    db: _Session = Depends(_get_db),
+    current_user: dict = Depends(_get_current_user)
+):
+    user_id = current_user.get("sub")
     body = await request.json()
-    # Accept both plate_number and license_plate
     plate = body.get("license_plate") or body.get("plate_number", "")
-    import uuid as _uuid
     vehicle = _Vehicle(
         id=_uuid.uuid4(),
         user_id=user_id,
@@ -268,8 +265,12 @@ async def add_user_vehicle(request: Request, db: _Session = Depends(_get_db)):
     }, status_code=201)
 
 @app.delete("/api/user/vehicles/{vehicle_id}")
-async def delete_user_vehicle(vehicle_id: str, request: Request, db: _Session = Depends(_get_db)):
-    user_id = _get_user_id_from_request(request)
+async def delete_user_vehicle(
+    vehicle_id: str,
+    db: _Session = Depends(_get_db),
+    current_user: dict = Depends(_get_current_user)
+):
+    user_id = current_user.get("sub")
     vehicle = db.query(_Vehicle).filter(
         _Vehicle.id == vehicle_id,
         _Vehicle.user_id == user_id
