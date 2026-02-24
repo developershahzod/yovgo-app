@@ -124,7 +124,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   Widget _buildActiveSubscriptionCard() {
     final sub = _activeSubscription!;
     String lang = 'uz';
-    try { lang = Provider.of<LanguageProvider>(context, listen: false).languageCode; } catch (_) {}
+    try { lang = Provider.of<LanguageProvider>(context, listen: true).languageCode; } catch (_) {}
     String planName;
     if (lang == 'ru' && (sub['plan_name_ru'] ?? '').toString().isNotEmpty) {
       planName = sub['plan_name_ru'];
@@ -324,7 +324,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
 
   Widget _buildPlanCard(Map<String, dynamic> plan) {
     String lang = 'uz';
-    try { lang = Provider.of<LanguageProvider>(context, listen: false).languageCode; } catch (_) {}
+    try { lang = Provider.of<LanguageProvider>(context, listen: true).languageCode; } catch (_) {}
     String name;
     if (lang == 'ru' && (plan['name_ru'] ?? '').toString().isNotEmpty) {
       name = plan['name_ru'];

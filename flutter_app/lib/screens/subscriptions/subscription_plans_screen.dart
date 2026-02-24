@@ -153,7 +153,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   }
 
   String _localizedField(Map<String, dynamic> plan, String baseKey) {
-    final lang = context.read<LanguageProvider>().languageCode;
+    final lang = Provider.of<LanguageProvider>(context, listen: true).languageCode;
     if (lang == 'ru') {
       final val = plan['${baseKey}_ru'];
       if (val != null && (val as String).isNotEmpty) return val;
@@ -165,7 +165,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   }
 
   String _buildSubtitle(Map<String, dynamic> plan) {
-    final lang = context.read<LanguageProvider>().languageCode;
+    final lang = Provider.of<LanguageProvider>(context, listen: true).languageCode;
     final days = plan['duration_days'] ?? 0;
     final visits = plan['visit_limit'] ?? 0;
     final isUnlimited = plan['is_unlimited'] == true;
@@ -183,7 +183,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   }
 
   String _priceLabel(Map<String, dynamic> plan) {
-    final lang = context.read<LanguageProvider>().languageCode;
+    final lang = Provider.of<LanguageProvider>(context, listen: true).languageCode;
     final price = plan['price'] ?? 0;
     if (lang == 'ru') return '${_fmt(price)} сум';
     if (lang == 'en') return '${_fmt(price)} UZS';

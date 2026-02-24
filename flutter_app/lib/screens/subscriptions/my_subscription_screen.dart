@@ -423,7 +423,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> with Widget
   String _formatEndDate(String dateStr) {
     try {
       final dt = DateTime.parse(dateStr);
-      final lang = Provider.of<LanguageProvider>(context, listen: false).languageCode;
+      final lang = Provider.of<LanguageProvider>(context, listen: true).languageCode;
       final monthsUz = ['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'];
       final monthsRu = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
       final monthsEn = ['January','February','March','April','May','June','July','August','September','October','November','December'];
