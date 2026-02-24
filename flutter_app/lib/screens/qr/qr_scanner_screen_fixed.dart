@@ -215,16 +215,13 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
 
       if (mounted) {
         setState(() => _isScanning = false);
-        // Instantly update both screens from checkin response — no API call needed
+        // Instantly update both screens from checkin response — no API call, no race
         final remaining = result['remaining_visits'];
         if (remaining != null) {
           final rem = int.tryParse(remaining.toString()) ?? 0;
           HomeScreenFixed.globalKey.currentState?.updateVisitCount(rem);
           MySubscriptionScreen.globalKey.currentState?.updateVisitCount(rem);
         }
-        // Background refresh to sync full state
-        MySubscriptionScreen.globalKey.currentState?.refreshData();
-        HomeScreenFixed.globalKey.currentState?.refreshData();
         _showCheckinSuccessDialog(
           result['partner_name'] ?? context.tr('qr_car_wash'),
           result['remaining_visits']?.toString() ?? '',
