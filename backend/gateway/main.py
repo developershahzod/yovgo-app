@@ -190,7 +190,97 @@ async def proxy_request(service: str, path: str, request: Request):
         except httpx.RequestError as e:
             raise HTTPException(status_code=503, detail=f"Service unavailable: {str(e)}")
 
-# User Service Routes
+# ==================== VEHICLE ROUTES (served from gateway DB) ====================
+
+from sqlalchemy.orm import Session as _Session
+from shared.models import Vehicle as _Vehicle
+from shared.auth import AuthHandler as _AuthHandler
+from shared.database import get_db as _get_db
+
+def _get_user_id_from_request(request: Request) -> str:
+    auth = request.headers.get("Authorization", "")
+    token = auth.replace("Bearer ", "").strip()
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = _AuthHandler.decode_token(token)
+        return payload.get("sub") or payload.get("user_id") or payload.get("id")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid token")
+
+@app.get("/api/user/vehicles")
+async def get_user_vehicles(request: Request, db: _Session = Depends(_get_db)):
+    user_id = _get_user_id_from_request(request)
+    vehicles = db.query(_Vehicle).filter(
+        _Vehicle.user_id == user_id,
+        _Vehicle.is_active == True
+    ).order_by(_Vehicle.created_at.desc()).all()
+    return JSONResponse(content=[
+        {
+            "id": str(v.id),
+            "license_plate": v.license_plate,
+            "plate_number": v.license_plate,
+            "brand": v.brand,
+            "model": v.model,
+            "color": v.color,
+            "year": v.year,
+            "vehicle_type": getattr(v, 'vehicle_type', 'sedan') or 'sedan',
+            "name": f"{v.brand or ''} {v.model or ''}".strip() or v.license_plate,
+            "is_active": v.is_active,
+        }
+        for v in vehicles
+    ])
+
+@app.post("/api/user/vehicles")
+async def add_user_vehicle(request: Request, db: _Session = Depends(_get_db)):
+    user_id = _get_user_id_from_request(request)
+    body = await request.json()
+    # Accept both plate_number and license_plate
+    plate = body.get("license_plate") or body.get("plate_number", "")
+    import uuid as _uuid
+    vehicle = _Vehicle(
+        id=_uuid.uuid4(),
+        user_id=user_id,
+        license_plate=plate,
+        brand=body.get("brand"),
+        model=body.get("model"),
+        color=body.get("color"),
+        year=body.get("year"),
+        is_active=True,
+    )
+    try:
+        setattr(vehicle, 'vehicle_type', body.get("vehicle_type", "sedan"))
+    except Exception:
+        pass
+    db.add(vehicle)
+    db.commit()
+    db.refresh(vehicle)
+    return JSONResponse(content={
+        "id": str(vehicle.id),
+        "license_plate": vehicle.license_plate,
+        "plate_number": vehicle.license_plate,
+        "brand": vehicle.brand,
+        "model": vehicle.model,
+        "color": vehicle.color,
+        "year": vehicle.year,
+        "vehicle_type": getattr(vehicle, 'vehicle_type', 'sedan') or 'sedan',
+        "name": f"{vehicle.brand or ''} {vehicle.model or ''}".strip() or vehicle.license_plate,
+    }, status_code=201)
+
+@app.delete("/api/user/vehicles/{vehicle_id}")
+async def delete_user_vehicle(vehicle_id: str, request: Request, db: _Session = Depends(_get_db)):
+    user_id = _get_user_id_from_request(request)
+    vehicle = db.query(_Vehicle).filter(
+        _Vehicle.id == vehicle_id,
+        _Vehicle.user_id == user_id
+    ).first()
+    if not vehicle:
+        raise HTTPException(status_code=404, detail="Vehicle not found")
+    vehicle.is_active = False
+    db.commit()
+    return JSONResponse(content={"success": True})
+
+# User Service Routes (generic proxy — vehicles handled above)
 @app.api_route("/api/user/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def user_service(path: str, request: Request):
     return await proxy_request("user", f"/{path}", request)
