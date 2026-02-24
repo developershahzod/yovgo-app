@@ -312,7 +312,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                 if (_hasSubscription) const SizedBox(height: 16),
                 _safeWidget(_buildWeatherWidget, label: 'weather'),
                 const SizedBox(height: 16),
-                if (!_hasSubscription) _safeWidget(() => _buildSubscriptionBanner(Provider.of<LanguageProvider>(context, listen: false).languageCode), label: 'subBanner'),
+                if (!_hasSubscription) _safeWidget(() => _buildSubscriptionBanner(Provider.of<LanguageProvider>(context, listen: true).languageCode), label: 'subBanner'),
                 if (!_hasSubscription) const SizedBox(height: 16),
                 _safeWidget(_buildCategoriesSection, label: 'categories'),
                 const SizedBox(height: 24),
