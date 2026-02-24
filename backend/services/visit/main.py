@@ -182,11 +182,13 @@ async def get_visit_history(
     
     visits_data = query.order_by(Visit.check_in_time.desc()).offset(skip).limit(limit).all()
     
-    # Add user info and vehicle info to each visit
+    # Add user, vehicle, partner, location info to each visit
     result = []
     for visit in visits_data:
         user = db.query(User).filter(User.id == visit.user_id).first()
         vehicle = db.query(Vehicle).filter(Vehicle.id == visit.vehicle_id).first() if visit.vehicle_id else None
+        partner = db.query(Partner).filter(Partner.id == visit.partner_id).first() if visit.partner_id else None
+        location = db.query(PartnerLocation).filter(PartnerLocation.id == visit.location_id).first() if visit.location_id else None
         visit_dict = {
             "id": visit.id,
             "user_id": visit.user_id,
@@ -206,6 +208,9 @@ async def get_visit_history(
             "vehicle_model": vehicle.model if vehicle else None,
             "vehicle_type": getattr(vehicle, 'vehicle_type', 'sedan') if vehicle else None,
             "vehicle_name": f"{vehicle.brand or ''} {vehicle.model or ''}".strip() if vehicle else None,
+            "partner_name": partner.name if partner else None,
+            "location_name": location.name if location else None,
+            "location_address": location.address if location else None,
         }
         result.append(visit_dict)
     
@@ -246,6 +251,31 @@ async def get_today_visits(
         })
     
     return result
+
+@app.get("/visits/stats")
+async def get_visits_stats_alias(
+    partner_id: Optional[str] = None,
+    db: Session = Depends(get_db)
+):
+    """Alias for /stats — fixes route conflict with /visits/{visit_id}"""
+    query = db.query(Visit)
+    if partner_id:
+        query = query.filter(Visit.partner_id == partner_id)
+    total_visits = query.count()
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_visits = query.filter(Visit.check_in_time >= today_start).count()
+    week_start = datetime.utcnow() - timedelta(days=7)
+    week_visits = query.filter(Visit.check_in_time >= week_start).count()
+    month_start = datetime.utcnow().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    month_visits = query.filter(Visit.check_in_time >= month_start).count()
+    unique_users = db.query(func.count(func.distinct(Visit.user_id))).scalar() or 0
+    return {
+        "total_visits": total_visits,
+        "today_visits": today_visits,
+        "week_visits": week_visits,
+        "month_visits": month_visits,
+        "unique_users": unique_users,
+    }
 
 @app.get("/visits/{visit_id}", response_model=VisitResponse)
 async def get_visit(
