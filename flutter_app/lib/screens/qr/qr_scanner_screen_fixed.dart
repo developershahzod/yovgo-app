@@ -194,11 +194,6 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
 
   Future<void> _handleQrScanned(String qrToken) async {
     if (_isScanning || _scannedOnce || _scannerPaused) return;
-    // Prevent same QR within 30 seconds
-    if (_lastScannedToken == qrToken && _lastScanTime != null &&
-        DateTime.now().difference(_lastScanTime!).inSeconds < 30) {
-      return;
-    }
     _scannedOnce = true;
     _lastScannedToken = qrToken;
     _lastScanTime = DateTime.now();
@@ -207,12 +202,6 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
     // Not logged in → go to registration
     if (!_isLoggedIn) {
       _showAuthRequiredDialog();
-      return;
-    }
-
-    // No subscription → go to subscriptions
-    if (!_hasSubscription) {
-      _showSubscriptionRequiredDialog();
       return;
     }
 
@@ -244,27 +233,25 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
       }
     } catch (e) {
       if (mounted) {
-        String msg = e.toString();
-        if (msg.contains('No active subscription') || msg.contains('subscription')) {
+        final msg = e.toString();
+        if (msg.contains('No active subscription') || msg.contains('Visit limit reached')) {
+          setState(() { _hasSubscription = false; _isScanning = false; _scannedOnce = false; });
           _showSubscriptionRequiredDialog();
-        } else if (msg.contains('Visit limit reached')) {
-          msg = context.tr('qr_visit_limit');
+          return;
+        } else if (msg.contains('429') || msg.contains('juda tez') || msg.contains('too fast')) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg), backgroundColor: Colors.red),
+            const SnackBar(content: Text('Skanerlash juda tez! Biroz kuting.'), backgroundColor: Colors.orange),
           );
         } else if (msg.contains('401') || msg.contains('Unauthorized')) {
           _showAuthRequiredDialog();
+          return;
         } else {
-          msg = context.tr('qr_error_retry');
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(msg), backgroundColor: Colors.red),
+            SnackBar(content: Text(context.tr('qr_error_retry')), backgroundColor: Colors.red),
           );
         }
-        // Reset scanner state on error so user can retry
-        setState(() {
-          _isScanning = false;
-          _scannedOnce = false;
-        });
+        // Reset scanner state so user can retry
+        setState(() { _isScanning = false; _scannedOnce = false; });
         _scannerController?.start();
       }
     }
@@ -428,10 +415,12 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
           _isScanning = false;
           _scannerPaused = true;
           _scannedOnce = false;
+          _lastScannedToken = null;  // Allow same QR to be scanned again
+          _lastScanTime = null;
         });
-        _loadUserState(); // Refresh subscription counters
-        // Delay before allowing scanner to resume (prevent immediate re-scan)
-        Future.delayed(const Duration(seconds: 3), () {
+        _loadUserState(); // Refresh subscription status
+        // Short delay before allowing scanner to resume
+        Future.delayed(const Duration(seconds: 2), () {
           if (mounted) {
             setState(() => _scannerPaused = false);
             _scannerController?.start();
