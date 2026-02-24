@@ -117,47 +117,68 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> with WidgetsB
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(28),
-          topRight: Radius.circular(28),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Container(
-            height: 64,
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                _buildNavItem(
-                  svgType: 'home',
-                  label: context.tr('nav_home'),
-                  index: 0,
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // Nav bar background with rounded top corners
+              Positioned.fill(
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(28),
+                    topRight: Radius.circular(28),
+                  ),
+                  child: Container(color: Colors.white),
                 ),
-                _buildNavItem(
-                  svgType: 'map',
-                  label: context.tr('nav_map'),
-                  index: 1,
+              ),
+              // Nav items row (placeholder in center for spacing)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    _buildNavItem(
+                      svgType: 'home',
+                      label: context.tr('nav_home'),
+                      index: 0,
+                    ),
+                    _buildNavItem(
+                      svgType: 'map',
+                      label: context.tr('nav_map'),
+                      index: 1,
+                    ),
+                    const SizedBox(width: 64),
+                    _buildNavItem(
+                      svgType: 'subscription',
+                      label: context.tr('profile_subscription'),
+                      index: 3,
+                    ),
+                    _buildNavItem(
+                      svgType: 'profile',
+                      label: context.tr('nav_profile'),
+                      index: 4,
+                    ),
+                  ],
                 ),
-                Transform.translate(
-                  offset: const Offset(0, -10),
-                  child: _buildCenterButton(),
+              ),
+              // QR button floating above — z-index on top
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: Transform.translate(
+                    offset: const Offset(0, -10),
+                    child: _buildCenterButton(),
+                  ),
                 ),
-                _buildNavItem(
-                  svgType: 'subscription',
-                  label: context.tr('profile_subscription'),
-                  index: 3,
-                ),
-                _buildNavItem(
-                  svgType: 'profile',
-                  label: context.tr('nav_profile'),
-                  index: 4,
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
