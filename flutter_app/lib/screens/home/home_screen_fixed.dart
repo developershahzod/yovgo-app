@@ -1021,7 +1021,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                       p['name'] ?? 'Car Wash',
                       p['address'] ?? '',
                       dist,
-                      (p['rating'] ?? 4.5).toDouble(),
+                      (p['rating'] ?? 5.0).toDouble(),
                       _getCarWashStatus(p),
                       p['is_open'] == true,
                       imageUrl,
