@@ -1654,7 +1654,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
     final price = num.tryParse(plan['price']?.toString() ?? '0') ?? 0;
     final days = plan['duration_days'] ?? 90;
     String lang = 'uz';
-    try { lang = context.read<LanguageProvider>().languageCode; } catch (_) {}
+    try { lang = context.watch<LanguageProvider>().languageCode; } catch (_) {}
     // Localized plan name
     String name;
     if (lang == 'ru' && (plan['name_ru'] ?? '').toString().isNotEmpty) {
