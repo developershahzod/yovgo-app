@@ -23,6 +23,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   bool _hasSubscription = false;
   Map<String, dynamic>? _partner;
   bool _localizedFetched = false;
+  String _lastLang = '';
 
   // Reviews
   List<Map<String, dynamic>> _reviews = [];
@@ -34,7 +35,13 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_localizedFetched) _loadPartnerData();
+    String lang = 'uz';
+    try { lang = context.read<LanguageProvider>().languageCode; } catch (_) {}
+    if (!_localizedFetched || lang != _lastLang) {
+      _lastLang = lang;
+      _localizedFetched = false;
+      _loadPartnerData();
+    }
   }
 
   Future<void> _loadPartnerData() async {
@@ -68,6 +75,8 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
               if (pd != null) {
                 final patch = <String, dynamic>{};
                 if (pd['description'] != null) patch['description'] = pd['description'];
+                if (pd['description_ru'] != null) patch['description_ru'] = pd['description_ru'];
+                if (pd['description_en'] != null) patch['description_en'] = pd['description_en'];
                 // Use API banner/gallery only if current args are missing them
                 final curBanner = (_partner?['banner_url'] ?? _partner?['image_url'] ?? '').toString();
                 final apiBanner = (pd['banner_url'] ?? pd['image_url'] ?? '').toString();
@@ -299,6 +308,12 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
 
   @override
   Widget build(BuildContext context) {
+    return Consumer<LanguageProvider>(
+      builder: (context, _, __) => _buildContent(context),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
         backgroundColor: Colors.white,
@@ -338,6 +353,17 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
 
     String lang = 'uz';
     try { lang = context.read<LanguageProvider>().languageCode; } catch (_) {}
+    // Pick localized description: prefer lang-specific field, fall back to base description
+    String localizedDesc;
+    if (lang == 'ru') {
+      localizedDesc = (p['description_ru'] ?? '').toString().trim();
+      if (localizedDesc.isEmpty) localizedDesc = description;
+    } else if (lang == 'en') {
+      localizedDesc = (p['description_en'] ?? '').toString().trim();
+      if (localizedDesc.isEmpty) localizedDesc = description;
+    } else {
+      localizedDesc = description;
+    }
     final String defaultDesc;
     if (lang == 'ru') {
       defaultDesc = '$name — это не просто автомойка, это знак уважения к вашему автомобилю. Мы используем современные технологии и химию премиум-класса, чтобы ваш автомобиль выглядел как новый. Каждая деталь важна для нас!';
@@ -346,7 +372,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     } else {
       defaultDesc = '$name bu shunchaki avtoyuvish shoxobchasi emas, bu sizning avtomobilingizga bo\'lgan hurmatimiz namunasidir. Biz eng zamonaviy texnologiyalar va premium sifatli kimyoviy vositalar yordamida avtomobilingizni yangiday ko\'rinishga keltiramiz. Har bir detal biz uchun muhim!';
     }
-    final descText = description.isNotEmpty ? description : defaultDesc;
+    final descText = localizedDesc.isNotEmpty ? localizedDesc : defaultDesc;
 
     return Scaffold(
       backgroundColor: Colors.white,

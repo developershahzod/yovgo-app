@@ -518,6 +518,8 @@ async def get_car_wash_detail(
             "is_24_hours": getattr(partner, 'is_24_hours', False) or False,
             "service_type": getattr(partner, 'service_type', 'full_service') or 'full_service',
             "description": _localize_description_full(partner, lang),
+            "description_ru": getattr(partner, 'description_ru', None) or partner.description or "",
+            "description_en": getattr(partner, 'description_en', None) or partner.description or "",
             "wash_time": getattr(partner, 'wash_time', 60) or 60,
             "services": partner.additional_services if partner.additional_services else [],
             "service_prices": svc_prices,
