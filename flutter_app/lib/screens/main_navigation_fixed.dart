@@ -142,7 +142,10 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> with WidgetsB
                   label: context.tr('nav_map'),
                   index: 1,
                 ),
-                _buildCenterButton(),
+                Transform.translate(
+                  offset: const Offset(0, -10),
+                  child: _buildCenterButton(),
+                ),
                 _buildNavItem(
                   svgType: 'subscription',
                   label: context.tr('profile_subscription'),
