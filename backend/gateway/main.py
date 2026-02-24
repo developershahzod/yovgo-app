@@ -11,12 +11,14 @@ import os
 import sys
 import uuid
 import shutil
+import asyncio
 
 # Add parent directory to path for shared imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from shared.redis_client import RedisCache
 from shared.auth import AuthHandler
+from shared.database import SessionLocal
 from routes import mobile_api
 
 app = FastAPI(
@@ -98,6 +100,39 @@ async def log_requests(request: Request, call_next):
     
     return response
 
+async def _bulk_expire_subscriptions():
+    """Background task: expire subscriptions where time or visits exhausted."""
+    from datetime import datetime as _dt
+    while True:
+        try:
+            db = SessionLocal()
+            try:
+                now = _dt.utcnow()
+                updated = db.execute(
+                    __import__('sqlalchemy').text(
+                        "UPDATE subscriptions SET status='expired' "
+                        "WHERE status='active' AND ("
+                        "  end_date < :now "
+                        "  OR (is_unlimited = false AND visits_remaining <= 0)"
+                        ") RETURNING id"
+                    ),
+                    {"now": now}
+                ).rowcount
+                if updated:
+                    db.commit()
+                    print(f"⏰ Bulk expired {updated} subscription(s)")
+            finally:
+                db.close()
+        except Exception as e:
+            print(f"⚠️ Bulk expire error: {e}")
+        await asyncio.sleep(60)
+
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(_bulk_expire_subscriptions())
+
+
 @app.get("/")
 async def root():
     """Root endpoint"""
@@ -144,8 +179,12 @@ async def proxy_request(service: str, path: str, request: Request):
                 content=body,
                 params=request.query_params
             )
+            try:
+                content = response.json() if response.text else {}
+            except Exception:
+                content = {"detail": response.text or "Service error"}
             return JSONResponse(
-                content=response.json() if response.text else {},
+                content=content,
                 status_code=response.status_code
             )
         except httpx.RequestError as e:
