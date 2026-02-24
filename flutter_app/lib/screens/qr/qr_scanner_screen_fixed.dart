@@ -540,12 +540,10 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
                     padding: EdgeInsets.only(bottom: 24),
                     child: CircularProgressIndicator(color: Colors.white),
                   )
-                else if (_isLoggedIn && _hasSubscription)
+                else if (_isLoggedIn)
                   _buildVehicleSelector()
                 else if (!_isLoggedIn)
-                  _buildLoginPrompt()
-                else if (!_hasSubscription)
-                  _buildSubscribePrompt(),
+                  _buildLoginPrompt(),
 
                 const SizedBox(height: 100), // Space for bottom nav
               ],
