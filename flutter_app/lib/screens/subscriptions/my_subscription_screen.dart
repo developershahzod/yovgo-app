@@ -52,6 +52,15 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> with Widget
     if (mounted) _loadSubscription();
   }
 
+  /// Instantly decrement visit counter from QR checkin response — no API call needed
+  void updateVisitCount(int remaining) {
+    if (!mounted) return;
+    setState(() {
+      _visitsRemaining = remaining;
+      if (_visitsLimit > 0) _visitsUsed = _visitsLimit - remaining;
+    });
+  }
+
   Future<void> _loadSubscription() async {
     try {
       final res = await FullApiService.get('/api/mobile/subscriptions/active');

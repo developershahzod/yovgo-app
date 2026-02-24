@@ -578,58 +578,56 @@ async def get_subscription_plans(
 
 @router.get("/subscriptions/active")
 async def get_active_subscription(
-    request: Request,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Get user's active subscription — proxied to subscription service"""
-    import httpx, os
-    sub_url = os.getenv("SUBSCRIPTION_SERVICE_URL", "http://subscription_service:8002")
-    headers = {k: v for k, v in request.headers.items() if k.lower() not in ("host",)}
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        try:
-            resp = await client.get(f"{sub_url}/subscriptions/status", headers=headers)
-            if resp.status_code == 404:
-                return JSONResponse(content={"success": True, "subscription": None}, status_code=200)
-            data = resp.json()
-            # Normalize to expected Flutter format
-            if isinstance(data, dict) and "id" in data:
-                plan_id = data.get("plan_id", "")
-                # Fetch plan details for name translations
-                plan_resp = await client.get(f"{sub_url}/plans/{plan_id}")
-                plan = plan_resp.json() if plan_resp.status_code == 200 else {}
-                end_date = data.get("end_date", "")
-                days_remaining = 0
-                if end_date:
-                    try:
-                        from datetime import datetime as _dt
-                        days_remaining = (_dt.fromisoformat(end_date.replace("Z","+00:00").replace("+00:00","")) - _dt.utcnow()).days
-                        if days_remaining < 0: days_remaining = 0
-                    except Exception: pass
-                used = data.get("visits_used", 0) or 0
-                return JSONResponse(content={
-                    "success": True,
-                    "subscription": {
-                        "id": data.get("id", ""),
-                        "plan_id": plan_id,
-                        "plan_name": plan.get("name", data.get("plan_name", "")),
-                        "plan_name_ru": plan.get("name_ru") or plan.get("name", ""),
-                        "plan_name_en": plan.get("name_en") or plan.get("name", ""),
-                        "duration_days": plan.get("duration_days", 30),
-                        "start_date": data.get("start_date", ""),
-                        "end_date": end_date,
-                        "days_remaining": days_remaining,
-                        "total_visits": plan.get("visit_limit", 0),
-                        "used_visits": used,
-                        "remaining_visits": data.get("visits_remaining", 0) or 0,
-                        "is_unlimited": data.get("is_unlimited", False),
-                        "is_active": data.get("status") == "active",
-                        "status": data.get("status", ""),
-                        "saved_amount": used * 15000,
-                    }
-                }, status_code=200)
-            return JSONResponse(content={"success": True, "subscription": None}, status_code=200)
-        except Exception as e:
-            raise HTTPException(status_code=503, detail=f"Subscription service unavailable: {e}")
+    """Get user's active subscription — served directly from gateway DB (no inter-service call)"""
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else current_user.id
+
+    # Auto-expire stale active subscriptions first
+    active_subs = db.query(Subscription).filter(
+        Subscription.user_id == user_id,
+        Subscription.status == "active"
+    ).all()
+    sub = None
+    for s in active_subs:
+        s = _check_and_expire(s, db)
+        if s.status == "active":
+            sub = s
+            break
+
+    if not sub:
+        return JSONResponse(content={"success": True, "subscription": None}, status_code=200)
+
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == sub.plan_id).first()
+    end_date_str = sub.end_date.isoformat() if sub.end_date else ""
+    days_remaining = 0
+    if sub.end_date:
+        days_remaining = (sub.end_date - datetime.utcnow()).days
+        if days_remaining < 0:
+            days_remaining = 0
+    used = sub.visits_used or 0
+    return JSONResponse(content={
+        "success": True,
+        "subscription": {
+            "id": str(sub.id),
+            "plan_id": str(sub.plan_id) if sub.plan_id else "",
+            "plan_name": plan.name if plan else "",
+            "plan_name_ru": (plan.name_ru or plan.name) if plan else "",
+            "plan_name_en": (plan.name_en or plan.name) if plan else "",
+            "duration_days": plan.duration_days if plan else 30,
+            "start_date": sub.start_date.isoformat() if sub.start_date else "",
+            "end_date": end_date_str,
+            "days_remaining": days_remaining,
+            "total_visits": plan.visit_limit if plan else 0,
+            "used_visits": used,
+            "remaining_visits": sub.visits_remaining if not sub.is_unlimited else "unlimited",
+            "is_unlimited": sub.is_unlimited or False,
+            "is_active": True,
+            "status": sub.status,
+            "saved_amount": used * 15000,
+        }
+    }, status_code=200)
 
 
 @router.get("/subscriptions/my")

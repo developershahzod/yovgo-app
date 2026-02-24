@@ -226,13 +226,14 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
 
       if (mounted) {
         setState(() => _isScanning = false);
-        // Instantly update home screen visit counter from checkin response
+        // Instantly update both screens from checkin response — no API call needed
         final remaining = result['remaining_visits'];
         if (remaining != null) {
           final rem = int.tryParse(remaining.toString()) ?? 0;
           HomeScreenFixed.globalKey.currentState?.updateVisitCount(rem);
+          MySubscriptionScreen.globalKey.currentState?.updateVisitCount(rem);
         }
-        // Full refresh of subscription + home screens
+        // Background refresh to sync full state
         MySubscriptionScreen.globalKey.currentState?.refreshData();
         HomeScreenFixed.globalKey.currentState?.refreshData();
         _showCheckinSuccessDialog(
