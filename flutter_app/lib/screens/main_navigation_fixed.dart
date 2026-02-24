@@ -198,10 +198,12 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> with WidgetsB
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
         width: 64,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+        child: Padding(
+          padding: const EdgeInsets.only(top: 10),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
             SvgPicture.asset(
               'assets/icons/$svgType.svg',
               width: 24,
