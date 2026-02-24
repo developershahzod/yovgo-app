@@ -246,7 +246,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             _buildSection(context.tr('activation_date'), _buildDateField()),
 
             // ─── Promo Code ───
-            _buildSection(context.tr('promo_code'), _buildPromoField()),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              child: _buildPromoField(),
+            ),
+            const Divider(height: 1, color: Color(0xFFF0F0F0), indent: 20, endIndent: 20),
 
             // ─── Payment Info ───
             _buildSection(context.tr('payment_method'), _buildPaymentInfo()),
@@ -357,63 +361,80 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   // ─── Promo Field ───
   Widget _buildPromoField() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _promoError ? const Color(0xFFFC3E3E) : (_promoController.text.isNotEmpty ? const Color(0xFF00BFFE) : const Color(0xFFE8E8E8))),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            _promoController.text.isNotEmpty ? context.tr('promo_enter') : context.tr('promo_have'),
-            style: TextStyle(fontSize: 12, color: const Color(0xFF8F96A0), fontFamily: 'Mulish'),
+    final hasText = _promoController.text.isNotEmpty;
+    final borderColor = _promoError
+        ? const Color(0xFFFC3E3E)
+        : hasText
+            ? const Color(0xFF00BFFE)
+            : const Color(0xFFE8E8E8);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: borderColor),
           ),
-          Row(
+          child: Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _promoController,
                   onChanged: (_) => setState(() => _promoError = false),
+                  textCapitalization: TextCapitalization.characters,
                   style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
                   decoration: InputDecoration(
+                    labelText: context.tr('promo_have'),
+                    labelStyle: const TextStyle(fontSize: 14, color: Color(0xFF8F96A0), fontFamily: 'Mulish', fontWeight: FontWeight.w400),
                     hintText: context.tr('promo_enter'),
-                    hintStyle: TextStyle(fontSize: 15, color: const Color(0xFFCCCCCC), fontFamily: 'Mulish', fontWeight: FontWeight.w400),
+                    hintStyle: const TextStyle(fontSize: 15, color: Color(0xFFCCCCCC), fontFamily: 'Mulish', fontWeight: FontWeight.w400),
                     border: InputBorder.none,
                     isDense: true,
-                    contentPadding: EdgeInsets.zero,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   ),
                 ),
               ),
-              if (_promoController.text.isNotEmpty)
+              if (hasText) ...[
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () {
-                    // Apply promo - for now show error as demo
-                    setState(() => _promoError = true);
+                    if (_promoError) {
+                      _promoController.clear();
+                      setState(() => _promoError = false);
+                    } else {
+                      setState(() => _promoError = true);
+                    }
                   },
                   child: _promoError
-                      ? const Icon(Icons.close, size: 20, color: Color(0xFFFC3E3E))
+                      ? const Icon(Icons.close, size: 22, color: Color(0xFFFC3E3E))
                       : Container(
-                          width: 32, height: 32,
-                          decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: const Color(0xFF0A0C13), width: 1.5)),
+                          width: 34, height: 34,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFF0A0C13), width: 1.5),
+                          ),
                           child: const Icon(Icons.arrow_forward, size: 16, color: Color(0xFF0A0C13)),
                         ),
                 ),
+              ],
             ],
           ),
-          if (_promoError) ...[
-            const SizedBox(height: 4),
-            Row(
+        ),
+        if (_promoError) ...[
+          const SizedBox(height: 6),
+          Padding(
+            padding: const EdgeInsets.only(left: 4),
+            child: Row(
               children: [
-                Icon(Icons.info, size: 14, color: const Color(0xFFFC3E3E)),
+                const Icon(Icons.info_outline, size: 14, color: Color(0xFFFC3E3E)),
                 const SizedBox(width: 4),
-                Text(context.tr('promo_expired'), style: TextStyle(fontSize: 12, color: const Color(0xFFFC3E3E), fontFamily: 'Mulish')),
+                Text(context.tr('promo_expired'), style: const TextStyle(fontSize: 12, color: Color(0xFFFC3E3E), fontFamily: 'Mulish')),
               ],
             ),
-          ],
+          ),
         ],
-      ),
+      ],
     );
   }
 
