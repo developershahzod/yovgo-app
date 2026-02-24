@@ -91,6 +91,32 @@ async def create_payment(
     
     return payment
 
+@app.get("/payments/all")
+async def list_all_payments(
+    skip: int = 0,
+    limit: int = 10000,
+    db: Session = Depends(get_db),
+):
+    """List all payments for admin dashboard (no auth required)"""
+    payments = db.query(Payment).order_by(Payment.created_at.desc()).offset(skip).limit(limit).all()
+    result = []
+    for p in payments:
+        user = db.query(User).filter(User.id == p.user_id).first() if p.user_id else None
+        plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == p.plan_id).first() if hasattr(p, 'plan_id') and p.plan_id else None
+        result.append({
+            "id": str(p.id),
+            "user_name": user.full_name if user else None,
+            "user_phone": user.phone_number if user else None,
+            "amount": float(p.amount) if p.amount else 0,
+            "currency": getattr(p, 'currency', 'UZS'),
+            "status": p.status,
+            "provider": getattr(p, 'provider', 'ipakyuli'),
+            "plan_name": plan.name if plan else None,
+            "transaction_id": getattr(p, 'transaction_id', None),
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+        })
+    return {"success": True, "payments": result, "total": len(result)}
+
 @app.get("/payments", response_model=List[PaymentResponse])
 async def list_payments(
     skip: int = 0,
