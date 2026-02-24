@@ -20,6 +20,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> with Widget
   String _endDate = '';
   int _visitsUsed = 0;
   int _visitsLimit = 0;
+  int _visitsRemaining = 0;
   bool _isUnlimited = false;
   int _savedAmount = 0;
   bool _isLoading = true;
@@ -68,6 +69,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> with Widget
             } catch (_) {}
           }
           final usedVisits = sub['used_visits'] ?? sub['visits_used'] ?? 0;
+          final remainingVisits = sub['remaining_visits'] ?? sub['visits_remaining'] ?? 0;
           final lang = Provider.of<LanguageProvider>(context, listen: false).languageCode;
           setState(() {
             _status = sub['status'];
@@ -85,6 +87,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> with Widget
             _endDate = endDateStr;
             _visitsUsed = usedVisits;
             _visitsLimit = sub['total_visits'] ?? sub['visit_limit'] ?? 0;
+            _visitsRemaining = remainingVisits;
             _isUnlimited = sub['is_unlimited'] == true;
             _savedAmount = sub['saved_amount'] ?? (usedVisits * 15000);
           });
@@ -98,7 +101,6 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> with Widget
       if (statsRes.statusCode == 200 && statsRes.data != null) {
         final stats = statsRes.data is Map ? statsRes.data : {};
         setState(() {
-          if (_visitsUsed == 0) _visitsUsed = stats['total_visits'] ?? stats['this_month'] ?? 0;
           if (_savedAmount == 0) _savedAmount = stats['saved_amount'] ?? 0;
         });
       }
@@ -334,7 +336,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> with Widget
                           decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
                           child: Column(
                             children: [
-                              Text(_isUnlimited ? '∞' : '${_visitsLimit - _visitsUsed}', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, fontFamily: 'Mulish')),
+                              Text(_isUnlimited ? '∞' : '$_visitsRemaining', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, fontFamily: 'Mulish')),
                               Text(context.tr('qr_visits_remaining'), style: TextStyle(fontSize: 11, color: Colors.white.withOpacity(0.8), fontFamily: 'Mulish')),
                             ],
                           ),

@@ -6,6 +6,7 @@ import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
 import '../../widgets/permission_modal.dart';
 import '../main_navigation_fixed.dart';
+import '../subscriptions/my_subscription_screen.dart';
 
 class QrScannerScreenFixed extends StatefulWidget {
   const QrScannerScreenFixed({Key? key}) : super(key: key);
@@ -219,6 +220,8 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
 
       if (mounted) {
         setState(() => _isScanning = false);
+        // Immediately refresh subscription screen so visit count updates right away
+        MySubscriptionScreen.globalKey.currentState?.refreshData();
         _showCheckinSuccessDialog(
           result['partner_name'] ?? context.tr('qr_car_wash'),
           result['remaining_visits']?.toString() ?? '',
