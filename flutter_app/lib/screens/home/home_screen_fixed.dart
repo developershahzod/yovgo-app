@@ -33,6 +33,8 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
   // Subscription data
   bool _hasSubscription = false;
   String _planName = '';
+  String _planNameRu = '';
+  String _planNameEn = '';
   String _endDate = '';
   int _usedVisits = 0;
   int _totalVisits = 0;
@@ -173,6 +175,8 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
       if (mounted && sub != null && sub['status'] == 'active') {
         setState(() {
           _hasSubscription = true;
+          _planNameRu = sub['plan_name_ru'] ?? sub['plan_name'] ?? sub['name'] ?? '';
+          _planNameEn = sub['plan_name_en'] ?? sub['plan_name'] ?? sub['name'] ?? '';
           _planName = sub['plan_name'] ?? sub['name'] ?? '';
           _usedVisits = sub['used_visits'] ?? sub['visits_used'] ?? 0;
           final isUnlimited = sub['is_unlimited'] == true;
@@ -501,7 +505,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                             const SizedBox(height: 8),
                             // 90 kunlik
                             Text(
-                              _planName.isNotEmpty ? _planName : context.tr('days_short'),
+                              (() { final l = Provider.of<LanguageProvider>(context, listen: true).languageCode; return l == 'ru' && _planNameRu.isNotEmpty ? _planNameRu : l == 'en' && _planNameEn.isNotEmpty ? _planNameEn : _planName.isNotEmpty ? _planName : context.tr('days_short'); })(),
                               style: TextStyle(
                                 color: const Color(0xFFFFEEEA),
                                 fontSize: 20,

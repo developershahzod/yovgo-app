@@ -16,6 +16,8 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> with Widget
   // null = guest, 'active', 'expired'
   String? _status;
   String _planName = '';
+  String _planNameRu = '';
+  String _planNameEn = '';
   int _daysLeft = 0;
   String _endDate = '';
   int _visitsUsed = 0;
@@ -79,19 +81,12 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> with Widget
           }
           final usedVisits = sub['used_visits'] ?? sub['visits_used'] ?? 0;
           final remainingVisits = sub['remaining_visits'] ?? sub['visits_remaining'] ?? 0;
-          final lang = Provider.of<LanguageProvider>(context, listen: false).languageCode;
           setState(() {
             _status = sub['status'];
-            String rawPlanName;
-            if (lang == 'ru' && (sub['plan_name_ru'] ?? '').toString().isNotEmpty) {
-              rawPlanName = sub['plan_name_ru'];
-            } else if (lang == 'en' && (sub['plan_name_en'] ?? '').toString().isNotEmpty) {
-              rawPlanName = sub['plan_name_en'];
-            } else {
-              rawPlanName = sub['plan_name'] ?? '';
-            }
-            if (rawPlanName.isEmpty) rawPlanName = '${sub['duration_days'] ?? 90}';
-            _planName = rawPlanName;
+            _planNameRu = (sub['plan_name_ru'] ?? sub['plan_name'] ?? '').toString();
+            _planNameEn = (sub['plan_name_en'] ?? sub['plan_name'] ?? '').toString();
+            _planName = (sub['plan_name'] ?? '').toString();
+            if (_planName.isEmpty) _planName = '${sub['duration_days'] ?? 90}';
             _daysLeft = sub['days_remaining'] ?? daysLeft;
             _endDate = endDateStr;
             _visitsUsed = usedVisits;
@@ -319,7 +314,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> with Widget
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Text(_planName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, fontFamily: 'Mulish')),
+                    Text((() { final l = Provider.of<LanguageProvider>(context, listen: true).languageCode; return l == 'ru' && _planNameRu.isNotEmpty ? _planNameRu : l == 'en' && _planNameEn.isNotEmpty ? _planNameEn : _planName; })(), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, fontFamily: 'Mulish')),
                     const SizedBox(height: 6),
                     if (_endDate.isNotEmpty)
                       Text('${context.tr('sub_expires')}: ${_formatEndDate(_endDate)}', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.85), fontFamily: 'Mulish')),
@@ -453,7 +448,7 @@ class _MySubscriptionScreenState extends State<MySubscriptionScreen> with Widget
 
   Widget _buildPlanPriceCard(Map<String, dynamic> plan, {required bool canBuy}) {
     String lang;
-    try { lang = Provider.of<LanguageProvider>(context, listen: false).languageCode; } catch (_) { lang = 'uz'; }
+    try { lang = Provider.of<LanguageProvider>(context, listen: true).languageCode; } catch (_) { lang = 'uz'; }
     String name;
     if (lang == 'ru' && (plan['name_ru'] ?? '').toString().isNotEmpty) {
       name = plan['name_ru'];
