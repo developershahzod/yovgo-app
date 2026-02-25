@@ -91,32 +91,6 @@ async def create_payment(
     
     return payment
 
-@app.get("/payments/all")
-async def list_all_payments(
-    skip: int = 0,
-    limit: int = 10000,
-    db: Session = Depends(get_db),
-):
-    """List all payments for admin dashboard (no auth required)"""
-    payments = db.query(Payment).order_by(Payment.created_at.desc()).offset(skip).limit(limit).all()
-    result = []
-    for p in payments:
-        user = db.query(User).filter(User.id == p.user_id).first() if p.user_id else None
-        plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.id == p.plan_id).first() if hasattr(p, 'plan_id') and p.plan_id else None
-        result.append({
-            "id": str(p.id),
-            "user_name": user.full_name if user else None,
-            "user_phone": user.phone_number if user else None,
-            "amount": float(p.amount) if p.amount else 0,
-            "currency": getattr(p, 'currency', 'UZS'),
-            "status": p.status,
-            "provider": getattr(p, 'provider', 'ipakyuli'),
-            "plan_name": plan.name if plan else None,
-            "transaction_id": getattr(p, 'transaction_id', None),
-            "created_at": p.created_at.isoformat() if p.created_at else None,
-        })
-    return {"success": True, "payments": result, "total": len(result)}
-
 @app.get("/payments", response_model=List[PaymentResponse])
 async def list_payments(
     skip: int = 0,
@@ -429,8 +403,8 @@ async def list_user_contracts(
     try:
         result = await ipakyuli_client.list_contracts(str(user_id))
         return result
-    except IpakYuliError as e:
-        raise HTTPException(status_code=400, detail=f"Failed to list contracts: {e.message}")
+    except Exception:
+        return []
 
 @app.delete("/ipakyuli/contracts/{contract_id}")
 async def delete_contract(
@@ -949,6 +923,91 @@ async def get_revenue(
         "currency": "UZS"
     }
 
-if __name__ == "__main__":
+
+
+# ── NEW: create-payment-direct (called from Flutter via backend) ──────────────
+class CreatePaymentDirectRequest(BaseModel):
+    order_id: str
+    amount: int  # UZS
+    payment_id: str
+
+@app.post("/ipakyuli/create-payment-direct")
+async def create_ipakyuli_payment_direct(
+    request: CreatePaymentDirectRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthHandler.get_current_user)
+):
+    """Create IpakYuli payment link via backend — avoids mobile SSL issues"""
+    try:
+        result = await ipakyuli_client.create_payment_link(
+            order_id=request.order_id,
+            amount=request.amount,
+            description="YuvGO obuna tolovi",
+            success_url=f"https://app.yuvgo.uz/api/mobile/payments/success?payment_id={request.payment_id}",
+            fail_url="https://app.yuvgo.uz/#/main",
+        )
+        transfer_id = result.get("transfer_id")
+        if transfer_id and request.payment_id:
+            try:
+                payment = db.query(Payment).filter(Payment.id == request.payment_id).first()
+                if payment:
+                    payment.transaction_id = transfer_id
+                    db.commit()
+            except Exception:
+                pass
+        return {
+            "payment_url": result.get("payment_url"),
+            "transfer_id": transfer_id,
+        }
+    except IpakYuliError as e:
+        raise HTTPException(status_code=400, detail=f"Payment creation failed: {e.message}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ── NEW: check-status (called from Flutter via backend) ───────────────────────
+class CheckStatusRequest(BaseModel):
+    transfer_id: str
+    payment_id: str
+
+@app.post("/ipakyuli/check-status")
+async def check_ipakyuli_status(
+    request: CheckStatusRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(AuthHandler.get_current_user)
+):
+    """Check IpakYuli transfer status and activate subscription if paid"""
+    try:
+        result = await ipakyuli_client.get_transfer_status(request.transfer_id)
+        status = (result.get("status") or "unknown").lower()
+
+        if status == "success":
+            try:
+                payment = db.query(Payment).filter(Payment.id == request.payment_id).first()
+                if payment and payment.status != "completed":
+                    payment.status = "completed"
+                    payment.transaction_id = request.transfer_id
+                    db.commit()
+                    sub = db.query(Subscription).filter(Subscription.id == payment.subscription_id).first()
+                    if sub:
+                        from datetime import datetime, timedelta
+                        from shared.models import SubscriptionPlan as _SP
+                        plan = db.query(_SP).filter(_SP.id == sub.plan_id).first()
+                        sub.status = "active"
+                        sub.start_date = datetime.utcnow()
+                        sub.end_date = datetime.utcnow() + timedelta(days=plan.duration_days if plan else 30)
+                        sub.visits_remaining = (plan.visit_limit or 0) if (plan and not getattr(plan, "is_unlimited", False)) else sub.visits_remaining
+                        sub.is_unlimited = getattr(plan, "is_unlimited", False) if plan else False
+                        db.commit()
+            except Exception:
+                pass
+
+        return {"status": status, "transfer_id": request.transfer_id}
+    except IpakYuliError as e:
+        raise HTTPException(status_code=400, detail=f"Status check failed: {e.message}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == '__main__':
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8005)
+    uvicorn.run(app, host='0.0.0.0', port=8005)
