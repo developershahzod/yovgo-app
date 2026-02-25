@@ -650,30 +650,47 @@ class CreateSubscriptionRequest(BaseModel):
 @router.post("/subscriptions/create")
 async def create_subscription(
     body: CreateSubscriptionRequest,
-    raw_request: Request,
+    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Create a new subscription — proxied to subscription service"""
-    import httpx, os
-    sub_url = os.getenv("SUBSCRIPTION_SERVICE_URL", "http://subscription_service:8002")
-    headers = {k: v for k, v in raw_request.headers.items() if k.lower() not in ("host",)}
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        try:
-            resp = await client.post(
-                f"{sub_url}/subscriptions",
-                headers=headers,
-                json=body.dict()
-            )
-            data = resp.json()
-            if resp.status_code in (200, 201):
-                return JSONResponse(content={
-                    "success": True,
-                    "message": "Subscription created successfully",
-                    "subscription_id": data.get("id", ""),
-                }, status_code=200)
-            return JSONResponse(content=data, status_code=resp.status_code)
-        except Exception as e:
-            raise HTTPException(status_code=503, detail=f"Subscription service unavailable: {e}")
+    """Create a new pending subscription directly in gateway DB"""
+    import uuid as _uuid
+    user_id = current_user.get("sub") if isinstance(current_user, dict) else str(current_user.id)
+
+    plan = db.query(SubscriptionPlan).filter(
+        SubscriptionPlan.id == body.plan_id,
+        SubscriptionPlan.is_active == True
+    ).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    # Create subscription in pending state — activated after payment
+    now = datetime.utcnow()
+    subscription = Subscription(
+        id=_uuid.uuid4(),
+        user_id=user_id,
+        plan_id=plan.id,
+        status="pending",
+        start_date=now,
+        end_date=now + timedelta(days=plan.duration_days),
+        visits_used=0,
+        visits_remaining=plan.visit_limit or 0,
+        is_unlimited=plan.is_unlimited or False,
+        auto_renew=body.auto_renew,
+    )
+    db.add(subscription)
+    db.commit()
+    db.refresh(subscription)
+
+    return JSONResponse(content={
+        "success": True,
+        "message": "Subscription created successfully",
+        "id": str(subscription.id),
+        "subscription_id": str(subscription.id),
+        "plan_id": str(plan.id),
+        "status": "pending",
+        "price": float(plan.price),
+    }, status_code=200)
 
 
 # ==================== QR & VISIT ENDPOINTS ====================
