@@ -334,6 +334,33 @@ os.makedirs(f"{UPLOAD_DIR}/gallery", exist_ok=True)
 # Serve uploaded files as static
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
+def _compress_image(filepath: str, max_bytes: int = 100 * 1024):
+    """Compress image in-place to stay under max_bytes (default 100KB)."""
+    try:
+        from PIL import Image as _Image
+        import io as _io
+        if os.path.getsize(filepath) <= max_bytes:
+            return
+        img = _Image.open(filepath)
+        if img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+        # Try progressively lower quality until under limit
+        for quality in (75, 60, 45, 30):
+            buf = _io.BytesIO()
+            img.save(buf, format='JPEG', quality=quality, optimize=True)
+            if buf.tell() <= max_bytes:
+                with open(filepath, 'wb') as fout:
+                    fout.write(buf.getvalue())
+                return
+        # Last resort: also resize to 800px wide
+        img.thumbnail((800, 800), _Image.LANCZOS)
+        buf = _io.BytesIO()
+        img.save(buf, format='JPEG', quality=30, optimize=True)
+        with open(filepath, 'wb') as fout:
+            fout.write(buf.getvalue())
+    except Exception:
+        pass  # If PIL not available or error, keep original
+
 @app.post("/api/upload/image")
 async def upload_image(
     file: UploadFile = File(...),
@@ -359,7 +386,8 @@ async def upload_image(
     
     with open(filepath, "wb") as f:
         f.write(contents)
-    
+    _compress_image(filepath)
+
     # Return the public URL
     url = f"/uploads/{subfolder}/{filename}"
     
@@ -395,7 +423,8 @@ async def upload_multiple_images(
         
         with open(filepath, "wb") as f:
             f.write(contents)
-        
+        _compress_image(filepath)
+
         url = f"https://app.yuvgo.uz/uploads/{subfolder}/{filename}"
         urls.append(url)
     
