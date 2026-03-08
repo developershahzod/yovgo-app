@@ -75,7 +75,9 @@ class AuthHandler:
         token = credentials.credentials
         payload = AuthHandler.decode_token(token)
         
-        if payload.get("type") != "access":
+        # Accept tokens with type='access' OR tokens without type field (backward compat with old app tokens)
+        token_type = payload.get("type")
+        if token_type is not None and token_type != "access":
             raise HTTPException(status_code=401, detail="Invalid token type")
         
         return payload
