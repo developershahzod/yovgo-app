@@ -5,6 +5,8 @@ import { Search, X, Eye, Edit, Mail, Phone, Calendar, CheckCircle, XCircle, Smar
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 
+const fmt = (n) => Number(n || 0).toLocaleString('ru-RU');
+
 const Users = () => {
   const { API_URL } = useAuth();
   const [users, setUsers] = useState([]);
@@ -20,8 +22,12 @@ const Users = () => {
   const [plans, setPlans] = useState([]);
   const [showSubCreate, setShowSubCreate] = useState(false);
   const [newSubPlanId, setNewSubPlanId] = useState('');
+  // Token balances: { [user_id]: { balance, total_earned, total_spent } }
+  const [tokenMap, setTokenMap] = useState({});
+  const [tokenAdjust, setTokenAdjust] = useState({ show: false, amount: '', desc: '' });
+  const [tokenAdjusting, setTokenAdjusting] = useState(false);
 
-  useEffect(() => { fetchUsers(); fetchPlans(); }, []);
+  useEffect(() => { fetchUsers(); fetchPlans(); fetchTokens(); }, []);
 
   const fetchUsers = async () => {
     try {
@@ -48,6 +54,30 @@ const Users = () => {
     } catch (e) { console.error('Plans fetch error', e); }
   };
 
+  const fetchTokens = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/mobile/admin/tokens/users?limit=10000`);
+      const map = {};
+      (res.data?.users || []).forEach(u => { map[u.user_id] = u; });
+      setTokenMap(map);
+    } catch (e) { console.error('Token fetch error', e); }
+  };
+
+  const handleTokenAdjust = async () => {
+    if (!tokenAdjust.amount || isNaN(tokenAdjust.amount)) return;
+    setTokenAdjusting(true);
+    try {
+      await axios.post(`${API_URL}/api/mobile/admin/tokens/adjust`, {
+        user_id: selectedUser.id,
+        amount: parseFloat(tokenAdjust.amount),
+        description: tokenAdjust.desc || 'Admin adjustment',
+      });
+      setTokenAdjust({ show: false, amount: '', desc: '' });
+      fetchTokens();
+    } catch (e) { alert(e.response?.data?.detail || 'Xatolik'); }
+    finally { setTokenAdjusting(false); }
+  };
+
   const fetchUserSubs = async (userId) => {
     setLoadingSubs(true);
     try {
@@ -66,6 +96,7 @@ const Users = () => {
     setIsEditing(false);
     setShowModal(true);
     setShowSubCreate(false);
+    setTokenAdjust({ show: false, amount: '', desc: '' });
     fetchUserSubs(user.id);
   };
 
@@ -75,6 +106,7 @@ const Users = () => {
     setIsEditing(true);
     setShowModal(true);
     setShowSubCreate(false);
+    setTokenAdjust({ show: false, amount: '', desc: '' });
     fetchUserSubs(user.id);
   };
 
@@ -199,6 +231,7 @@ const Users = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Foydalanuvchi</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefon</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Holat</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">🪙 Tokenlar</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ro'yxatdan o'tgan</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amallar</th>
                 </tr>
@@ -214,6 +247,11 @@ const Users = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                         {user.is_active ? 'Faol' : 'Nofaol'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-800">
+                        🪙 {fmt(tokenMap[user.id]?.balance ?? 0)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(user.created_at).toLocaleDateString()}</td>
@@ -290,6 +328,54 @@ const Users = () => {
                 <Button onClick={() => setIsEditing(true)} variant="outline" className="gap-2"><Edit size={14} /> Tahrirlash</Button>
               </div>
             )}
+
+            {/* Token Section */}
+            <div className="border-t pt-6 mb-0">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">🪙 YuvGo Tokenlar</h3>
+                <Button size="sm" variant="outline" onClick={() => setTokenAdjust(a => ({ ...a, show: !a.show }))} className="gap-1 text-yellow-700 border-yellow-300 hover:bg-yellow-50">
+                  {tokenAdjust.show ? 'Yopish' : '+ Tokenlarni sozlash'}
+                </Button>
+              </div>
+              {(() => {
+                const t = tokenMap[selectedUser.id];
+                return (
+                  <div className="grid grid-cols-3 gap-3 mb-3">
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-yellow-700">{fmt(t?.balance ?? 0)}</p>
+                      <p className="text-xs text-gray-500 mt-1">Joriy balans</p>
+                    </div>
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-green-700">{fmt(t?.total_earned ?? 0)}</p>
+                      <p className="text-xs text-gray-500 mt-1">Jami to'ldirilgan</p>
+                    </div>
+                    <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-red-700">{fmt(t?.total_spent ?? 0)}</p>
+                      <p className="text-xs text-gray-500 mt-1">Jami sarflangan</p>
+                    </div>
+                  </div>
+                );
+              })()}
+              {tokenAdjust.show && (
+                <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm font-medium text-gray-700 mb-2">Token miqdorini o'zgartirish <span className="text-gray-400">(+qo'shish / -ayirish)</span></p>
+                  <div className="flex gap-2 mb-2">
+                    <input type="number" placeholder="Miqdor (masalan: 500 yoki -200)" value={tokenAdjust.amount}
+                      onChange={e => setTokenAdjust(a => ({ ...a, amount: e.target.value }))}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                  </div>
+                  <div className="flex gap-2">
+                    <input type="text" placeholder="Izoh (ixtiyoriy)" value={tokenAdjust.desc}
+                      onChange={e => setTokenAdjust(a => ({ ...a, desc: e.target.value }))}
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
+                    <Button size="sm" onClick={handleTokenAdjust} disabled={tokenAdjusting} className="bg-yellow-500 hover:bg-yellow-600 text-white">
+                      {tokenAdjusting ? '...' : 'Saqlash'}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setTokenAdjust({ show: false, amount: '', desc: '' })}>Bekor</Button>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* Subscription Section */}
             <div className="border-t pt-6">
