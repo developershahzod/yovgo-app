@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'ipak_yuli_dio.dart' if (dart.library.io) 'ipak_yuli_dio_native.dart';
 
 /// Comprehensive API Service for YuvGO Flutter App
@@ -22,7 +23,10 @@ class FullApiService {
     ),
   );
 
-  static const _storage = FlutterSecureStorage();
+  static const _storage = FlutterSecureStorage(
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
   static const _tokenKey = 'auth_token';
   static const _userKey = 'user_data';
   static const _phoneKey = 'user_phone';
@@ -68,16 +72,41 @@ class FullApiService {
   }
 
   // ==================== TOKEN MANAGEMENT ====================
+  static const _prefTokenKey = 'pref_auth_token';
+
   static Future<void> saveToken(String token) async {
-    await _storage.write(key: _tokenKey, value: token);
+    // Write to both keychain and SharedPreferences as backup
+    try { await _storage.write(key: _tokenKey, value: token); } catch (_) {}
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_prefTokenKey, token);
+    } catch (_) {}
   }
 
   static Future<String?> getToken() async {
-    return await _storage.read(key: _tokenKey);
+    // Try secure storage first, fall back to SharedPreferences
+    try {
+      final token = await _storage.read(key: _tokenKey);
+      if (token != null && token.isNotEmpty) return token;
+    } catch (_) {}
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(_prefTokenKey);
+      if (token != null && token.isNotEmpty) {
+        // Restore to secure storage
+        try { await _storage.write(key: _tokenKey, value: token); } catch (_) {}
+        return token;
+      }
+    } catch (_) {}
+    return null;
   }
 
   static Future<void> deleteToken() async {
-    await _storage.delete(key: _tokenKey);
+    try { await _storage.delete(key: _tokenKey); } catch (_) {}
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_prefTokenKey);
+    } catch (_) {}
   }
 
   static Future<bool> isLoggedIn() async {

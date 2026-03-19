@@ -15,7 +15,10 @@ class ApiService {
     ),
   );
 
-  static const _storage = FlutterSecureStorage();
+  static const _storage = FlutterSecureStorage(
+    iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
   static const _tokenKey = 'auth_token';
 
   // Initialize interceptors
