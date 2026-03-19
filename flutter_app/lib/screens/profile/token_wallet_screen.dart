@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../config/app_theme.dart';
 import '../../l10n/language_provider.dart';
 import '../../services/full_api_service.dart';
 import 'token_topup_screen.dart';

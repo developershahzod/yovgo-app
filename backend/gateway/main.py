@@ -291,6 +291,50 @@ async def user_service(path: str, request: Request):
 async def subscription_service(path: str, request: Request):
     return await proxy_request("subscription", f"/{path}", request)
 
+# Partner Reviews — served from gateway DB (not partner service)
+@app.get("/api/partner/reviews")
+async def admin_get_all_reviews():
+    from shared.database import SessionLocal as _SL
+    from shared.models import Review, User, Partner
+    db = _SL()
+    try:
+        reviews = db.query(Review).order_by(Review.created_at.desc()).limit(500).all()
+        result = []
+        for r in reviews:
+            user = db.query(User).filter(User.id == r.user_id).first()
+            partner = db.query(Partner).filter(Partner.id == r.partner_id).first()
+            result.append({
+                "id": str(r.id),
+                "partner_id": str(r.partner_id),
+                "partner_name": partner.name if partner else "",
+                "location_id": str(r.location_id) if r.location_id else None,
+                "user_id": str(r.user_id),
+                "user_name": user.full_name if user and user.full_name else "Foydalanuvchi",
+                "user_phone": user.phone_number if user else "",
+                "rating": r.rating,
+                "comment": r.comment or "",
+                "is_visible": r.is_visible,
+                "created_at": r.created_at.isoformat() if r.created_at else None,
+            })
+        return JSONResponse(result)
+    finally:
+        db.close()
+
+@app.delete("/api/partner/reviews/{review_id}")
+async def admin_delete_review(review_id: str):
+    from shared.database import SessionLocal as _SL
+    from shared.models import Review
+    db = _SL()
+    try:
+        r = db.query(Review).filter(Review.id == review_id).first()
+        if not r:
+            raise HTTPException(status_code=404, detail="Review not found")
+        db.delete(r)
+        db.commit()
+        return JSONResponse({"success": True})
+    finally:
+        db.close()
+
 # Partner Service Routes
 @app.api_route("/api/partner/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 async def partner_service(path: str, request: Request):
