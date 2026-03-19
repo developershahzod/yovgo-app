@@ -58,6 +58,8 @@ class SubscriptionPlanBase(BaseModel):
     duration_days: int
     visit_limit: Optional[int] = None
     is_unlimited: bool = False
+    max_users: Optional[int] = None
+    is_one_time: bool = False
 
 class SubscriptionPlanCreate(SubscriptionPlanBase):
     is_active: bool = True
@@ -65,6 +67,8 @@ class SubscriptionPlanCreate(SubscriptionPlanBase):
 class SubscriptionPlanResponse(SubscriptionPlanBase):
     id: UUID
     is_active: bool
+    max_users: Optional[int] = None
+    is_one_time: bool = False
     created_at: datetime
     
     class Config:

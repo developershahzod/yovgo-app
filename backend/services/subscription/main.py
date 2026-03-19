@@ -196,6 +196,31 @@ async def create_subscription(
     if not plan:
         raise HTTPException(status_code=404, detail="Plan not found")
 
+    # Check max_users limit (total unique users who ever purchased this plan)
+    if plan.max_users is not None:
+        from sqlalchemy import func as sqlfunc
+        total_buyers = db.query(sqlfunc.count(sqlfunc.distinct(Subscription.user_id))).filter(
+            Subscription.plan_id == plan.id,
+            Subscription.status.in_(["active", "expired", "pending", "cancelled"])
+        ).scalar() or 0
+        if total_buyers >= plan.max_users:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Limit reached: this plan is only available to {plan.max_users} users"
+            )
+
+    # Check is_one_time — user can never buy this plan again (even if expired)
+    if getattr(plan, 'is_one_time', False):
+        already_purchased = db.query(Subscription).filter(
+            Subscription.user_id == user_id,
+            Subscription.plan_id == plan.id
+        ).first()
+        if already_purchased:
+            raise HTTPException(
+                status_code=400,
+                detail="This plan can only be purchased once per user"
+            )
+
     # Create subscription as pending — activated only after payment confirmation
     start_date = datetime.utcnow()
     end_date = calculate_subscription_end_date(start_date, plan.duration_days)

@@ -48,6 +48,8 @@ class SubscriptionPlan(Base):
     duration_days = Column(Integer, nullable=False)
     visit_limit = Column(Integer)
     is_unlimited = Column(Boolean, default=False)
+    max_users = Column(Integer, nullable=True)  # max users who can buy this plan (e.g. 1000)
+    is_one_time = Column(Boolean, default=False)  # user can only buy once ever
     is_active = Column(Boolean, default=True)
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
@@ -145,8 +147,10 @@ class Visit(Base):
     staff_id = Column(UUID(as_uuid=True), ForeignKey("partner_staff.id"))
     check_in_time = Column(TIMESTAMP, server_default=func.now())
     status = Column(String(20), default="completed")
+    wash_type = Column(String(20), default="sedan")  # express, sedan, krossover, minivan, suv
     notes = Column(Text)
     created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
 class Payment(Base):
     __tablename__ = "payments"

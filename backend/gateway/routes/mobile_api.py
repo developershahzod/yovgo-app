@@ -555,6 +555,8 @@ async def get_subscription_plans(
             "duration_days": duration,
             "visit_limit": visit_limit,
             "is_unlimited": p.is_unlimited or False,
+            "is_one_time": getattr(p, 'is_one_time', False) or False,
+            "max_users": getattr(p, 'max_users', None),
             "features": [
                 f"{visit_limit} ta tashrif" if visit_limit else "Cheksiz tashrif",
                 "Barcha hamkor avtomoykalar",
@@ -698,6 +700,7 @@ async def create_subscription(
 class CheckinRequest(BaseModel):
     qr_token: str
     vehicle_id: Optional[str] = None
+    wash_type: Optional[str] = 'sedan'  # express, sedan, krossover, minivan, suv
 
 @router.post("/visits/checkin")
 async def qr_checkin(
@@ -787,6 +790,13 @@ async def qr_checkin(
         check_in_time=datetime.utcnow(),
         status="in_progress"
     )
+    
+    # Store wash type if provided
+    if request.wash_type:
+        try:
+            setattr(visit, 'wash_type', request.wash_type)
+        except Exception:
+            pass
     
     db.add(visit)
     
