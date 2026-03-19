@@ -1920,15 +1920,6 @@ extension HomeScreenMethods on _HomeScreenFixedState {
             padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
             child: Row(
               children: [
-                Container(
-                  width: 52, height: 52,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0A0C13),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(Icons.local_car_wash, color: Color(0xFF00CFFF), size: 28),
-                ),
-                const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
