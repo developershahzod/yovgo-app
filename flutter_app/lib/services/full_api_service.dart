@@ -20,6 +20,7 @@ class FullApiService {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
       },
+      validateStatus: (status) => true,
     ),
   );
 
