@@ -57,7 +57,7 @@ class _TokenTopupScreenState extends State<TokenTopupScreen> {
       final val = int.tryParse(_customAmountCtrl.text.replaceAll(' ', '').trim()) ?? 0;
       if (val <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Token miqdorini kiriting'), backgroundColor: Colors.red),
+          SnackBar(content: Text(context.tr('tokens_custom_hint')), backgroundColor: Colors.red),
         );
         return;
       }
@@ -139,7 +139,7 @@ class _TokenTopupScreenState extends State<TokenTopupScreen> {
         if (status == 'failed' || status == 'cancelled' || status == 'expired') {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('To\'lov bekor qilindi'), backgroundColor: Colors.red),
+              SnackBar(content: Text(context.tr('tokens_cancelled')), backgroundColor: Colors.red),
             );
           }
           return;
@@ -299,9 +299,9 @@ class _TokenTopupScreenState extends State<TokenTopupScreen> {
                                       : null,
                                 ),
                                 const SizedBox(width: 10),
-                                const Text(
-                                  'O\'z miqdorimni kiritaman',
-                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
+                                Text(
+                                  context.tr('tokens_custom_amount'),
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
                                 ),
                               ],
                             ),
@@ -310,9 +310,8 @@ class _TokenTopupScreenState extends State<TokenTopupScreen> {
                             const SizedBox(height: 12),
                             Container(
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF7F7F7),
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: const Color(0xFFE8E8E8)),
                               ),
                               child: Row(
                                 children: [
@@ -325,11 +324,13 @@ class _TokenTopupScreenState extends State<TokenTopupScreen> {
                                       controller: _customAmountCtrl,
                                       keyboardType: TextInputType.number,
                                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
-                                      decoration: const InputDecoration(
-                                        hintText: 'Masalan: 5000',
-                                        hintStyle: TextStyle(color: Color(0xFFAAAAAA), fontFamily: 'Mulish'),
+                                      decoration: InputDecoration(
+                                        hintText: context.tr('tokens_custom_hint'),
+                                        hintStyle: const TextStyle(color: Color(0xFFAAAAAA), fontFamily: 'Mulish'),
                                         border: InputBorder.none,
-                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
                                       ),
                                     ),
                                   ),
@@ -341,9 +342,9 @@ class _TokenTopupScreenState extends State<TokenTopupScreen> {
                               ),
                             ),
                             const SizedBox(height: 6),
-                            const Text(
-                              '1 token = 1 UZS',
-                              style: TextStyle(fontSize: 12, color: Color(0xFF8F96A0), fontFamily: 'Mulish'),
+                            Text(
+                              context.tr('tokens_custom_rate'),
+                              style: const TextStyle(fontSize: 12, color: Color(0xFF8F96A0), fontFamily: 'Mulish'),
                             ),
                           ],
                           const SizedBox(height: 16),
