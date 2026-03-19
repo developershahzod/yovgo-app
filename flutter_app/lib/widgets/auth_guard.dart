@@ -22,6 +22,8 @@ class _AuthGuardState extends State<AuthGuard> {
   }
 
   Future<void> _checkAuth() async {
+    // Run migration first so legacy tokens are available
+    await FullApiService.migrateToken();
     final loggedIn = await FullApiService.isLoggedIn();
     if (mounted) {
       setState(() {

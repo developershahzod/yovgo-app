@@ -27,6 +27,8 @@ class FullApiService {
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
+  // Legacy storage (no options) — used to migrate old tokens
+  static const _legacyStorage = FlutterSecureStorage();
   static const _tokenKey = 'auth_token';
   static const _userKey = 'user_data';
   static const _phoneKey = 'user_phone';
@@ -46,6 +48,8 @@ class FullApiService {
 
   // Initialize interceptors
   static void initialize() {
+    // Migrate token from old storage on startup
+    migrateToken();
     _dio.interceptors.clear();
     _dio.interceptors.add(
       InterceptorsWrapper(
@@ -71,6 +75,41 @@ class FullApiService {
     );
   }
 
+  // ==================== TOKEN MIGRATION ====================
+  /// Runs once on startup — reads token from legacy keychain/prefs and writes to all stores.
+  static Future<void> migrateToken() async {
+    try {
+      // Already have token in new storage? Nothing to do.
+      final existing = await _storage.read(key: _tokenKey);
+      if (existing != null && existing.isNotEmpty) {
+        // Ensure SharedPreferences also has it
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('pref_auth_token', existing);
+        return;
+      }
+    } catch (_) {}
+    // Try legacy secure storage (old app installs)
+    String? token;
+    try {
+      token = await _legacyStorage.read(key: _tokenKey);
+    } catch (_) {}
+    // Try SharedPreferences backup
+    if (token == null || token.isEmpty) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        token = prefs.getString('pref_auth_token');
+      } catch (_) {}
+    }
+    if (token != null && token.isNotEmpty) {
+      print('🔑 Migrating auth token to new storage');
+      try { await _storage.write(key: _tokenKey, value: token); } catch (_) {}
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('pref_auth_token', token);
+      } catch (_) {}
+    }
+  }
+
   // ==================== TOKEN MANAGEMENT ====================
   static const _prefTokenKey = 'pref_auth_token';
 
@@ -84,17 +123,30 @@ class FullApiService {
   }
 
   static Future<String?> getToken() async {
-    // Try secure storage first, fall back to SharedPreferences
+    // 1. Try new secure storage (first_unlock accessibility)
     try {
       final token = await _storage.read(key: _tokenKey);
       if (token != null && token.isNotEmpty) return token;
     } catch (_) {}
+    // 2. Try SharedPreferences backup
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString(_prefTokenKey);
       if (token != null && token.isNotEmpty) {
-        // Restore to secure storage
         try { await _storage.write(key: _tokenKey, value: token); } catch (_) {}
+        return token;
+      }
+    } catch (_) {}
+    // 3. Try legacy secure storage (old app installs, no iOptions)
+    try {
+      final token = await _legacyStorage.read(key: _tokenKey);
+      if (token != null && token.isNotEmpty) {
+        // Migrate to new storage immediately
+        try { await _storage.write(key: _tokenKey, value: token); } catch (_) {}
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_prefTokenKey, token);
+        } catch (_) {}
         return token;
       }
     } catch (_) {}

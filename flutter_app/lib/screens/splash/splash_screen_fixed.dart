@@ -35,6 +35,7 @@ class _SplashScreenState extends State<SplashScreen>
       Navigator.pushReplacementNamed(context, '/onboarding');
       return;
     }
+    await FullApiService.migrateToken();
     final isLoggedIn = await FullApiService.isLoggedIn();
     if (!mounted) return;
     if (isLoggedIn) {

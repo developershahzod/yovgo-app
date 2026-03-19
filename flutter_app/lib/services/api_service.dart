@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/constants.dart';
 
 class ApiService {
@@ -19,7 +20,9 @@ class ApiService {
     iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
     aOptions: AndroidOptions(encryptedSharedPreferences: true),
   );
+  static const _legacyStorage = FlutterSecureStorage();
   static const _tokenKey = 'auth_token';
+  static const _prefTokenKey = 'pref_auth_token';
 
   // Initialize interceptors
   static void initialize() {
@@ -49,15 +52,50 @@ class ApiService {
 
   // Token management
   static Future<void> saveToken(String token) async {
-    await _storage.write(key: _tokenKey, value: token);
+    try { await _storage.write(key: _tokenKey, value: token); } catch (_) {}
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_prefTokenKey, token);
+    } catch (_) {}
   }
 
   static Future<String?> getToken() async {
-    return await _storage.read(key: _tokenKey);
+    // 1. New secure storage
+    try {
+      final token = await _storage.read(key: _tokenKey);
+      if (token != null && token.isNotEmpty) return token;
+    } catch (_) {}
+    // 2. SharedPreferences backup
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(_prefTokenKey);
+      if (token != null && token.isNotEmpty) {
+        try { await _storage.write(key: _tokenKey, value: token); } catch (_) {}
+        return token;
+      }
+    } catch (_) {}
+    // 3. Legacy secure storage (old installs)
+    try {
+      final token = await _legacyStorage.read(key: _tokenKey);
+      if (token != null && token.isNotEmpty) {
+        try { await _storage.write(key: _tokenKey, value: token); } catch (_) {}
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString(_prefTokenKey, token);
+        } catch (_) {}
+        return token;
+      }
+    } catch (_) {}
+    return null;
   }
 
   static Future<void> deleteToken() async {
-    await _storage.delete(key: _tokenKey);
+    try { await _storage.delete(key: _tokenKey); } catch (_) {}
+    try { await _legacyStorage.delete(key: _tokenKey); } catch (_) {}
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_prefTokenKey);
+    } catch (_) {}
   }
 
   // Generic HTTP methods
