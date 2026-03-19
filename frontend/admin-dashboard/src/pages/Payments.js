@@ -47,9 +47,9 @@ const Payments = () => {
       let realPayments = [];
       let apiStats = null;
       try {
-        const paymentsRes = await axios.get(`${API_URL}/api/payment/payments/all?limit=10000`);
+        const paymentsRes = await axios.get(`${API_URL}/api/mobile/payments/all?limit=10000`);
         const data = paymentsRes.data;
-        realPayments = Array.isArray(data.payments) ? data.payments : [];
+        realPayments = Array.isArray(data.payments) ? data.payments : (Array.isArray(data) ? data : []);
         apiStats = data.stats || null;
       } catch (e) {
         console.log('Payments API error:', e.message);
@@ -105,7 +105,7 @@ const Payments = () => {
   const handleDeletePayment = async (payment) => {
     if (!window.confirm(`To'lov #${payment.transactionId} ni o'chirmoqchimisiz?`)) return;
     try {
-      await axios.delete(`${API_URL}/api/payment/payments/${payment.id}`);
+      await axios.delete(`${API_URL}/api/mobile/payments/${payment.id}`);
       fetchData();
     } catch (error) {
       console.error('Failed to delete payment:', error);
