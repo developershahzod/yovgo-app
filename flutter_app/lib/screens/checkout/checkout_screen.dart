@@ -95,6 +95,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _processPayment() async {
     if (_isProcessing || _plan == null) return;
+
+    // Check login before doing anything
+    final loggedIn = await FullApiService.isLoggedIn();
+    if (!loggedIn) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: Text(context.tr('login_first')),
+            content: Text(context.tr('login_to_pay')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(context.tr('cancel')),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pushNamedAndRemoveUntil(context, '/login', (r) => false);
+                },
+                child: Text(context.tr('login'), style: const TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
+
     setState(() => _isProcessing = true);
 
     // Route to token payment if selected
