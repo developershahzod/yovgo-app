@@ -423,10 +423,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('YuvGo Tokens', style: TextStyle(fontSize: 12, color: Colors.white70, fontFamily: 'Mulish', fontWeight: FontWeight.w500)),
+                Text(context.tr('tokens_title'), style: const TextStyle(fontSize: 12, color: Colors.white70, fontFamily: 'Mulish', fontWeight: FontWeight.w500)),
                 const SizedBox(height: 2),
                 Text(
-                  '$fmt token',
+                  '$fmt ${context.tr('tokens_balance')}',
                   style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, fontFamily: 'Mulish'),
                 ),
               ],
@@ -444,7 +444,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: Colors.white.withOpacity(0.3)),
               ),
-              child: const Text('Toʻldirish', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
+              child: Text(context.tr('tokens_topup'), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
             ),
           ),
         ],
