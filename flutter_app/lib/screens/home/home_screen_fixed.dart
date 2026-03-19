@@ -1149,20 +1149,20 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                       ),
                     ),
               ),
-              // Rating badge — yellow bg, dark star + number
+              // Rating badge — white bg, yellow star, black number, pill shape
               Positioned(
                 left: 12,
                 bottom: 12,
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFD600),
-                    borderRadius: BorderRadius.circular(10),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(100),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.star_rounded, color: Color(0xFF0A0C13), size: 15),
+                      const Icon(Icons.star_rounded, color: Color(0xFFFFD600), size: 15),
                       const SizedBox(width: 4),
                       Text(
                         rating.toStringAsFixed(1),

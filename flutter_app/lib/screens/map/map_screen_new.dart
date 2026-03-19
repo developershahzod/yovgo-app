@@ -810,13 +810,13 @@ class _MapScreenNewState extends State<MapScreenNew> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFD600),
-                        borderRadius: BorderRadius.circular(10),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(100),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.star_rounded, size: 15, color: Color(0xFF0A0C13)),
+                          const Icon(Icons.star_rounded, size: 15, color: Color(0xFFFFD600)),
                           const SizedBox(width: 4),
                           Text(rating.toStringAsFixed(1), style: const TextStyle(color: Color(0xFF0A0C13), fontSize: 13, fontWeight: FontWeight.w800, fontFamily: 'Mulish')),
                         ],
