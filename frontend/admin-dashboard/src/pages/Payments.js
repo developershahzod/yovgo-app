@@ -43,11 +43,11 @@ const Payments = () => {
     try {
       setLoading(true);
       
-      // Fetch real payments from mobile API
+      // Fetch real payments from payment service admin endpoint
       let realPayments = [];
       let apiStats = null;
       try {
-        const paymentsRes = await axios.get(`${API_URL}/api/mobile/payments/all?limit=200`);
+        const paymentsRes = await axios.get(`${API_URL}/api/payment/payments/all?limit=10000`);
         const data = paymentsRes.data;
         realPayments = Array.isArray(data.payments) ? data.payments : [];
         apiStats = data.stats || null;

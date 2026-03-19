@@ -54,7 +54,7 @@ const Notifications = () => {
     try {
       setLoading(true);
       const [notifRes, usersRes] = await Promise.allSettled([
-        axios.get(`${API_URL}/api/notification/notifications`, { params: { limit: 50 } }),
+        axios.get(`${API_URL}/api/notification/notifications`, { params: { limit: 10000 } }),
         axios.get(`${API_URL}/api/user/users`),
       ]);
 

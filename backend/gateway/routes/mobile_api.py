@@ -2105,6 +2105,447 @@ async def ipakyuli_webhook(
         return {"code": 0}
 
 
+# ═══════════════════════════════════════════════════════════════
+# YUVGO TOKEN SYSTEM
+# 1 YuvGo Token = 1,000 UZS
+# ═══════════════════════════════════════════════════════════════
+
+TOKEN_TO_UZS = 1000  # 1 token = 1,000 UZS
+
+class TokenTopupRequest(BaseModel):
+    tokens: int  # number of tokens to buy (e.g. 50 → 50,000 UZS)
+
+class TokenPaySubscriptionRequest(BaseModel):
+    plan_id: str
+
+class AdminTokenAdjustRequest(BaseModel):
+    user_id: str
+    amount: float   # positive = add, negative = deduct
+    description: Optional[str] = None
+
+
+def _get_or_create_token_balance(db: Session, user_id):
+    from shared.models import UserTokenBalance
+    bal = db.query(UserTokenBalance).filter(UserTokenBalance.user_id == user_id).first()
+    if not bal:
+        bal = UserTokenBalance(user_id=user_id, balance=0, total_earned=0, total_spent=0)
+        db.add(bal)
+        db.commit()
+        db.refresh(bal)
+    return bal
+
+
+@router.get("/tokens/balance")
+async def get_token_balance(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get current user's YuvGo token balance"""
+    from shared.models import UserTokenBalance, TokenTransaction
+    user_id = current_user.get("sub")
+    bal = _get_or_create_token_balance(db, user_id)
+    recent = db.query(TokenTransaction).filter(
+        TokenTransaction.user_id == user_id
+    ).order_by(TokenTransaction.created_at.desc()).limit(10).all()
+    return {
+        "success": True,
+        "balance": float(bal.balance),
+        "balance_uzs": float(bal.balance) * TOKEN_TO_UZS,
+        "total_earned": float(bal.total_earned),
+        "total_spent": float(bal.total_spent),
+        "transactions": [
+            {
+                "id": str(t.id),
+                "type": t.type,
+                "amount": float(t.amount),
+                "balance_after": float(t.balance_after),
+                "description": t.description,
+                "status": t.status,
+                "created_at": t.created_at.isoformat() if t.created_at else None,
+            }
+            for t in recent
+        ],
+    }
+
+
+@router.post("/tokens/topup/create")
+async def create_token_topup_payment(
+    request: TokenTopupRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Create IpakYuli payment to top up YuvGo tokens"""
+    import uuid as _uuid
+    from shared.models import TokenTransaction
+
+    user_id = current_user.get("sub")
+    if request.tokens < 1:
+        raise HTTPException(status_code=400, detail="Minimum 1 token")
+    if request.tokens > 10000:
+        raise HTTPException(status_code=400, detail="Maximum 10,000 tokens per transaction")
+
+    amount_uzs = request.tokens * TOKEN_TO_UZS
+    order_id = f"TOK_{_uuid.uuid4().hex[:12].upper()}"
+
+    # Create a pending token transaction (will be confirmed after payment)
+    tx = TokenTransaction(
+        user_id=user_id,
+        type="topup",
+        amount=request.tokens,
+        balance_after=0,  # will be updated on confirmation
+        description=f"Top-up {request.tokens} tokens via IpakYuli",
+        reference_id=order_id,
+        payment_provider="ipakyuli",
+        status="pending",
+    )
+    db.add(tx)
+    db.commit()
+    db.refresh(tx)
+
+    return {
+        "success": True,
+        "transaction_id": str(tx.id),
+        "order_id": order_id,
+        "tokens": request.tokens,
+        "amount_uzs": amount_uzs,
+    }
+
+
+@router.post("/tokens/topup/confirm")
+async def confirm_token_topup(
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+    transaction_id: str = Body(..., embed=True),
+    transfer_id: str = Body(..., embed=True),
+):
+    """Confirm token top-up after successful IpakYuli payment"""
+    from shared.models import UserTokenBalance, TokenTransaction
+    user_id = current_user.get("sub")
+
+    tx = db.query(TokenTransaction).filter(
+        TokenTransaction.id == transaction_id,
+        TokenTransaction.user_id == user_id,
+        TokenTransaction.type == "topup",
+        TokenTransaction.status == "pending",
+    ).first()
+    if not tx:
+        raise HTTPException(status_code=404, detail="Transaction not found or already processed")
+
+    bal = _get_or_create_token_balance(db, user_id)
+    new_balance = float(bal.balance) + float(tx.amount)
+
+    tx.status = "completed"
+    tx.balance_after = new_balance
+    tx.reference_id = transfer_id
+
+    bal.balance = new_balance
+    bal.total_earned = float(bal.total_earned) + float(tx.amount)
+    db.commit()
+
+    return {
+        "success": True,
+        "tokens_added": float(tx.amount),
+        "new_balance": new_balance,
+        "new_balance_uzs": new_balance * TOKEN_TO_UZS,
+    }
+
+
+@router.post("/tokens/pay-subscription")
+async def pay_subscription_with_tokens(
+    request: TokenPaySubscriptionRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Pay for a subscription plan using YuvGo tokens"""
+    from shared.models import UserTokenBalance, TokenTransaction
+    import uuid as _uuid
+
+    user_id = current_user.get("sub")
+
+    # Get plan
+    plan = db.query(SubscriptionPlan).filter(
+        SubscriptionPlan.id == request.plan_id,
+        SubscriptionPlan.is_active == True
+    ).first()
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan not found")
+
+    # Convert price to tokens
+    price_uzs = float(plan.price)
+    tokens_needed = price_uzs / TOKEN_TO_UZS  # e.g. 450000 / 1000 = 450 tokens
+
+    # Check balance
+    bal = _get_or_create_token_balance(db, user_id)
+    if float(bal.balance) < tokens_needed:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Insufficient tokens. Need {tokens_needed:.0f}, have {float(bal.balance):.0f}"
+        )
+
+    # Auto-expire old subs
+    active_subs = db.query(Subscription).filter(
+        Subscription.user_id == user_id,
+        Subscription.status == "active"
+    ).all()
+    for sub in active_subs:
+        _check_and_expire(sub, db)
+
+    existing = db.query(Subscription).filter(
+        Subscription.user_id == user_id,
+        Subscription.status == "active"
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="User already has active subscription")
+
+    # Cancel stale pending
+    stale = db.query(Subscription).filter(
+        Subscription.user_id == user_id,
+        Subscription.status == "pending"
+    ).all()
+    for s in stale:
+        s.status = "cancelled"
+    if stale:
+        db.commit()
+
+    # is_one_time check
+    if getattr(plan, 'is_one_time', False):
+        already = db.query(Subscription).filter(
+            Subscription.user_id == user_id,
+            Subscription.plan_id == plan.id
+        ).first()
+        if already:
+            raise HTTPException(status_code=400, detail="This plan can only be purchased once per user")
+
+    # max_users check
+    if getattr(plan, 'max_users', None):
+        from sqlalchemy import func as sqlfunc
+        total = db.query(sqlfunc.count(sqlfunc.distinct(Subscription.user_id))).filter(
+            Subscription.plan_id == plan.id
+        ).scalar() or 0
+        if total >= plan.max_users:
+            raise HTTPException(status_code=400, detail="Plan user limit reached")
+
+    # Create subscription (immediately active — tokens are instant)
+    from datetime import datetime as dt
+    start_date = dt.utcnow()
+    end_date = start_date + timedelta(days=plan.duration_days)
+
+    subscription = Subscription(
+        user_id=user_id,
+        plan_id=plan.id,
+        status="active",
+        start_date=start_date,
+        end_date=end_date,
+        visits_remaining=plan.visit_limit if plan.visit_limit else 0,
+        is_unlimited=plan.is_unlimited if hasattr(plan, 'is_unlimited') else False,
+        auto_renew=False,
+    )
+    db.add(subscription)
+    db.commit()
+    db.refresh(subscription)
+
+    # Deduct tokens
+    new_balance = float(bal.balance) - tokens_needed
+    tx = TokenTransaction(
+        user_id=user_id,
+        type="spend",
+        amount=-tokens_needed,
+        balance_after=new_balance,
+        description=f"Subscription: {plan.name}",
+        reference_id=str(subscription.id),
+        payment_provider="tokens",
+        status="completed",
+    )
+    db.add(tx)
+    bal.balance = new_balance
+    bal.total_spent = float(bal.total_spent) + tokens_needed
+    db.commit()
+
+    # Create payment record for history
+    payment = Payment(
+        user_id=user_id,
+        subscription_id=subscription.id,
+        amount=price_uzs,
+        currency="UZS",
+        provider="tokens",
+        transaction_id=str(tx.id),
+        status="completed",
+        payment_method="tokens",
+        payment_metadata={"tokens_used": tokens_needed, "token_tx_id": str(tx.id)},
+    )
+    db.add(payment)
+    db.commit()
+
+    return {
+        "success": True,
+        "subscription_id": str(subscription.id),
+        "tokens_spent": tokens_needed,
+        "new_balance": new_balance,
+        "new_balance_uzs": new_balance * TOKEN_TO_UZS,
+    }
+
+
+@router.get("/tokens/topup/packages")
+async def get_token_packages(
+    db: Session = Depends(get_db),
+):
+    """Get available token top-up packages"""
+    packages = [
+        {"id": "tok_10",   "tokens": 10,   "price_uzs": 10000,   "label": "10 token",  "bonus": 0,  "popular": False},
+        {"id": "tok_50",   "tokens": 50,   "price_uzs": 50000,   "label": "50 token",  "bonus": 0,  "popular": False},
+        {"id": "tok_100",  "tokens": 100,  "price_uzs": 100000,  "label": "100 token", "bonus": 5,  "popular": True},
+        {"id": "tok_300",  "tokens": 300,  "price_uzs": 300000,  "label": "300 token", "bonus": 20, "popular": False},
+        {"id": "tok_500",  "tokens": 500,  "price_uzs": 500000,  "label": "500 token", "bonus": 50, "popular": False},
+        {"id": "tok_1000", "tokens": 1000, "price_uzs": 1000000, "label": "1000 token","bonus": 150,"popular": False},
+    ]
+    return {"success": True, "packages": packages, "token_to_uzs": TOKEN_TO_UZS}
+
+
+# ─── Admin Token Management ───
+
+@router.get("/admin/tokens/users")
+async def admin_get_token_users(
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Admin: list all users with token balances"""
+    from shared.models import UserTokenBalance
+    balances = db.query(UserTokenBalance).order_by(
+        UserTokenBalance.balance.desc()
+    ).offset(skip).limit(limit).all()
+
+    result = []
+    for b in balances:
+        user = db.query(User).filter(User.id == b.user_id).first()
+        result.append({
+            "user_id": str(b.user_id),
+            "user_name": user.full_name if user else None,
+            "user_phone": user.phone_number if user else None,
+            "balance": float(b.balance),
+            "balance_uzs": float(b.balance) * TOKEN_TO_UZS,
+            "total_earned": float(b.total_earned),
+            "total_spent": float(b.total_spent),
+            "updated_at": b.updated_at.isoformat() if b.updated_at else None,
+        })
+    return {"success": True, "users": result, "total": len(result)}
+
+
+@router.post("/admin/tokens/adjust")
+async def admin_adjust_tokens(
+    request: AdminTokenAdjustRequest,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Admin: manually add or deduct tokens for a user"""
+    from shared.models import UserTokenBalance, TokenTransaction
+    import uuid as _uuid
+
+    target_user = db.query(User).filter(User.id == request.user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    bal = _get_or_create_token_balance(db, request.user_id)
+    new_balance = float(bal.balance) + request.amount
+    if new_balance < 0:
+        raise HTTPException(status_code=400, detail="Cannot deduct more than current balance")
+
+    tx = TokenTransaction(
+        user_id=request.user_id,
+        type="admin_adjust",
+        amount=request.amount,
+        balance_after=new_balance,
+        description=request.description or f"Admin adjustment by {current_user.get('sub')}",
+        payment_provider="admin",
+        status="completed",
+    )
+    db.add(tx)
+    bal.balance = new_balance
+    if request.amount > 0:
+        bal.total_earned = float(bal.total_earned) + request.amount
+    db.commit()
+
+    return {
+        "success": True,
+        "user_id": str(request.user_id),
+        "amount_adjusted": request.amount,
+        "new_balance": new_balance,
+    }
+
+
+@router.get("/admin/tokens/transactions/{user_id}")
+async def admin_get_user_token_history(
+    user_id: str,
+    db: Session = Depends(get_db),
+    current_user: dict = Depends(get_current_user)
+):
+    """Admin: get token transaction history for a specific user"""
+    from shared.models import TokenTransaction
+    txs = db.query(TokenTransaction).filter(
+        TokenTransaction.user_id == user_id
+    ).order_by(TokenTransaction.created_at.desc()).limit(100).all()
+
+    return {
+        "success": True,
+        "transactions": [
+            {
+                "id": str(t.id),
+                "type": t.type,
+                "amount": float(t.amount),
+                "balance_after": float(t.balance_after),
+                "description": t.description,
+                "reference_id": t.reference_id,
+                "payment_provider": t.payment_provider,
+                "status": t.status,
+                "created_at": t.created_at.isoformat() if t.created_at else None,
+            }
+            for t in txs
+        ],
+    }
+
+
+# Handle IpakYuli webhook for token top-up
+@router.post("/tokens/topup/webhook")
+async def token_topup_webhook(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """IpakYuli webhook for token top-up payments"""
+    from shared.models import UserTokenBalance, TokenTransaction
+    try:
+        data = await request.json()
+        transfer_id = data.get("transactionId") or data.get("transfer_id")
+        order_id = data.get("orderId") or data.get("order_id")
+        status = (data.get("status") or "").lower()
+
+        if not transfer_id or status != "success":
+            return {"code": 0}
+
+        # Find pending topup tx by order_id (stored in reference_id)
+        tx = db.query(TokenTransaction).filter(
+            TokenTransaction.reference_id == order_id,
+            TokenTransaction.type == "topup",
+            TokenTransaction.status == "pending",
+        ).first()
+
+        if tx:
+            bal = _get_or_create_token_balance(db, tx.user_id)
+            new_balance = float(bal.balance) + float(tx.amount)
+            tx.status = "completed"
+            tx.balance_after = new_balance
+            tx.reference_id = transfer_id
+            bal.balance = new_balance
+            bal.total_earned = float(bal.total_earned) + float(tx.amount)
+            db.commit()
+            print(f"✅ Token top-up confirmed: {tx.amount} tokens for user {tx.user_id}")
+
+        return {"code": 0}
+    except Exception as e:
+        print(f"Token webhook error: {e}")
+        return {"code": 0}
+
+
 @router.get("/vehicles/all")
 async def get_all_vehicles(
     db: Session = Depends(get_db),

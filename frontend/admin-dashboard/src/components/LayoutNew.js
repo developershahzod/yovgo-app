@@ -6,7 +6,7 @@ import {
   LayoutDashboard, Users, Building2, CreditCard, Receipt,
   BarChart3, Shield, Tag, FileText, LogOut, Menu, X,
   Bell, Settings, Search, ChevronDown, Sparkles, MapPin, Car, MessageSquare,
-  UserPlus, Plus, Send, RefreshCw
+  UserPlus, Plus, Send, RefreshCw, GitBranch, Coins
 } from 'lucide-react';
 
 const LayoutNew = () => {
@@ -25,7 +25,7 @@ const LayoutNew = () => {
     try {
       const items = [];
       try {
-        const subsRes = await axios.get(`${API_URL}/api/subscription/subscriptions/all?limit=5`);
+        const subsRes = await axios.get(`${API_URL}/api/subscription/subscriptions/all?limit=10000`);
         const subs = Array.isArray(subsRes.data) ? subsRes.data : [];
         const pending = subs.filter(s => s.status === 'pending');
         pending.forEach(s => items.push({
@@ -37,7 +37,7 @@ const LayoutNew = () => {
         }));
       } catch (e) {}
       try {
-        const payRes = await axios.get(`${API_URL}/api/mobile/payments/all?limit=10`);
+        const payRes = await axios.get(`${API_URL}/api/mobile/payments/all?limit=10000`);
         const payments = payRes.data?.payments || [];
         const failedPay = payments.filter(p => p.status === 'failed').slice(0, 3);
         const pendingPay = payments.filter(p => p.status === 'pending').slice(0, 3);
@@ -77,11 +77,14 @@ const LayoutNew = () => {
     { name: 'Панель управления', href: '/dashboard', icon: LayoutDashboard, permission: null },
     { name: 'Пользователи (Илова)', href: '/users', icon: Users, permission: 'users.read' },
     { name: 'Партнеры (Автомойки)', href: '/partners', icon: Building2, permission: 'partners.read' },
+    { name: 'Филиалы партнеров', href: '/branches', icon: GitBranch, permission: 'partners.read' },
+    { name: 'Отзывы партнеров', href: '/partner-reviews', icon: MessageSquare, permission: 'partners.read' },
     { name: 'Карта локаций', href: '/locations-map', icon: MapPin, permission: 'partners.read' },
     { name: 'Посещения моек', href: '/visits', icon: Car, permission: 'analytics.read' },
     { name: 'Автомобили', href: '/vehicles', icon: Car, permission: 'users.read' },
     { name: 'Подписки', href: '/subscriptions', icon: CreditCard, permission: 'subscriptions.read' },
     { name: 'Платежи', href: '/payments', icon: Receipt, permission: 'payments.read' },
+    { name: 'YuvGo Tokenlar', href: '/tokens', icon: Coins, permission: 'payments.read' },
     { name: 'Аналитика', href: '/analytics', icon: BarChart3, permission: 'analytics.read' },
     { name: 'Отчеты', href: '/reports', icon: FileText, permission: 'analytics.read' },
     { name: 'Администраторы', href: '/admins', icon: Shield, permission: 'admins.read' },

@@ -52,6 +52,8 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
 
   // Promo plan for banner
   Map<String, dynamic>? _promoPlan;
+  // Starter plan (1 wash, limited, one-time)
+  Map<String, dynamic>? _starterPlan;
 
   // User location
   double _userLat = 41.311;
@@ -218,14 +220,23 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
       if (mounted) setState(() => _weatherLoading = false);
     }
 
-    // Load promo plan
+    // Load promo plan + starter plan
     try {
       final resp = await FullApiService.get('/api/mobile/subscriptions/plans');
       if (mounted && resp.statusCode == 200) {
         final plans = (resp.data['plans'] as List?)?.cast<Map<String, dynamic>>() ?? [];
         if (plans.isNotEmpty) {
-          plans.sort((a, b) => (b['duration_days'] ?? 0).compareTo(a['duration_days'] ?? 0));
-          setState(() => _promoPlan = plans.first);
+          // Starter plan: is_one_time == true OR visit_limit == 1
+          final starter = plans.where((p) =>
+            p['is_one_time'] == true || (p['visit_limit'] != null && int.tryParse(p['visit_limit'].toString()) == 1)
+          ).firstOrNull;
+          // Main promo plan: longest duration plan
+          final sorted = [...plans]..sort((a, b) => (b['duration_days'] ?? 0).compareTo(a['duration_days'] ?? 0));
+          final mainPlan = sorted.where((p) => p['is_one_time'] != true).firstOrNull ?? sorted.first;
+          setState(() {
+            _promoPlan = mainPlan;
+            _starterPlan = starter;
+          });
         }
       }
     } catch (_) {}
@@ -318,6 +329,8 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                 const SizedBox(height: 16),
                 if (!_hasSubscription) _safeWidget(_buildSubscriptionBanner, label: 'subBanner'),
                 if (!_hasSubscription) const SizedBox(height: 16),
+                if (!_hasSubscription && _starterPlan != null) _safeWidget(_buildStarterPromoBanner, label: 'starterBanner'),
+                if (!_hasSubscription && _starterPlan != null) const SizedBox(height: 16),
                 _safeWidget(_buildCategoriesSection, label: 'categories'),
                 const SizedBox(height: 24),
                 _safeWidget(_buildNearestCarWashesSection, label: 'nearbyWashes'),
@@ -556,10 +569,13 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                             ),
                             child: Row(
                               children: [
-                                Icon(
-                                  Icons.attach_money,
-                                  color: Colors.white,
-                                  size: 24,
+                                Container(
+                                  width: 32, height: 32,
+                                  decoration: BoxDecoration(
+                                    color: const Color.fromRGBO(255, 255, 255, 0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.savings_rounded, color: Colors.white, size: 18),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(child: Column(
@@ -567,8 +583,8 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                   children: [
                                     Text(
                                       context.tr('saved_money'),
-                                      style: TextStyle(
-                                        color: const Color(0xFFFFEEEA),
+                                      style: const TextStyle(
+                                        color: Color.fromRGBO(255, 255, 255, 0.75),
                                         fontSize: 11,
                                         fontWeight: FontWeight.w400,
                                         fontFamily: 'Mulish',
@@ -576,16 +592,16 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 3),
                                     Row(
                                       crossAxisAlignment: CrossAxisAlignment.baseline,
                                       textBaseline: TextBaseline.alphabetic,
                                       children: [
                                         Flexible(child: Text(
                                           _formatNumber(_savedAmount),
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             color: Colors.white,
-                                            fontSize: 16,
+                                            fontSize: 15,
                                             fontWeight: FontWeight.w900,
                                             fontFamily: 'Mulish',
                                           ),
@@ -595,10 +611,10 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                         const SizedBox(width: 2),
                                         Text(
                                           context.tr('currency'),
-                                          style: TextStyle(
+                                          style: const TextStyle(
                                             color: Colors.white,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w900,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
                                             fontFamily: 'Mulish',
                                           ),
                                         ),
@@ -625,10 +641,13 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                             ),
                             child: Row(
                               children: [
-                                Icon(
-                                  Icons.history,
-                                  color: Colors.white,
-                                  size: 24,
+                                Container(
+                                  width: 32, height: 32,
+                                  decoration: BoxDecoration(
+                                    color: const Color.fromRGBO(255, 255, 255, 0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.access_time_rounded, color: Colors.white, size: 18),
                                 ),
                                 const SizedBox(width: 8),
                                 Expanded(child: Column(
@@ -636,8 +655,8 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                   children: [
                                     Text(
                                       context.tr('monthly_visits'),
-                                      style: TextStyle(
-                                        color: const Color(0xFFFFEEEA),
+                                      style: const TextStyle(
+                                        color: Color.fromRGBO(255, 255, 255, 0.75),
                                         fontSize: 11,
                                         fontWeight: FontWeight.w400,
                                         fontFamily: 'Mulish',
@@ -645,25 +664,25 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 3),
                                     RichText(
                                       text: TextSpan(
                                         children: [
                                           TextSpan(
-                                            text: '$_usedVisits/',
-                                            style: TextStyle(
-                                              color: const Color(0xFFFFEEEA),
-                                              fontSize: 16,
+                                            text: '$_usedVisits',
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 15,
                                               fontWeight: FontWeight.w900,
                                               fontFamily: 'Mulish',
                                             ),
                                           ),
                                           TextSpan(
-                                            text: _totalVisits == -1 ? '∞' : '$_totalVisits',
-                                            style: TextStyle(
-                                              color: const Color(0xFFFFEEEA),
-                                              fontSize: _totalVisits == -1 ? 18 : 12,
-                                              fontWeight: FontWeight.w900,
+                                            text: '/${_totalVisits == -1 ? '∞' : '$_totalVisits'}',
+                                            style: const TextStyle(
+                                              color: Color.fromRGBO(255, 255, 255, 0.75),
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w700,
                                               fontFamily: 'Mulish',
                                             ),
                                           ),
@@ -823,7 +842,7 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                       forecast[i]['day']?.toString() ?? '',
                       forecast[i]['weather']?.toString() ?? 'sunny',
                       forecast[i]['temp']?.toString() ?? '',
-                      '${forecast[i]['wash_rating'] ?? 0}%',
+                      '${((((forecast[i]['wash_rating'] ?? 0) as num).toInt() / 10).round()).clamp(1, 10)}/10',
                       i == 0,
                     ),
                 ],
@@ -972,10 +991,10 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
             children: [
               Text(
                 context.tr('home_nearest'),
-                style: TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
+                style: const TextStyle(
+                  color: Color(0xFF0A0C13),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
                   fontFamily: 'Mulish',
                 ),
               ),
@@ -984,11 +1003,10 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                 child: Text(
                   context.tr('home_see_all'),
                   style: TextStyle(
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.primaryCyan,
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     fontFamily: 'Mulish',
-                    decoration: TextDecoration.underline,
                   ),
                 ),
               ),
@@ -1130,105 +1148,90 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                       ),
                     ),
               ),
-              // Rating badge
+              // Rating badge — yellow bg, dark star + number
               Positioned(
                 left: 12,
                 bottom: 12,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xFFFFD600),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.star, color: Colors.amber, size: 16),
+                      const Icon(Icons.star_rounded, color: Color(0xFF0A0C13), size: 15),
                       const SizedBox(width: 4),
                       Text(
-                        rating.toString(),
-                        style: TextStyle(
-                          color: AppTheme.textPrimary,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
+                        rating.toStringAsFixed(1),
+                        style: const TextStyle(
+                          color: Color(0xFF0A0C13),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
                           fontFamily: 'Mulish',
                         ),
                       ),
                     ],
                   ),
-                ),
-              ),
-              // Carousel dots
-              Positioned(
-                bottom: 12,
-                left: 0,
-                right: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(5, (i) => Container(
-                    width: i == 0 ? 16 : 6,
-                    height: 6,
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    decoration: BoxDecoration(
-                      color: i == 0 ? Colors.white : const Color.fromRGBO(255, 255, 255, 0.5),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  )),
                 ),
               ),
             ],
           ),
           // Content
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Status badge
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: isOpen ? const Color.fromRGBO(92, 204, 39, 0.1) : const Color.fromRGBO(252, 62, 62, 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.access_time,
-                        size: 12,
-                        color: isOpen ? const Color(0xFF5CCC27) : const Color(0xFFFC3E3E),
+                // Status row: colored circle icon + UPPERCASE text
+                Row(
+                  children: [
+                    Container(
+                      width: 20, height: 20,
+                      decoration: BoxDecoration(
+                        color: isOpen ? const Color(0xFF00BFFE) : const Color(0xFFFC3E3E),
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        status,
+                      child: const Icon(Icons.access_time_rounded, size: 12, color: Colors.white),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        status.toUpperCase(),
                         style: TextStyle(
-                          color: isOpen ? const Color(0xFF5CCC27) : const Color(0xFFFC3E3E),
+                          color: isOpen ? const Color(0xFF00BFFE) : const Color(0xFFFC3E3E),
                           fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w800,
                           fontFamily: 'Mulish',
+                          letterSpacing: 0.2,
                         ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 // Name
                 Text(
                   name,
-                  style: TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                  style: const TextStyle(
+                    color: Color(0xFF0A0C13),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                     fontFamily: 'Mulish',
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 3),
                 // Address
                 Text(
                   address,
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 13,
+                  style: const TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontSize: 12,
                     fontFamily: 'Mulish',
                   ),
                   maxLines: 1,
@@ -1238,14 +1241,14 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                 // Distance
                 Row(
                   children: [
-                    Icon(Icons.location_on, size: 16, color: AppTheme.primaryCyan),
-                    const SizedBox(width: 4),
+                    Icon(Icons.location_on_rounded, size: 14, color: AppTheme.primaryCyan),
+                    const SizedBox(width: 3),
                     Text(
                       distance,
                       style: TextStyle(
                         color: AppTheme.primaryCyan,
                         fontSize: 13,
-                        fontWeight: FontWeight.w600,
+                        fontWeight: FontWeight.w700,
                         fontFamily: 'Mulish',
                       ),
                     ),
@@ -1565,6 +1568,9 @@ class GaugePainter extends CustomPainter {
 
   GaugePainter(this.percentage);
 
+  /// Convert 0–100 to 1–10 score
+  int get _score => ((percentage / 10).round()).clamp(1, 10);
+
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height);
@@ -1579,45 +1585,41 @@ class GaugePainter extends CustomPainter {
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      math.pi,
-      math.pi,
-      false,
-      backgroundPaint,
+      math.pi, math.pi, false, backgroundPaint,
     );
 
-    // Gradient arc
-    final gradient = SweepGradient(
-      startAngle: math.pi,
-      endAngle: math.pi * 2,
-      colors: const [
-        Color(0xFFD22929),
-        Color(0xFFFFD600),
-        Color(0xFF5CCC27),
-      ],
-    );
+    // Gradient arc — sweep based on score (1–10)
+    final sweepAngle = ((_score - 1) / 9) * math.pi;
+    if (sweepAngle > 0) {
+      final gradient = SweepGradient(
+        startAngle: math.pi,
+        endAngle: math.pi * 2,
+        colors: const [
+          Color(0xFFD22929),
+          Color(0xFFFFD600),
+          Color(0xFF5CCC27),
+        ],
+      );
 
-    final progressPaint = Paint()
-      ..shader = gradient.createShader(Rect.fromCircle(center: center, radius: radius))
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 6
-      ..strokeCap = StrokeCap.round;
+      final progressPaint = Paint()
+        ..shader = gradient.createShader(Rect.fromCircle(center: center, radius: radius))
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 6
+        ..strokeCap = StrokeCap.round;
 
-    final sweepAngle = (percentage / 100) * math.pi;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      math.pi,
-      sweepAngle,
-      false,
-      progressPaint,
-    );
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        math.pi, sweepAngle, false, progressPaint,
+      );
+    }
 
-    // Percentage text
+    // Score text: X/10
     final textPainter = TextPainter(
       text: TextSpan(
-        text: '$percentage%',
+        text: '$_score/10',
         style: const TextStyle(
           color: Color(0xFF0A0C13),
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: FontWeight.w700,
           fontFamily: 'Mulish',
         ),
@@ -1846,6 +1848,113 @@ extension HomeScreenMethods on _HomeScreenFixedState {
     );
   }
 
+  Widget _buildStarterPromoBanner() {
+    final plan = _starterPlan!;
+    final price = num.tryParse(plan['price']?.toString() ?? '0') ?? 0;
+    final maxUsers = plan['max_users'] ?? 1000;
+    String lang = 'uz';
+    try { lang = Provider.of<LanguageProvider>(context, listen: false).languageCode; } catch (_) {}
+
+    final title = lang == 'ru'
+        ? '1 мойка за ${_formatPrice(price)} сум!'
+        : lang == 'en'
+            ? '1 wash for ${_formatPrice(price)} UZS!'
+            : "1 ta moyka — ${_formatPrice(price)} so'm!";
+    final subtitle = lang == 'ru'
+        ? 'Только для новых пользователей · Лимит: $maxUsers'
+        : lang == 'en'
+            ? 'New users only · Limit: $maxUsers'
+            : "Faqat yangi foydalanuvchilar · Limit: $maxUsers ta";
+    final btnLabel = lang == 'ru' ? 'Попробовать' : lang == 'en' ? 'Try now' : 'Sinab ko\'ring';
+
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/checkout', arguments: plan),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFFFFD600), Color(0xFFFFAA00)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFFFFD600).withOpacity(0.35),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
+            child: Row(
+              children: [
+                // Icon
+                Container(
+                  width: 52, height: 52,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0A0C13),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(Icons.local_car_wash, color: Color(0xFFFFD600), size: 28),
+                ),
+                const SizedBox(width: 14),
+                // Text
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          color: Color(0xFF0A0C13),
+                          fontSize: 17,
+                          fontWeight: FontWeight.w900,
+                          fontFamily: 'Mulish',
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: const Color(0xFF0A0C13).withOpacity(0.65),
+                          fontSize: 12,
+                          fontFamily: 'Mulish',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                // Button
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0A0C13),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    btnLabel,
+                    style: const TextStyle(
+                      color: Color(0xFFFFD600),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                      fontFamily: 'Mulish',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildRecentVisitsSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1858,10 +1967,10 @@ extension HomeScreenMethods on _HomeScreenFixedState {
             children: [
               Text(
                 context.tr('home_recent'),
-                style: TextStyle(
-                  color: AppTheme.textPrimary,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
+                style: const TextStyle(
+                  color: Color(0xFF0A0C13),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
                   fontFamily: 'Mulish',
                 ),
               ),
@@ -1870,11 +1979,10 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                 child: Text(
                   context.tr('home_see_all'),
                   style: TextStyle(
-                    color: AppTheme.textPrimary,
+                    color: AppTheme.primaryCyan,
                     fontSize: 14,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                     fontFamily: 'Mulish',
-                    decoration: TextDecoration.underline,
                   ),
                 ),
               ),
@@ -1961,19 +2069,16 @@ extension HomeScreenMethods on _HomeScreenFixedState {
         ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Car wash icon
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color.fromRGBO(0, 191, 254, 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(
-              Icons.local_car_wash,
-              color: AppTheme.primaryCyan,
-              size: 24,
+          // Car wash thumbnail image
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              width: 64,
+              height: 64,
+              color: const Color(0xFF1A2332),
+              child: const Icon(Icons.local_car_wash, color: Colors.white54, size: 28),
             ),
           ),
           const SizedBox(width: 12),
@@ -1984,19 +2089,21 @@ extension HomeScreenMethods on _HomeScreenFixedState {
               children: [
                 Text(
                   name,
-                  style: TextStyle(
-                    color: AppTheme.textPrimary,
-                    fontSize: 16,
+                  style: const TextStyle(
+                    color: Color(0xFF0A0C13),
+                    fontSize: 15,
                     fontWeight: FontWeight.w700,
                     fontFamily: 'Mulish',
                   ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   address,
-                  style: TextStyle(
-                    color: AppTheme.textSecondary,
-                    fontSize: 13,
+                  style: const TextStyle(
+                    color: Color(0xFF6B7280),
+                    fontSize: 12,
                     fontFamily: 'Mulish',
                   ),
                   maxLines: 1,
@@ -2005,45 +2112,45 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    if (carBrand.isNotEmpty) Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color.fromRGBO(0, 191, 254, 0.1),
-                        borderRadius: BorderRadius.circular(8),
+                        color: const Color(0xFFE8F9FF),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         carBrand,
-                        style: TextStyle(
-                          color: AppTheme.primaryCyan,
+                        style: const TextStyle(
+                          color: Color(0xFF00BFFE),
                           fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                           fontFamily: 'Mulish',
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                    if (carBrand.isNotEmpty) const SizedBox(width: 6),
+                    if (region.isNotEmpty) Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF5F5F5),
-                        borderRadius: BorderRadius.circular(4),
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
                         region,
-                        style: TextStyle(
-                          color: AppTheme.textPrimary,
+                        style: const TextStyle(
+                          color: Color(0xFF0A0C13),
                           fontSize: 11,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                           fontFamily: 'Mulish',
                         ),
                       ),
                     ),
-                    const SizedBox(width: 4),
-                    Text(
+                    if (region.isNotEmpty && plateNumber.isNotEmpty) const SizedBox(width: 6),
+                    if (plateNumber.isNotEmpty) Text(
                       plateNumber,
-                      style: TextStyle(
-                        color: AppTheme.textPrimary,
-                        fontSize: 13,
+                      style: const TextStyle(
+                        color: Color(0xFF0A0C13),
+                        fontSize: 12,
                         fontWeight: FontWeight.w600,
                         fontFamily: 'Mulish',
                       ),
@@ -2054,10 +2161,11 @@ extension HomeScreenMethods on _HomeScreenFixedState {
             ),
           ),
           // Time
+          const SizedBox(width: 8),
           Text(
             time,
-            style: TextStyle(
-              color: AppTheme.textSecondary,
+            style: const TextStyle(
+              color: Color(0xFF6B7280),
               fontSize: 13,
               fontFamily: 'Mulish',
             ),

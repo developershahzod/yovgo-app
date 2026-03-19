@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
@@ -123,16 +122,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
 
   Widget _buildActiveSubscriptionCard() {
     final sub = _activeSubscription!;
-    String lang = 'uz';
-    try { lang = Provider.of<LanguageProvider>(context, listen: true).languageCode; } catch (_) {}
-    String planName;
-    if (lang == 'ru' && (sub['plan_name_ru'] ?? '').toString().isNotEmpty) {
-      planName = sub['plan_name_ru'];
-    } else if (lang == 'en' && (sub['plan_name_en'] ?? '').toString().isNotEmpty) {
-      planName = sub['plan_name_en'];
-    } else {
-      planName = sub['plan_name'] ?? 'Obuna';
-    }
+    final planName = sub['plan_name'] ?? 'Obuna';
     final remaining = sub['remaining_visits'] ?? sub['visits_remaining'] ?? 0;
     final used = sub['used_visits'] ?? sub['visits_used'] ?? 0;
     final isUnlimited = sub['is_unlimited'] == true;
@@ -323,16 +313,7 @@ class _SubscriptionsScreenState extends State<SubscriptionsScreen> {
   }
 
   Widget _buildPlanCard(Map<String, dynamic> plan) {
-    String lang = 'uz';
-    try { lang = Provider.of<LanguageProvider>(context, listen: true).languageCode; } catch (_) {}
-    String name;
-    if (lang == 'ru' && (plan['name_ru'] ?? '').toString().isNotEmpty) {
-      name = plan['name_ru'];
-    } else if (lang == 'en' && (plan['name_en'] ?? '').toString().isNotEmpty) {
-      name = plan['name_en'];
-    } else {
-      name = plan['name'] ?? '${plan['duration_days']} kunlik';
-    }
+    final name = plan['name'] ?? '${plan['duration_days']} kunlik';
     final price = plan['price'] ?? 0;
     final durationDays = plan['duration_days'] ?? 0;
     final visitLimit = plan['visit_limit'] ?? 0;

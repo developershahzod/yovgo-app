@@ -69,7 +69,7 @@ class IpakYuliClient:
             "Authorization": f"Bearer {self.access_token}"
         }
         
-        async with httpx.AsyncClient(timeout=30.0, verify=False) as client:
+        async with httpx.AsyncClient(timeout=30.0, verify=True) as client:
             response = await client.post(url, json=payload, headers=headers)
             data = response.json()
             

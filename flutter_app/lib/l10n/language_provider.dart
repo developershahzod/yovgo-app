@@ -5,6 +5,9 @@ import 'app_localizations.dart';
 class LanguageProvider extends ChangeNotifier {
   static const String _languageKey = 'app_language';
   
+  // Global static language code — always accessible without context
+  static String currentLanguageCode = 'uz';
+
   Locale _locale = const Locale('uz'); // Default to Uzbek
   
   Locale get locale => _locale;
@@ -45,6 +48,7 @@ class LanguageProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final languageCode = prefs.getString(_languageKey) ?? 'uz';
     _locale = Locale(languageCode);
+    LanguageProvider.currentLanguageCode = languageCode;
     notifyListeners();
   }
 
@@ -52,6 +56,7 @@ class LanguageProvider extends ChangeNotifier {
     if (!['en', 'ru', 'uz'].contains(languageCode)) return;
     
     _locale = Locale(languageCode);
+    LanguageProvider.currentLanguageCode = languageCode;
     
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_languageKey, languageCode);
@@ -69,7 +74,13 @@ extension LocalizationExtension on BuildContext {
   AppLocalizations? get l10n => AppLocalizations.of(this);
   
   String tr(String key) {
-    return AppLocalizations.of(this)?.translate(key) ?? key;
+    // Try AppLocalizations first (standard Flutter localization)
+    try {
+      final loc = AppLocalizations.of(this);
+      if (loc != null) return loc.translate(key);
+    } catch (_) {}
+    // Fallback: use global static language code (always set)
+    return AppLocalizations.staticTranslate(key, LanguageProvider.currentLanguageCode);
   }
 }
 

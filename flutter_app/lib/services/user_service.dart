@@ -27,6 +27,15 @@ class UserService {
     }
   }
 
+  static Future<bool> deleteAccount() async {
+    try {
+      final response = await ApiService.delete('/api/mobile/users/me');
+      return response.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
+
   static Future<Map<String, dynamic>?> getStats() async {
     try {
       final response = await ApiService.get('/api/mobile/users/stats');

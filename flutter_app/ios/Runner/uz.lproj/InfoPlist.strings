@@ -1,0 +1,10 @@
+/* Uzbek permission strings for YuvGO */
+
+NSCameraUsageDescription = "YuvGO QR-kodni skanerlash uchun kameradan foydalanadi";
+NSLocationWhenInUseUsageDescription = "YuvGO yaqin atrofdagi avtomoykalarni ko'rsatish uchun joylashuvingizdan foydalanadi";
+NSLocationAlwaysUsageDescription = "YuvGO yaqin atrofdagi avtomoykalarni ko'rsatish uchun joylashuvingizdan foydalanadi";
+NSLocationAlwaysAndWhenInUseUsageDescription = "YuvGO yaqin atrofdagi avtomoykalarni ko'rsatish uchun joylashuvingizdan foydalanadi";
+NSPhotoLibraryUsageDescription = "YuvGO profil rasmingizni o'rnatish uchun foto kutubxonangizdan foydalanadi";
+NSPhotoLibraryAddUsageDescription = "YuvGO rasmlarni saqlash uchun foto kutubxonangizdan foydalanadi";
+NSMicrophoneUsageDescription = "YuvGO video yozish uchun mikrofondan foydalanishi mumkin";
+NSFaceIDUsageDescription = "YuvGO xavfsiz kirish uchun Face ID dan foydalanadi";

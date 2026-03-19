@@ -165,91 +165,55 @@ const DashboardNew = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      
-      const [usersRes, partnersRes, plansRes] = await Promise.allSettled([
-        usersAPI.getAll(),
-        partnersAPI.getAll(),
-        subscriptionsAPI.getPlans(),
+
+      // Use proper stats endpoints — no limits, direct DB aggregation
+      const [userStatsRes, subStatsRes, visitStatsRes, payStatsRes, partnersRes] = await Promise.allSettled([
+        axios.get(`${API_URL}/api/user/users/stats`),
+        axios.get(`${API_URL}/api/subscription/stats`),
+        axios.get(`${API_URL}/api/visit/stats`),
+        axios.get(`${API_URL}/api/payment/stats`),
+        axios.get(`${API_URL}/api/partner/partners`),
       ]);
 
-      const users = usersRes.status === 'fulfilled' ? usersRes.value.data : [];
+      const userStats = userStatsRes.status === 'fulfilled' ? userStatsRes.value.data : {};
+      const subStats = subStatsRes.status === 'fulfilled' ? subStatsRes.value.data : {};
+      const visitStats = visitStatsRes.status === 'fulfilled' ? visitStatsRes.value.data : {};
+      const payStats = payStatsRes.status === 'fulfilled' ? payStatsRes.value.data : {};
       const partners = partnersRes.status === 'fulfilled' ? partnersRes.value.data : [];
-      const plans = plansRes.status === 'fulfilled' ? plansRes.value.data : [];
-
-      const totalUsers = users.length;
-      const totalPartners = partners.filter(p => p.status === 'approved').length;
-      const pendingPartners = partners.filter(p => p.status === 'pending').length;
-
-      // Fetch real visits and payments
-      let allVisits = [];
-      let allPayments = [];
-      try {
-        const visitsRes = await axios.get(`${API_URL}/api/visit/visits`);
-        allVisits = Array.isArray(visitsRes.data) ? visitsRes.data : [];
-      } catch (e) { console.log('No visits data'); }
-      try {
-        const paymentsRes = await axios.get(`${API_URL}/api/mobile/payments/all`);
-        const paymentsData = paymentsRes.data;
-        allPayments = Array.isArray(paymentsData.payments) ? paymentsData.payments : (Array.isArray(paymentsData) ? paymentsData : []);
-      } catch (e) { console.log('No payments data'); }
-
-      // Fetch real subscriptions
-      let allSubscriptions = [];
-      try {
-        const subsRes = await axios.get(`${API_URL}/api/subscription/subscriptions`);
-        allSubscriptions = Array.isArray(subsRes.data) ? subsRes.data : [];
-      } catch (e) { console.log('No subscriptions data'); }
-
-      const activeSubscriptions = allSubscriptions.filter(s => s.status === 'active').length;
-      const totalVisits = allVisits.length;
-      const successfulPayments = allPayments.filter(p => p.status === 'success' || p.status === 'completed');
-      const revenue = successfulPayments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const weekAgo = new Date(today);
-      weekAgo.setDate(weekAgo.getDate() - 7);
-
-      const newUsersToday = users.filter(u => new Date(u.created_at) >= today).length;
-      const newUsersThisWeek = users.filter(u => new Date(u.created_at) >= weekAgo).length;
 
       setStats({
-        totalUsers,
-        activeSubscriptions,
-        totalVisits,
-        totalPartners,
-        revenue,
-        newUsersToday,
-        newUsersThisWeek,
-        pendingPartners,
+        totalUsers: userStats.total || 0,
+        activeSubscriptions: subStats.active || 0,
+        totalVisits: visitStats.total_visits || visitStats.total || 0,
+        totalPartners: partners.filter(p => p.status === 'approved').length,
+        revenue: payStats.total_revenue || payStats.revenue || 0,
+        newUsersToday: userStats.new_today || 0,
+        newUsersThisWeek: userStats.new_this_week || 0,
+        pendingPartners: partners.filter(p => p.status === 'pending').length,
       });
 
-      // Recent activity from real users (sorted by newest)
-      const sortedUsers = [...users].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-      const activities = sortedUsers.slice(0, 6).map((user) => ({
-        id: user.id,
-        type: 'user',
-        title: 'Yangi foydalanuvchi',
-        description: user.full_name || user.phone_number,
-        time: formatTimeAgo(user.created_at),
-        status: 'success',
-      }));
-      setRecentActivity(activities);
+      // Recent activity — fetch only last 6 users (small limit, just for display)
+      try {
+        const recentUsersRes = await axios.get(`${API_URL}/api/user/users?limit=6&skip=0`);
+        const recentUsers = Array.isArray(recentUsersRes.data) ? recentUsersRes.data : [];
+        const sorted = [...recentUsers].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        setRecentActivity(sorted.slice(0, 6).map((u) => ({
+          id: u.id,
+          type: 'user',
+          title: 'Yangi foydalanuvchi',
+          description: u.full_name || u.phone_number,
+          time: formatTimeAgo(u.created_at),
+          status: 'success',
+        })));
+      } catch (e) {}
 
-      // Top partners with real visit counts
-      const partnerVisitCounts = {};
-      allVisits.forEach(v => {
-        if (v.partner_id) {
-          partnerVisitCounts[v.partner_id] = (partnerVisitCounts[v.partner_id] || 0) + 1;
-        }
-      });
-      const partnersWithVisits = partners.map(p => ({
+      // Top partners (small list, no limit issue)
+      setTopPartners(partners.slice(0, 5).map(p => ({
         id: p.id,
         name: p.name,
         status: p.status,
-        visits: partnerVisitCounts[p.id] || 0,
-      })).sort((a, b) => b.visits - a.visits);
-      setTopPartners(partnersWithVisits.slice(0, 5));
+        visits: 0,
+      })));
 
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);

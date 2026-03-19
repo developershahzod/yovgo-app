@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../config/app_theme.dart';
 import '../services/full_api_service.dart';
+import '../l10n/language_provider.dart';
 
 class AuthGuard extends StatefulWidget {
   final Widget child;
@@ -66,9 +67,9 @@ class _AuthGuardState extends State<AuthGuard> {
                   child: const Icon(Icons.lock_outline, size: 40, color: AppTheme.primaryCyan),
                 ),
                 const SizedBox(height: 24),
-                const Text(
-                  'Tizimga kiring',
-                  style: TextStyle(
+                Text(
+                  context.tr('auth_guard_title'),
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.w800,
                     fontFamily: 'Mulish',
@@ -76,7 +77,7 @@ class _AuthGuardState extends State<AuthGuard> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  'Bu bo\'limdan foydalanish uchun avval tizimga kiring yoki ro\'yxatdan o\'ting.',
+                  context.tr('auth_guard_desc'),
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
@@ -101,9 +102,9 @@ class _AuthGuardState extends State<AuthGuard> {
                       ),
                       elevation: 0,
                     ),
-                    child: const Text(
-                      'Tizimga kirish',
-                      style: TextStyle(
+                    child: Text(
+                      context.tr('auth_guard_login_btn'),
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         fontFamily: 'Mulish',
@@ -126,9 +127,9 @@ class _AuthGuardState extends State<AuthGuard> {
                         borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    child: const Text(
-                      'Ro\'yxatdan o\'tish',
-                      style: TextStyle(
+                    child: Text(
+                      context.tr('auth_guard_register_btn'),
+                      style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
                         fontFamily: 'Mulish',

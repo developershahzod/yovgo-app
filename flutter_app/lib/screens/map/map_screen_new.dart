@@ -295,88 +295,66 @@ class _MapScreenNewState extends State<MapScreenNew> {
           // Handle bar
           Center(
             child: Container(
-              margin: const EdgeInsets.only(top: 12, bottom: 12),
-              width: 40, height: 4,
-              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+              margin: const EdgeInsets.only(top: 10, bottom: 16),
+              width: 36, height: 4,
+              decoration: BoxDecoration(color: const Color(0xFFDDE1E7), borderRadius: BorderRadius.circular(4)),
             ),
           ),
 
           // Search bar
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: [
-                        const SizedBox(width: 14),
-                        Icon(Icons.search_rounded, color: AppTheme.textSecondary, size: 22),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: _searchController,
-                            focusNode: _searchFocusNode,
-                            onChanged: _onSearch,
-                            onSubmitted: _submitSearch,
-                            textInputAction: TextInputAction.search,
-                            onTap: () {
-                              setState(() => _isSearchActive = true);
-                              if (_panelController.isAttached) {
-                                _panelController.animatePanelToPosition(0.85, duration: const Duration(milliseconds: 300));
-                              }
-                            },
-                            style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w500),
-                            decoration: InputDecoration(
-                              hintText: context.tr('map_search'),
-                              hintStyle: TextStyle(color: AppTheme.textTertiary, fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w400),
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                            ),
-                          ),
-                        ),
-                        if (_searchController.text.isNotEmpty)
-                          GestureDetector(
-                            onTap: () {
-                              _searchController.clear();
-                              _onSearch('');
-                              setState(() => _hasSearched = false);
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: Container(
-                                width: 22, height: 22,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: AppTheme.textTertiary, width: 1.5),
-                                ),
-                                child: Icon(Icons.close, color: AppTheme.textTertiary, size: 14),
-                              ),
-                            ),
-                          ),
-                      ],
+            child: Container(
+              height: 52,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: const Color(0xFFE8ECF0), width: 1.5),
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(width: 16),
+                  Icon(Icons.search_rounded, color: const Color(0xFF9BA3AF), size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      focusNode: _searchFocusNode,
+                      onChanged: _onSearch,
+                      onSubmitted: _submitSearch,
+                      textInputAction: TextInputAction.search,
+                      onTap: () {
+                        setState(() => _isSearchActive = true);
+                        if (_panelController.isAttached) {
+                          _panelController.animatePanelToPosition(0.85, duration: const Duration(milliseconds: 300));
+                        }
+                      },
+                      style: const TextStyle(fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w500, color: Color(0xFF0A0C13)),
+                      decoration: InputDecoration(
+                        hintText: context.tr('map_search'),
+                        hintStyle: const TextStyle(color: Color(0xFF9BA3AF), fontSize: 15, fontFamily: 'Mulish', fontWeight: FontWeight.w400),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 10),
-                GestureDetector(
-                  onTap: _exitSearch,
-                  child: Container(
-                    width: 48, height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
+                  GestureDetector(
+                    onTap: () {
+                      _searchController.clear();
+                      _onSearch('');
+                      setState(() { _hasSearched = false; _isSearchActive = false; });
+                      _searchFocusNode.unfocus();
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: 14),
+                      child: Icon(Icons.close, color: const Color(0xFF9BA3AF), size: 20),
                     ),
-                    child: Icon(Icons.close, color: AppTheme.textPrimary, size: 20),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
 
@@ -388,20 +366,18 @@ class _MapScreenNewState extends State<MapScreenNew> {
 
             // Filter chips
             SizedBox(
-              height: 40,
+              height: 44,
               child: ListView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
-                  _buildFilterChip('premium', 'Premium', Icons.workspace_premium, AppTheme.darkNavy),
+                  _buildFilterChip('premium', 'Premium', Icons.workspace_premium_rounded, const Color(0xFF0A0C13)),
                   const SizedBox(width: 8),
-                  _buildFilterChip('24/7', '24/7', Icons.access_time, AppTheme.green),
+                  _buildFilterChip('24/7', '24/7', Icons.access_time_rounded, const Color(0xFF22C55E)),
                   const SizedBox(width: 8),
-                  _buildFilterChip('open', context.tr('map_open_now'), Icons.schedule, AppTheme.primaryCyan),
+                  _buildFilterChip('open', 'Hozir ochiq', Icons.schedule_rounded, const Color(0xFF00BFFE)),
                   const SizedBox(width: 8),
-                  _buildFilterChip('nearest', context.tr('map_nearby'), Icons.near_me, AppTheme.primaryCyan),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('rating', context.tr('map_rating'), Icons.star, AppTheme.yellow),
+                  _buildFilterChip('nearest', 'Eng yaqin', Icons.near_me_rounded, const Color(0xFF00BFFE)),
                 ],
               ),
             ),
@@ -416,11 +392,11 @@ class _MapScreenNewState extends State<MapScreenNew> {
             else if (_filteredCarWashes.isEmpty)
               Padding(
                 padding: const EdgeInsets.all(40),
-                child: Center(child: Text(context.tr('home_no_nearby'), style: TextStyle(color: AppTheme.textSecondary, fontSize: 15))),
+                child: Center(child: Text(context.tr('home_no_nearby'), style: const TextStyle(color: Color(0xFF9BA3AF), fontSize: 15))),
               )
             else
               ..._filteredCarWashes.map((p) => Padding(
-                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
+                padding: const EdgeInsets.only(left: 16, right: 16, bottom: 20),
                 child: _buildCarWashCard(p),
               )),
           ],
@@ -437,8 +413,8 @@ class _MapScreenNewState extends State<MapScreenNew> {
   final Map<int, BitmapDescriptor> _clusterIcons = {};
   bool _isRebuildingMarkers = false;
 
-  // Pixel ratio — use 1.0 so markers render at logical-point size
-  double get _dpr => 1.0;
+  // Pixel ratio — use 3.0 for high-quality, crisp markers (prevents pixelation)
+  double get _dpr => 3.0;
 
   /// Create a pill-shaped label marker: [📍 Name  ★ 4.8]
   Future<BitmapDescriptor> _createLabelIcon(String name, double rating, bool isPremium) async {
@@ -536,7 +512,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
     final picture = recorder.endRecording();
     final img = await picture.toImage(totalW.ceil(), totalH.ceil());
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
-    final icon = BitmapDescriptor.bytes(data!.buffer.asUint8List());
+    final icon = BitmapDescriptor.bytes(data!.buffer.asUint8List(), imagePixelRatio: dpr);
     _labelIconCache[cacheKey] = icon;
     return icon;
   }
@@ -585,7 +561,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
     final picture = recorder.endRecording();
     final img = await picture.toImage(size.ceil(), size.ceil());
     final data = await img.toByteData(format: ui.ImageByteFormat.png);
-    _clusterIcons[count] = BitmapDescriptor.bytes(data!.buffer.asUint8List());
+    _clusterIcons[count] = BitmapDescriptor.bytes(data!.buffer.asUint8List(), imagePixelRatio: dpr);
     return _clusterIcons[count]!;
   }
 
@@ -752,25 +728,25 @@ class _MapScreenNewState extends State<MapScreenNew> {
     return GestureDetector(
       onTap: () => _applyFilter(id),
       child: Container(
-        padding: const EdgeInsets.only(left: 4, right: 14, top: 4, bottom: 4),
+        padding: const EdgeInsets.only(left: 5, right: 14, top: 5, bottom: 5),
         decoration: BoxDecoration(
           color: isSelected ? color : Colors.white,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: isSelected ? color : const Color(0xFFE8ECF0), width: 1),
+          border: Border.all(color: isSelected ? color : const Color(0xFFE8ECF0), width: 1.5),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 28, height: 28,
+              width: 30, height: 30,
               decoration: BoxDecoration(
-                color: isSelected ? Colors.white.withOpacity(0.2) : color.withOpacity(0.12),
+                color: isSelected ? Colors.white.withOpacity(0.18) : color.withOpacity(0.13),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 15, color: isSelected ? Colors.white : color),
+              child: Icon(icon, size: 16, color: isSelected ? Colors.white : color),
             ),
-            const SizedBox(width: 6),
-            Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: isSelected ? Colors.white : AppTheme.textPrimary, fontFamily: 'Mulish')),
+            const SizedBox(width: 7),
+            Text(label, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: isSelected ? Colors.white : const Color(0xFF0A0C13), fontFamily: 'Mulish')),
           ],
         ),
       ),
@@ -810,7 +786,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
         ? (distNum < 1 ? '${(distNum * 1000).toInt()} m' : '${distNum.toStringAsFixed(1)} km')
         : '';
     final rating = (p['rating'] ?? 0).toDouble();
-    final statusText = _getStatusText(p);
+    final statusText = _getStatusText(p).toUpperCase();
     final statusColor = _getStatusColor(p);
 
     return GestureDetector(
@@ -828,21 +804,21 @@ class _MapScreenNewState extends State<MapScreenNew> {
                 fit: StackFit.expand,
                 children: [
                   _getCarWashImage(p),
-                  // Rating badge
+                  // Rating badge — bottom left, yellow star on dark semi-transparent bg
                   Positioned(
                     bottom: 12, left: 12,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: const Color.fromRGBO(0, 0, 0, 0.55),
+                        color: const Color(0xFFFFD600),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.star_rounded, size: 16, color: Color(0xFFFFD600)),
+                          const Icon(Icons.star_rounded, size: 15, color: Color(0xFF0A0C13)),
                           const SizedBox(width: 4),
-                          Text(rating.toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                          Text(rating.toStringAsFixed(1), style: const TextStyle(color: Color(0xFF0A0C13), fontSize: 13, fontWeight: FontWeight.w800, fontFamily: 'Mulish')),
                         ],
                       ),
                     ),
@@ -852,7 +828,7 @@ class _MapScreenNewState extends State<MapScreenNew> {
             ),
           ),
           const SizedBox(height: 10),
-          // Status badge
+          // Status line: clock icon + uppercase status text
           Row(
             children: [
               Container(
@@ -861,26 +837,35 @@ class _MapScreenNewState extends State<MapScreenNew> {
                   color: statusColor,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.access_time, size: 13, color: Colors.white),
+                child: const Icon(Icons.access_time_rounded, size: 13, color: Colors.white),
               ),
-              const SizedBox(width: 6),
-              Text(statusText, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: statusColor, fontFamily: 'Mulish')),
+              const SizedBox(width: 7),
+              Text(
+                statusText,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: statusColor,
+                  fontFamily: 'Mulish',
+                  letterSpacing: 0.3,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           // Name
-          Text(name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
+          Text(name, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
           if (address.isNotEmpty) ...[
-            const SizedBox(height: 2),
-            Text(address, style: TextStyle(fontSize: 13, color: AppTheme.textSecondary, fontFamily: 'Mulish'), maxLines: 2, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 3),
+            Text(address, style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280), fontFamily: 'Mulish'), maxLines: 1, overflow: TextOverflow.ellipsis),
           ],
           if (distance.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.location_on_outlined, size: 16, color: AppTheme.primaryCyan),
+                Icon(Icons.location_on_rounded, size: 16, color: AppTheme.primaryCyan),
                 const SizedBox(width: 4),
-                Text(distance, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppTheme.primaryCyan, fontFamily: 'Mulish')),
+                Text(distance, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppTheme.primaryCyan, fontFamily: 'Mulish')),
               ],
             ),
           ],

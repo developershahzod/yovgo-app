@@ -31,7 +31,7 @@ const LocationsMap = () => {
 
   const fetchPartners = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/partner/partners`);
+      const response = await axios.get(`${API_URL}/api/partner/locations`);
       const data = response.data;
       
       setPartners(data);
@@ -44,7 +44,7 @@ const LocationsMap = () => {
         inactive: data.length - active
       });
     } catch (error) {
-      console.error('Error fetching partners:', error);
+      console.error('Error fetching locations:', error);
     } finally {
       setLoading(false);
     }

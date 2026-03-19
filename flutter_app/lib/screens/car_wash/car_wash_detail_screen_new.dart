@@ -637,7 +637,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
       children: [
         if (isPremium) ...[
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             decoration: BoxDecoration(
               color: const Color(0xFF0A0C13),
               borderRadius: BorderRadius.circular(20),
@@ -645,28 +645,34 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.workspace_premium, color: Colors.white, size: 14),
+                const Icon(Icons.workspace_premium_rounded, color: Color(0xFFFFD600), size: 13),
                 const SizedBox(width: 4),
-                const Text('PREMIUM', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white, fontFamily: 'Mulish')),
+                const Text('PREMIUM', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish', letterSpacing: 0.3)),
               ],
             ),
           ),
           const SizedBox(width: 8),
         ],
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: isOpen ? const Color(0xFF5CCC27).withOpacity(0.15) : const Color(0xFFFC3E3E).withOpacity(0.15),
+            color: isOpen ? const Color(0xFF5CCC27).withOpacity(0.12) : const Color(0xFFFC3E3E).withOpacity(0.12),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.access_time, size: 14, color: isOpen ? const Color(0xFF5CCC27) : const Color(0xFFFC3E3E)),
-              const SizedBox(width: 4),
+              Container(
+                width: 8, height: 8,
+                decoration: BoxDecoration(
+                  color: isOpen ? const Color(0xFF5CCC27) : const Color(0xFFFC3E3E),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 5),
               Text(
                 _getStatusText(p),
-                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: isOpen ? const Color(0xFF5CCC27) : const Color(0xFFFC3E3E), fontFamily: 'Mulish'),
+                style: TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: isOpen ? const Color(0xFF5CCC27) : const Color(0xFFFC3E3E), fontFamily: 'Mulish', letterSpacing: 0.3),
               ),
             ],
           ),
@@ -710,7 +716,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
       children: [
         Expanded(
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
             decoration: BoxDecoration(
               color: const Color(0xFFF5F7FA),
               borderRadius: BorderRadius.circular(16),
@@ -720,14 +726,14 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                 Container(
                   width: 40, height: 40,
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.directions_car_outlined, size: 20, color: Color(0xFF0A0C13)),
+                  child: const Icon(Icons.home_outlined, size: 20, color: Color(0xFF0A0C13)),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('~${_partner?['wash_time'] ?? 60} min', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
-                    Text(context.tr('detail_wash_time'), style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF8F96A0), letterSpacing: 0.5)),
+                    Text('~${_partner?['wash_time'] ?? 60} min', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                    Text(context.tr('detail_wash_time').toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF8F96A0), letterSpacing: 0.8, fontFamily: 'Mulish')),
                   ],
                 ),
               ],
@@ -737,7 +743,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
         const SizedBox(width: 8),
         Expanded(
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 14),
             decoration: BoxDecoration(
               color: const Color(0xFFF5F7FA),
               borderRadius: BorderRadius.circular(16),
@@ -746,10 +752,10 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
               children: [
                 Container(
                   width: 40, height: 40,
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
-                  child: Icon(Icons.star, size: 20, color: const Color(0xFFFFB800)),
+                  decoration: BoxDecoration(color: const Color(0xFF0A0C13), borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.star_rounded, size: 20, color: Colors.white),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -757,15 +763,15 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
                       children: [
                         Text(
                           _reviewCount > 0 ? _avgRating.toStringAsFixed(1) : rating.toStringAsFixed(1),
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
                         ),
                         const SizedBox(width: 4),
-                        Icon(Icons.info_outline, size: 14, color: const Color(0xFF8F96A0)),
+                        const Icon(Icons.info_outline_rounded, size: 13, color: Color(0xFF8F96A0)),
                       ],
                     ),
                     Text(
-                      _reviewCount > 0 ? '$_reviewCount ${context.tr('detail_reviews')}' : context.tr('detail_rating'),
-                      style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF8F96A0), letterSpacing: 0.5),
+                      context.tr('detail_rating').toUpperCase(),
+                      style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFF8F96A0), letterSpacing: 0.8, fontFamily: 'Mulish'),
                     ),
                   ],
                 ),
@@ -782,24 +788,29 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
     if (phone.isEmpty) return const SizedBox.shrink();
     return GestureDetector(
       onTap: () => _makePhoneCall(phone),
-      child: Padding(
-        padding: const EdgeInsets.only(top: 16),
+      child: Container(
+        margin: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F7FA),
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Row(
           children: [
             Container(
               width: 44, height: 44,
               decoration: BoxDecoration(
-                color: const Color(0xFFF5F7FA),
+                color: const Color(0xFF00BFFE).withOpacity(0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.phone_outlined, color: Color(0xFF00BFFE), size: 22),
+              child: const Icon(Icons.phone_rounded, color: Color(0xFF00BFFE), size: 22),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 14),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(phone, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
-                Text(context.tr('detail_call'), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF00BFFE), fontFamily: 'Mulish', letterSpacing: 0.5)),
+                Text(context.tr('detail_call').toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF00BFFE), fontFamily: 'Mulish', letterSpacing: 0.8)),
               ],
             ),
           ],
@@ -819,9 +830,16 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
       ),
       child: Row(
         children: [
-          Icon(icon, size: 22, color: const Color(0xFF0A0C13)),
+          Container(
+            width: 36, height: 36,
+            decoration: BoxDecoration(
+              color: const Color(0xFF00BFFE).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 18, color: const Color(0xFF00BFFE)),
+          ),
           const SizedBox(width: 14),
-          Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+          Text(text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
         ],
       ),
     );
@@ -1012,7 +1030,7 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
   // ─── Bottom Bar ───
   Widget _buildBottomBar(dynamic lat, dynamic lng) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 12, offset: const Offset(0, -2))],
@@ -1023,49 +1041,49 @@ class _CarWashDetailScreenNewState extends State<CarWashDetailScreenNew> {
           children: [
             // Marshrut button
             SizedBox(
-              height: 48,
+              height: 54,
               child: ElevatedButton.icon(
                 onPressed: () {
                   if (lat != null && lng != null) _showMapPicker(lat, lng);
                 },
-                icon: const Icon(Icons.navigation_outlined, size: 18),
-                label: Text(context.tr('detail_route'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                icon: const Icon(Icons.navigation_rounded, size: 18, color: Colors.white),
+                label: Text(context.tr('detail_route'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Colors.white)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0A0C13),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
                 ),
               ),
             ),
             const SizedBox(width: 10),
-            // QR / Obuna button (depends on subscription)
+            // QR / Obuna button
             Expanded(
               child: SizedBox(
-                height: 48,
+                height: 54,
                 child: _hasSubscription
                     ? ElevatedButton.icon(
                         onPressed: () {
                           Navigator.popUntil(context, (route) => route.isFirst);
                           MainNavigationFixed.switchToTab(2);
                         },
-                        icon: const Icon(Icons.qr_code_scanner, size: 18),
-                        label: Text(context.tr('detail_scan_qr'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                        icon: const Icon(Icons.qr_code_scanner_rounded, size: 20, color: Color(0xFF0A0C13)),
+                        label: Text(context.tr('detail_scan_qr'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFFFD600),
                           foregroundColor: const Color(0xFF0A0C13),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           elevation: 0,
                         ),
                       )
                     : ElevatedButton(
                         onPressed: () => Navigator.pushNamed(context, '/subscription-plans'),
-                        child: Text(context.tr('sub_buy'), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                        child: Text(context.tr('sub_buy'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFFFD600),
                           foregroundColor: const Color(0xFF0A0C13),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                           elevation: 0,
                         ),
                       ),

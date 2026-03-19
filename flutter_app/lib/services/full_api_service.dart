@@ -625,11 +625,13 @@ class FullApiService {
   static Future<Map<String, dynamic>> processQrScan({
     required String qrToken,
     String? vehicleId,
+    String? washType,
   }) async {
     try {
       final response = await _dio.post('/api/mobile/visits/checkin', data: {
         'qr_token': qrToken,
         if (vehicleId != null) 'vehicle_id': vehicleId,
+        if (washType != null) 'wash_type': washType,
       });
       return response.data;
     } catch (e) {
@@ -690,6 +692,64 @@ class FullApiService {
   static Future<void> removeSavedCarWash(String partnerId) async {
     try {
       await _dio.delete('/api/user/saved/$partnerId');
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  // ==================== YUVGO TOKEN SYSTEM ====================
+
+  /// Get user token balance + recent transactions
+  static Future<Map<String, dynamic>> getTokenBalance() async {
+    try {
+      final response = await _dio.get('/api/mobile/tokens/balance');
+      return response.data;
+    } catch (e) {
+      return {'success': false, 'balance': 0, 'balance_uzs': 0, 'transactions': []};
+    }
+  }
+
+  /// Get available top-up packages
+  static Future<List<dynamic>> getTokenPackages() async {
+    try {
+      final response = await _dio.get('/api/mobile/tokens/topup/packages');
+      return (response.data['packages'] as List?) ?? [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Create a token top-up payment order (returns order_id, transaction_id, amount_uzs)
+  static Future<Map<String, dynamic>> createTokenTopup({required int tokens}) async {
+    try {
+      final response = await _dio.post('/api/mobile/tokens/topup/create', data: {'tokens': tokens});
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Confirm token top-up after successful IpakYuli payment
+  static Future<Map<String, dynamic>> confirmTokenTopup({
+    required String transactionId,
+    required String transferId,
+  }) async {
+    try {
+      final response = await _dio.post('/api/mobile/tokens/topup/confirm', data: {
+        'transaction_id': transactionId,
+        'transfer_id': transferId,
+      });
+      return response.data;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
+  /// Pay for a subscription using YuvGo tokens
+  static Future<Map<String, dynamic>> payWithTokens({required String planId}) async {
+    try {
+      final response = await _dio.post('/api/mobile/tokens/pay-subscription', data: {'plan_id': planId});
+      return response.data;
     } catch (e) {
       rethrow;
     }

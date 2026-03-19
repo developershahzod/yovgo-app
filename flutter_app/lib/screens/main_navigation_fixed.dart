@@ -224,6 +224,7 @@ class _MainNavigationFixedState extends State<MainNavigationFixed> with WidgetsB
             ),
           ],
         ),
+        ),
       ),
     );
   }

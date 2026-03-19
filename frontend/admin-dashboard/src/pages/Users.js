@@ -25,7 +25,7 @@ const Users = () => {
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get(`${API_URL}/api/user/users`);
+      const response = await axios.get(`${API_URL}/api/user/users?limit=10000`);
       const userData = response.data || [];
       setUsers(userData);
       setUserStats({

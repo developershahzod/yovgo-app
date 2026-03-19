@@ -8,6 +8,7 @@ import '../../widgets/permission_modal.dart';
 import '../main_navigation_fixed.dart';
 import '../subscriptions/my_subscription_screen.dart';
 import '../home/home_screen_fixed.dart';
+import 'wash_type_selection_screen.dart';
 
 class QrScannerScreenFixed extends StatefulWidget {
   const QrScannerScreenFixed({Key? key}) : super(key: key);
@@ -216,12 +217,62 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
       return;
     }
 
+    // Get partner name first for the wash type selection screen
+    String partnerName = context.tr('qr_car_wash');
+    try {
+      // Quick validation of QR token to get partner name
+      String normalized = qrToken;
+      if (normalized.startsWith("YUVGO_")) {
+        normalized = normalized.substring(6);
+      }
+      // We'll show wash type selection screen regardless
+      partnerName = context.tr('qr_car_wash'); // Will be updated by API response
+    } catch (_) {}
+
+    // Show wash type selection screen
+    _showWashTypeSelection(qrToken, partnerName);
+  }
+
+  void _showWashTypeSelection(String qrToken, String partnerName) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => WashTypeSelectionScreen(
+          partnerName: partnerName,
+          qrToken: qrToken,
+          vehicleId: _selectedVehicleId,
+          onWashTypeSelected: (String washType) async {
+            // Process the QR scan with selected wash type
+            await _processQrScanWithWashType(qrToken, washType);
+          },
+        ),
+      ),
+    ).then((_) {
+      // Reset scanner when user comes back
+      if (mounted) {
+        setState(() {
+          _isScanning = false;
+          _scannerPaused = true;
+          _scannedOnce = false;
+        });
+        // Delay before allowing scanner to resume
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() => _scannerPaused = false);
+            _scannerController?.start();
+          }
+        });
+      }
+    });
+  }
+
+  Future<void> _processQrScanWithWashType(String qrToken, String washType) async {
     setState(() => _isScanning = true);
 
     try {
       final result = await FullApiService.processQrScan(
         qrToken: qrToken,
         vehicleId: _selectedVehicleId,
+        washType: washType,
       );
 
       if (mounted) {
@@ -236,6 +287,9 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
         // Background refresh to sync full state
         MySubscriptionScreen.globalKey.currentState?.refreshData();
         HomeScreenFixed.globalKey.currentState?.refreshData();
+        
+        // Close wash type selection and show success
+        Navigator.of(context).pop(); // Close wash type selection
         _showCheckinSuccessDialog(
           result['partner_name'] ?? context.tr('qr_car_wash'),
           result['remaining_visits']?.toString() ?? '',
@@ -244,6 +298,7 @@ class _QrScannerScreenFixedState extends State<QrScannerScreenFixed> with RouteA
       }
     } catch (e) {
       if (mounted) {
+        Navigator.of(context).pop(); // Close wash type selection
         String msg = e.toString();
         if (msg.contains('No active subscription') || msg.contains('subscription')) {
           _showSubscriptionRequiredDialog();

@@ -251,6 +251,33 @@ class MerchantUser(Base):
     created_at = Column(TIMESTAMP, server_default=func.now())
     updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
 
+class UserTokenBalance(Base):
+    __tablename__ = "user_token_balances"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False)
+    balance = Column(DECIMAL(12, 2), default=0, nullable=False)  # in tokens (1 token = 1000 UZS)
+    total_earned = Column(DECIMAL(12, 2), default=0)
+    total_spent = Column(DECIMAL(12, 2), default=0)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+
+class TokenTransaction(Base):
+    __tablename__ = "token_transactions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    type = Column(String(20), nullable=False)      # topup | spend | refund | admin_adjust
+    amount = Column(DECIMAL(12, 2), nullable=False)  # positive = credit, negative = debit
+    balance_after = Column(DECIMAL(12, 2), nullable=False)
+    description = Column(String(255))
+    reference_id = Column(String(255))             # payment_id / subscription_id
+    payment_provider = Column(String(50))          # ipakyuli / admin
+    status = Column(String(20), default="completed")  # pending | completed | failed
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+
 class Review(Base):
     __tablename__ = "reviews"
     

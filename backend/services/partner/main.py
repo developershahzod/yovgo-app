@@ -933,6 +933,92 @@ async def get_merchant_dashboard(partner_id: str, db: Session = Depends(get_db))
         "recent_visits": recent_visits
     }
 
+# ==================== ADMIN REVIEW ENDPOINTS ====================
+
+@app.get("/reviews")
+async def get_all_reviews(
+    partner_id: Optional[str] = None,
+    location_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """Get all reviews (admin only), optionally filtered by partner or location"""
+    from shared.models import Review
+    query = db.query(Review)
+    if partner_id:
+        query = query.filter(Review.partner_id == partner_id)
+    if location_id:
+        query = query.filter(Review.location_id == location_id)
+    reviews = query.order_by(Review.created_at.desc()).all()
+    result = []
+    for r in reviews:
+        user = db.query(User).filter(User.id == r.user_id).first()
+        result.append({
+            "id": str(r.id),
+            "partner_id": str(r.partner_id) if r.partner_id else None,
+            "location_id": str(r.location_id) if r.location_id else None,
+            "user_id": str(r.user_id) if r.user_id else None,
+            "user_name": (user.full_name if user else None) or "Foydalanuvchi",
+            "rating": r.rating,
+            "comment": r.comment or "",
+            "is_visible": r.is_visible,
+            "created_at": r.created_at.isoformat() if r.created_at else "",
+        })
+    return result
+
+
+@app.delete("/reviews/{review_id}")
+async def delete_review(
+    review_id: str,
+    db: Session = Depends(get_db),
+    current_admin = Depends(AuthHandler.get_current_admin)
+):
+    """Delete a review (admin only)"""
+    from shared.models import Review
+    from sqlalchemy import func as sqlfunc
+    review = db.query(Review).filter(Review.id == review_id).first()
+    if not review:
+        raise HTTPException(status_code=404, detail="Review not found")
+    partner_id = review.partner_id
+    db.delete(review)
+    db.commit()
+    # Recalculate partner rating
+    if partner_id:
+        partner = db.query(Partner).filter(Partner.id == partner_id).first()
+        if partner:
+            avg = db.query(sqlfunc.avg(Review.rating)).filter(
+                Review.partner_id == partner_id,
+                Review.is_visible == True,
+            ).scalar()
+            partner.rating = round(float(avg), 2) if avg else 0
+            db.commit()
+    return {"success": True, "message": "Review deleted"}
+
+
+@app.get("/locations")
+async def get_all_locations(
+    partner_id: Optional[str] = None,
+    db: Session = Depends(get_db),
+):
+    """Get all partner locations (branches)"""
+    query = db.query(PartnerLocation)
+    if partner_id:
+        query = query.filter(PartnerLocation.partner_id == partner_id)
+    locations = query.filter(PartnerLocation.is_active == True).all()
+    result = []
+    for loc in locations:
+        result.append({
+            "id": str(loc.id),
+            "partner_id": str(loc.partner_id),
+            "name": loc.name or "",
+            "address": loc.address or "",
+            "city": loc.city or "",
+            "latitude": float(loc.latitude) if loc.latitude else None,
+            "longitude": float(loc.longitude) if loc.longitude else None,
+            "is_active": loc.is_active,
+        })
+    return result
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8003)

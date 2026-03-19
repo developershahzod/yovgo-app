@@ -7,10 +7,16 @@ import '../../l10n/language_provider.dart';
 class WeatherDetailScreen extends StatelessWidget {
   const WeatherDetailScreen({Key? key}) : super(key: key);
 
+  /// Convert 0–100 percentage to 1–10 score
+  int _toScore(int pct) => ((pct / 10).round()).clamp(1, 10);
+
   @override
   Widget build(BuildContext context) {
     final weatherData = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final washRating = weatherData?['wash_rating'] ?? 0;
+    final washRatingRaw = (weatherData?['wash_rating'] ?? 0) is num
+        ? (weatherData!['wash_rating'] as num).toInt()
+        : 0;
+    final washRating = washRatingRaw;
     final recommendation = weatherData?['recommendation'] ?? context.tr('home_weather_good');
     final forecast = (weatherData?['forecast'] as List?) ?? [];
     final currentTemp = weatherData?['current_temp'] ?? weatherData?['temp'] ?? '';
@@ -49,7 +55,7 @@ class WeatherDetailScreen extends StatelessWidget {
                 width: 200,
                 height: 140,
                 child: CustomPaint(
-                  painter: LargeGaugePainter(washRating is int ? washRating : (washRating as num).toInt()),
+                  painter: LargeGaugePainter(_toScore(washRating)),
                 ),
               ),
             ),
@@ -181,7 +187,7 @@ class WeatherDetailScreen extends StatelessWidget {
                   for (int i = 0; i < forecast.length && i < 7; i++)
                     _buildForecastRowIcon(
                       forecast[i]['day']?.toString() ?? '',
-                      (forecast[i]['wash_rating'] ?? 0) is int ? forecast[i]['wash_rating'] : (forecast[i]['wash_rating'] as num).toInt(),
+                      _toScore((forecast[i]['wash_rating'] ?? 0) is int ? forecast[i]['wash_rating'] as int : (forecast[i]['wash_rating'] as num).toInt()),
                       forecast[i]['high']?.toString() ?? forecast[i]['temp']?.toString() ?? '',
                       forecast[i]['low']?.toString() ?? '',
                       forecast[i]['weather']?.toString() ?? 'sunny',
@@ -224,16 +230,7 @@ class WeatherDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildForecastRowIcon(String day, int percent, String high, String low, String weatherType, bool isToday) {
-    Color progressColor;
-    if (percent >= 70) {
-      progressColor = const Color(0xFF5CCC27);
-    } else if (percent >= 40) {
-      progressColor = const Color(0xFFFFD600);
-    } else {
-      progressColor = const Color(0xFFFC3E3E);
-    }
-
+  Widget _buildForecastRowIcon(String day, int score, String high, String low, String weatherType, bool isToday) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
       margin: const EdgeInsets.only(bottom: 8),
@@ -251,58 +248,78 @@ class WeatherDetailScreen extends StatelessWidget {
               day,
               style: TextStyle(
                 color: AppTheme.textPrimary,
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
                 fontFamily: 'Mulish',
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-          // Percent
+          // Score X/10
           SizedBox(
-            width: 40,
+            width: 44,
             child: Text(
-              '$percent%',
+              '$score/10',
               style: TextStyle(
                 color: AppTheme.textPrimary,
-                fontSize: 14,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
                 fontFamily: 'Mulish',
               ),
             ),
           ),
-          // Progress bar
+          // Gradient bar with dot
           Expanded(
-            child: Container(
-              height: 6,
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8E8E8),
-                borderRadius: BorderRadius.circular(3),
-              ),
-              child: FractionallySizedBox(
-                alignment: Alignment.centerLeft,
-                widthFactor: percent / 100,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: progressColor,
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                ),
-              ),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final barWidth = constraints.maxWidth;
+                final dotPos = ((score - 1) / 9 * barWidth).clamp(6.0, barWidth - 6.0);
+                return Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      height: 7,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFFFC3E3E), Color(0xFFFFD600), Color(0xFF5CCC27)],
+                        ),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    Positioned(
+                      left: dotPos - 6,
+                      top: -3,
+                      child: Container(
+                        width: 13, height: 13,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: score >= 7 ? const Color(0xFF5CCC27) : score >= 4 ? const Color(0xFFFFD600) : const Color(0xFFFC3E3E),
+                            width: 2.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
+          const SizedBox(width: 8),
           // Temperatures
           Text(
-            'K: $high',
+            high.isNotEmpty ? 'K: $high' : '',
             style: TextStyle(
               color: AppTheme.textSecondary,
               fontSize: 12,
               fontFamily: 'Mulish',
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 6),
           Text(
-            'T: $low',
+            low.isNotEmpty ? 'T: $low' : '',
             style: TextStyle(
               color: AppTheme.textSecondary,
               fontSize: 12,
@@ -310,7 +327,6 @@ class WeatherDetailScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          // Weather icon
           IosWeatherIcon(type: weatherType, size: 22),
         ],
       ),
@@ -319,81 +335,78 @@ class WeatherDetailScreen extends StatelessWidget {
 }
 
 class LargeGaugePainter extends CustomPainter {
-  final int percentage;
+  final int score; // 1–10 (already converted)
 
-  LargeGaugePainter(this.percentage);
+  LargeGaugePainter(this.score);
 
   @override
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height - 10);
     final radius = size.width / 2 - 20;
+    const strokeWidth = 16.0;
 
     // Background arc
     final backgroundPaint = Paint()
       ..color = const Color(0xFFF2F2F2)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 16
+      ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
     canvas.drawArc(
       Rect.fromCircle(center: center, radius: radius),
-      math.pi,
-      math.pi,
-      false,
-      backgroundPaint,
+      math.pi, math.pi, false, backgroundPaint,
     );
 
-    // Gradient arc
-    final gradient = SweepGradient(
-      startAngle: math.pi,
-      endAngle: math.pi * 2,
-      colors: const [
-        Color(0xFFFC3E3E),
-        Color(0xFFFFD600),
-        Color(0xFF5CCC27),
-      ],
-    );
+    // Gradient arc — sweep based on score 1–10
+    final sweepAngle = ((score - 1) / 9) * math.pi;
+    if (sweepAngle > 0) {
+      final gradient = SweepGradient(
+        startAngle: math.pi,
+        endAngle: math.pi * 2,
+        colors: const [
+          Color(0xFFFC3E3E),
+          Color(0xFFFFD600),
+          Color(0xFF5CCC27),
+        ],
+      );
 
-    final progressPaint = Paint()
-      ..shader = gradient.createShader(Rect.fromCircle(center: center, radius: radius))
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 16
-      ..strokeCap = StrokeCap.round;
+      final progressPaint = Paint()
+        ..shader = gradient.createShader(Rect.fromCircle(center: center, radius: radius))
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.round;
 
-    final sweepAngle = (percentage / 100) * math.pi;
-    canvas.drawArc(
-      Rect.fromCircle(center: center, radius: radius),
-      math.pi,
-      sweepAngle,
-      false,
-      progressPaint,
-    );
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        math.pi, sweepAngle, false, progressPaint,
+      );
+    }
 
-    // Holat text
-    final holatPainter = TextPainter(
-      text: TextSpan(
-        text: 'Holat: A\'lo',
+    // 'Tavsiya:' label
+    final labelPainter = TextPainter(
+      text: const TextSpan(
+        text: 'Tavsiya:',
         style: TextStyle(
-          color: const Color(0xFF8F96A0),
-          fontSize: 12,
+          color: Color(0xFF9BA3AF),
+          fontSize: 13,
           fontFamily: 'Mulish',
         ),
       ),
       textDirection: TextDirection.ltr,
     );
-    holatPainter.layout();
-    holatPainter.paint(
+    labelPainter.layout();
+    labelPainter.paint(
       canvas,
-      Offset(center.dx - holatPainter.width / 2, center.dy - 60),
+      Offset(center.dx - labelPainter.width / 2, center.dy - 65),
     );
 
-    // Percentage text
+    // Score text: X/10
     final textPainter = TextPainter(
       text: TextSpan(
-        text: '$percentage%',
+        text: '$score/10',
         style: const TextStyle(
           color: Color(0xFF0A0C13),
-          fontSize: 48,
+          fontSize: 44,
           fontWeight: FontWeight.w900,
           fontFamily: 'Mulish',
         ),
@@ -403,28 +416,23 @@ class LargeGaugePainter extends CustomPainter {
     textPainter.layout();
     textPainter.paint(
       canvas,
-      Offset(center.dx - textPainter.width / 2, center.dy - 45),
+      Offset(center.dx - textPainter.width / 2, center.dy - 50),
     );
 
-    // Indicator dot
+    // White dot indicator
     final angle = math.pi + sweepAngle;
     final dotX = center.dx + radius * math.cos(angle);
     final dotY = center.dy + radius * math.sin(angle);
-    
-    final dotPaint = Paint()
-      ..color = Colors.white
-      ..style = PaintingStyle.fill;
-    
-    canvas.drawCircle(Offset(dotX, dotY), 8, dotPaint);
-    
-    final dotBorderPaint = Paint()
-      ..color = const Color(0xFF5CCC27)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-    
-    canvas.drawCircle(Offset(dotX, dotY), 8, dotBorderPaint);
+
+    canvas.drawCircle(Offset(dotX, dotY), 9,
+      Paint()..color = Colors.white..style = PaintingStyle.fill);
+    canvas.drawCircle(Offset(dotX, dotY), 9,
+      Paint()
+        ..color = Colors.white
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2);
   }
 
   @override
-  bool shouldRepaint(LargeGaugePainter oldDelegate) => oldDelegate.percentage != percentage;
+  bool shouldRepaint(LargeGaugePainter oldDelegate) => oldDelegate.score != score;
 }

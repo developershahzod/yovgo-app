@@ -1,0 +1,10 @@
+/* Russian permission strings for YuvGO */
+
+NSCameraUsageDescription = "YuvGO использует камеру для сканирования QR-кода";
+NSLocationWhenInUseUsageDescription = "YuvGO использует геолокацию для отображения ближайших автомоек";
+NSLocationAlwaysUsageDescription = "YuvGO использует геолокацию для отображения ближайших автомоек";
+NSLocationAlwaysAndWhenInUseUsageDescription = "YuvGO использует геолокацию для отображения ближайших автомоек";
+NSPhotoLibraryUsageDescription = "YuvGO использует фотогалерею для установки фото профиля";
+NSPhotoLibraryAddUsageDescription = "YuvGO сохраняет изображения в фотогалерею";
+NSMicrophoneUsageDescription = "YuvGO может использовать микрофон для записи видео";
+NSFaceIDUsageDescription = "YuvGO использует Face ID для безопасного входа";

@@ -18,6 +18,9 @@ import Reports from './pages/Reports';
 import Visits from './pages/Visits';
 import Notifications from './pages/Notifications';
 import Vehicles from './pages/Vehicles';
+import PartnerReviews from './pages/PartnerReviews';
+import Branches from './pages/Branches';
+import Tokens from './pages/Tokens';
 import Layout from './components/LayoutNew';
 
 const ProtectedRoute = ({ children, requiredPermission }) => {
@@ -75,6 +78,24 @@ function App() {
               element={
                 <ProtectedRoute requiredPermission="partners.read">
                   <Partners />
+                </ProtectedRoute>
+              }
+            />
+            
+            <Route
+              path="branches"
+              element={
+                <ProtectedRoute requiredPermission="partners.read">
+                  <Branches />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="partner-reviews"
+              element={
+                <ProtectedRoute requiredPermission="partners.read">
+                  <PartnerReviews />
                 </ProtectedRoute>
               }
             />
@@ -183,6 +204,15 @@ function App() {
               element={
                 <ProtectedRoute requiredPermission="users.read">
                   <Vehicles />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="tokens"
+              element={
+                <ProtectedRoute requiredPermission="payments.read">
+                  <Tokens />
                 </ProtectedRoute>
               }
             />

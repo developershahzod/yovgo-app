@@ -26,7 +26,7 @@ const Visits = () => {
   const fetchVisits = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_URL}/api/visit/visits`);
+      const response = await axios.get(`${API_URL}/api/visit/visits?limit=10000`);
       const visitsData = response.data || [];
       setVisits(visitsData);
 
@@ -79,6 +79,7 @@ const Visits = () => {
       visit.user_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       visit.user_phone?.includes(searchTerm) ||
       visit.partner_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      visit.location_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       visit.vehicle_plate?.toLowerCase().includes(searchTerm.toLowerCase());
 
     if (dateFilter === 'all') return matchesSearch;
@@ -203,8 +204,8 @@ const Visits = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Foydalanuvchi</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avtomoyka</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mashina</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Avtomoyka / Filial</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Mashina raqami</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vaqt</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 </tr>
@@ -232,18 +233,21 @@ const Visits = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div>
-                          <p className="font-medium text-gray-900">{visit.partner_name}</p>
+                          <p className="font-medium text-gray-900">{visit.partner_name || 'A-Bozor'}</p>
                           <p className="text-sm text-gray-500 flex items-center gap-1">
                             <MapPin size={12} />
-                            {visit.location_name}
+                            {visit.location_name || visit.location_address || '-'}
                           </p>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
                           <Car size={16} className="text-gray-400" />
-                          <span className="font-mono text-sm">{visit.vehicle_plate || '-'}</span>
+                          <span className="font-mono font-bold text-sm bg-gray-100 px-2 py-1 rounded">{visit.vehicle_plate || '-'}</span>
                         </div>
+                        {visit.vehicle_name && (
+                          <p className="text-xs text-gray-400 mt-1">{visit.vehicle_name}</p>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {new Date(visit.check_in_time).toLocaleString('uz-UZ')}

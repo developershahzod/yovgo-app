@@ -3,6 +3,15 @@ import axios from 'axios';
 
 const AuthContext = createContext();
 
+// Global interceptor — always injects token from localStorage on every request
+axios.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token');
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+}, (error) => Promise.reject(error));
+
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {

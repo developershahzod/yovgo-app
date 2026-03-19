@@ -40,8 +40,8 @@ class _SavedScreenPixelPerfectState extends State<SavedScreenPixelPerfect> {
     if (mounted) setState(() { _favorites = favs; _isLoading = false; });
   }
 
-  Future<void> _removeFavorite(String id) async {
-    await FavoritesService.removeFavorite(id);
+  Future<void> _removeFavorite(Map<String, dynamic> item) async {
+    await FavoritesService.removeFavorite(FavoritesService.getKey(item));
     await _loadFavorites();
   }
 
@@ -72,18 +72,18 @@ class _SavedScreenPixelPerfectState extends State<SavedScreenPixelPerfect> {
   String _getStatusText(Map<String, dynamic> p) {
     final isOpen = p['is_open'] == true;
     final is24h = p['is_24_hours'] == true;
-    if (is24h) return '24/7 OCHIQ';
+    if (is24h) return context.tr('open_24_7');
     final closeTime = p['closing_time']?.toString() ?? p['close_time']?.toString() ?? '';
     final openTime = p['opening_time']?.toString() ?? p['open_time']?.toString() ?? '';
     if (isOpen && closeTime.isNotEmpty) {
       final t = closeTime.length >= 5 ? closeTime.substring(0, 5) : closeTime;
-      return '$t GACHA OCHIQ';
+      return '${context.tr("open_until")} $t';
     }
     if (!isOpen && openTime.isNotEmpty) {
       final t = openTime.length >= 5 ? openTime.substring(0, 5) : openTime;
-      return 'YOPIQ $t GACHA';
+      return '${context.tr("closed_until")} $t';
     }
-    return isOpen ? 'GACHA OCHIQ' : 'YOPIQ';
+    return isOpen ? context.tr('status_open') : context.tr('status_closed');
   }
 
   Color _getStatusColor(Map<String, dynamic> p) {
@@ -175,14 +175,13 @@ class _SavedScreenPixelPerfectState extends State<SavedScreenPixelPerfect> {
     final statusText = _getStatusText(p);
     final statusColor = _getStatusColor(p);
     final imageUrl = _getImageUrl(p);
-    final partnerId = p['id']?.toString() ?? '';
 
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/car-wash-detail', arguments: p),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Image with rating badge
+          // Image with rating badge + remove button
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: SizedBox(
@@ -220,6 +219,21 @@ class _SavedScreenPixelPerfectState extends State<SavedScreenPixelPerfect> {
                           const SizedBox(width: 4),
                           Text(rating.toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
                         ],
+                      ),
+                    ),
+                  ),
+                  // Remove from saved button
+                  Positioned(
+                    top: 10, right: 10,
+                    child: GestureDetector(
+                      onTap: () => _removeFavorite(p),
+                      child: Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.55),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.bookmark, size: 20, color: AppTheme.primaryCyan),
                       ),
                     ),
                   ),

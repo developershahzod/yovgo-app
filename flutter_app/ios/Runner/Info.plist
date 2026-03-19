@@ -5,7 +5,13 @@
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<string>uz</string>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>uz</string>
+		<string>ru</string>
+		<string>en</string>
+	</array>
 	<key>CFBundleDisplayName</key>
 	<string>YuvGO</string>
 	<key>CFBundleExecutable</key>
@@ -44,27 +50,31 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 
-	<!-- Camera permission (QR scanner) -->
+	<!-- Camera permission (QR scanner) — fallback, overridden by ru.lproj/uz.lproj/InfoPlist.strings -->
 	<key>NSCameraUsageDescription</key>
-	<string>YuvGO ilovasi QR kodni skanerlash uchun kameradan foydalanadi</string>
+	<string>YuvGO QR-kodni skanerlash uchun kameradan foydalanadi</string>
 
 	<!-- Location permissions (Google Maps, nearby car washes) -->
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>YuvGO ilovasi yaqin atrofdagi avtomoykalarni ko'rsatish uchun joylashuvingizdan foydalanadi</string>
+	<string>YuvGO yaqin atrofdagi avtomoykalarni ko'rsatish uchun joylashuvingizdan foydalanadi</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>YuvGO ilovasi yaqin atrofdagi avtomoykalarni ko'rsatish uchun joylashuvingizdan foydalanadi</string>
+	<string>YuvGO yaqin atrofdagi avtomoykalarni ko'rsatish uchun joylashuvingizdan foydalanadi</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>YuvGO ilovasi yaqin atrofdagi avtomoykalarni ko'rsatish uchun joylashuvingizdan foydalanadi</string>
+	<string>YuvGO yaqin atrofdagi avtomoykalarni ko'rsatish uchun joylashuvingizdan foydalanadi</string>
 
 	<!-- Photo library permission (profile photo) -->
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>YuvGO ilovasi profil rasmingizni o'rnatish uchun foto kutubxonangizdan foydalanadi</string>
+	<string>YuvGO profil rasmingizni o'rnatish uchun foto kutubxonangizdan foydalanadi</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>YuvGO ilovasi rasmlarni saqlash uchun foto kutubxonangizdan foydalanadi</string>
+	<string>YuvGO rasmlarni saqlash uchun foto kutubxonangizdan foydalanadi</string>
 
 	<!-- Microphone (may be needed by camera plugins) -->
 	<key>NSMicrophoneUsageDescription</key>
-	<string>YuvGO ilovasi video yozish uchun mikrofondan foydalanishi mumkin</string>
+	<string>YuvGO video yozish uchun mikrofondan foydalanishi mumkin</string>
+
+	<!-- Face ID (for flutter_secure_storage) -->
+	<key>NSFaceIDUsageDescription</key>
+	<string>YuvGO xavfsiz kirish uchun Face ID dan foydalanadi</string>
 
 	<!-- URL schemes for url_launcher -->
 	<key>LSApplicationQueriesSchemes</key>
@@ -86,10 +96,6 @@
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
 	</dict>
-
-	<!-- Face ID (for flutter_secure_storage) -->
-	<key>NSFaceIDUsageDescription</key>
-	<string>YuvGO ilovasi xavfsiz kirish uchun Face ID dan foydalanadi</string>
 
 	<!-- ITSAppUsesNonExemptEncryption - required for TestFlight -->
 	<key>ITSAppUsesNonExemptEncryption</key>

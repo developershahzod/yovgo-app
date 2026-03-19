@@ -6,6 +6,7 @@ import '../../l10n/language_provider.dart';
 import 'payment_webview_screen.dart';
 import '../qr/qr_scanner_screen_fixed.dart';
 import '../subscriptions/my_subscription_screen.dart';
+import '../profile/token_topup_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
@@ -15,14 +16,15 @@ class CheckoutScreen extends StatefulWidget {
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
-  // 'payment_systems', 'card', 'installment'
+  // 'card' | 'tokens'
   String _selectedPaymentMethod = 'card';
-  int _installmentMonths = 12;
   final TextEditingController _promoController = TextEditingController();
   bool _isProcessing = false;
   bool _promoError = false;
   Map<String, dynamic>? _plan;
   DateTime _activationDate = DateTime.now();
+  double _tokenBalance = 0;
+  bool _tokenBalanceLoaded = false;
 
   @override
   void didChangeDependencies() {
@@ -30,6 +32,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final args = ModalRoute.of(context)?.settings.arguments;
     if (args is Map<String, dynamic> && _plan == null) {
       _plan = args;
+      _loadTokenBalance();
+    }
+  }
+
+  Future<void> _loadTokenBalance() async {
+    try {
+      final data = await FullApiService.getTokenBalance();
+      if (mounted) {
+        setState(() {
+          _tokenBalance = (data['balance'] as num?)?.toDouble() ?? 0;
+          _tokenBalanceLoaded = true;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _tokenBalanceLoaded = true);
     }
   }
 
@@ -79,6 +96,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<void> _processPayment() async {
     if (_isProcessing || _plan == null) return;
     setState(() => _isProcessing = true);
+
+    // Route to token payment if selected
+    if (_selectedPaymentMethod == 'tokens') {
+      await _processTokenPayment();
+      return;
+    }
+
     try {
       // Step 1: Create subscription as pending — activated only after payment
       final subResult = await FullApiService.createSubscription(
@@ -146,6 +170,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             backgroundColor: Colors.red,
             duration: const Duration(seconds: 4),
           ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  Future<void> _processTokenPayment() async {
+    try {
+      final result = await FullApiService.payWithTokens(planId: _plan!['id'].toString());
+      if (mounted) {
+        final newBalance = (result['new_balance'] as num?)?.toDouble() ?? 0;
+        setState(() => _tokenBalance = newBalance);
+        _showSuccessDialog();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(_getErrorMessage(e)), backgroundColor: Colors.red, duration: const Duration(seconds: 4)),
         );
       }
     } finally {
@@ -434,45 +477,136 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  // ─── Payment Info (single method: Ipak Yo'li Bank) ───
+  // ─── Payment Method Selector ───
   Widget _buildPaymentInfo() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF00BFFE), width: 1.5),
-        color: const Color(0xFF00BFFE).withOpacity(0.04),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFF00BFFE).withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.credit_card, color: Color(0xFF00BFFE), size: 24),
+    final price = _plan?['price'] ?? 0;
+    final priceUzs = double.tryParse(price.toString()) ?? 0.0;
+    final tokensNeeded = (priceUzs / 1000);
+    final hasEnoughTokens = _tokenBalance >= tokensNeeded;
+
+    return Column(
+      children: [
+        _buildMethodOption(
+          id: 'card',
+          icon: Icons.credit_card,
+          color: const Color(0xFF00BFFE),
+          title: context.tr('checkout_method_card'),
+          subtitle: context.tr('card_types'),
+        ),
+        const SizedBox(height: 10),
+        _buildMethodOption(
+          id: 'tokens',
+          icon: Icons.toll,
+          color: const Color(0xFFFFD600),
+          title: context.tr('checkout_method_tokens'),
+          subtitle: _tokenBalanceLoaded
+              ? '${context.tr('checkout_tokens_balance')}: ${_tokenBalance.toStringAsFixed(0)} tkn'
+              : '...',
+          badge: !hasEnoughTokens && _tokenBalanceLoaded ? context.tr('tokens_insufficient') : null,
+          badgeColor: Colors.red,
+          extra: hasEnoughTokens && _tokenBalanceLoaded
+              ? '${context.tr('checkout_tokens_cost')}: ${tokensNeeded.toStringAsFixed(0)} tkn'
+              : null,
+          disabled: !hasEnoughTokens && _tokenBalanceLoaded,
+          topupCallback: !hasEnoughTokens && _tokenBalanceLoaded
+              ? () async {
+                  await Navigator.push(context, MaterialPageRoute(builder: (_) => const TokenTopupScreen()));
+                  await _loadTokenBalance();
+                }
+              : null,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMethodOption({
+    required String id,
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    String? badge,
+    Color? badgeColor,
+    String? extra,
+    bool disabled = false,
+    VoidCallback? topupCallback,
+  }) {
+    final selected = _selectedPaymentMethod == id && !disabled;
+    return GestureDetector(
+      onTap: disabled ? null : () => setState(() => _selectedPaymentMethod = id),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: selected ? color : const Color(0xFFE8E8E8),
+            width: selected ? 2 : 1.5,
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(context.tr('card_payment'), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
-                const SizedBox(height: 2),
-                Text(context.tr('card_types'), style: const TextStyle(fontSize: 13, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
-              ],
+          color: selected ? color.withOpacity(0.04) : Colors.white,
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(
+                color: color.withOpacity(disabled ? 0.05 : 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: disabled ? Colors.grey : color, size: 24),
             ),
-          ),
-          Container(
-            width: 24, height: 24,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: Color(0xFF00BFFE),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(title,
+                        style: TextStyle(
+                          fontSize: 15, fontWeight: FontWeight.w700, fontFamily: 'Mulish',
+                          color: disabled ? const Color(0xFFB0B0B0) : const Color(0xFF0A0C13),
+                        )),
+                      if (badge != null) ...[const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: (badgeColor ?? Colors.red).withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(badge, style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: badgeColor ?? Colors.red, fontFamily: 'Mulish')),
+                        )
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: TextStyle(fontSize: 12, color: disabled ? const Color(0xFFB0B0B0) : const Color(0xFF8F96A0), fontFamily: 'Mulish')),
+                  if (extra != null) ...[const SizedBox(height: 2),
+                    Text(extra, style: const TextStyle(fontSize: 12, color: Color(0xFFFFAA00), fontWeight: FontWeight.w600, fontFamily: 'Mulish')),
+                  ],
+                ],
+              ),
             ),
-            child: const Icon(Icons.check, color: Colors.white, size: 16),
-          ),
-        ],
+            if (topupCallback != null)
+              GestureDetector(
+                onTap: topupCallback,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD600),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(context.tr('tokens_topup'), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
+                ),
+              )
+            else if (selected)
+              Container(
+                width: 24, height: 24,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+                child: const Icon(Icons.check, color: Colors.white, size: 16),
+              ),
+          ],
+        ),
       ),
     );
   }

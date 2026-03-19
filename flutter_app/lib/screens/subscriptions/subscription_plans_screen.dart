@@ -153,7 +153,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   }
 
   String _localizedField(Map<String, dynamic> plan, String baseKey) {
-    final lang = Provider.of<LanguageProvider>(context, listen: true).languageCode;
+    final lang = context.read<LanguageProvider>().languageCode;
     if (lang == 'ru') {
       final val = plan['${baseKey}_ru'];
       if (val != null && (val as String).isNotEmpty) return val;
@@ -165,7 +165,7 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
   }
 
   String _buildSubtitle(Map<String, dynamic> plan) {
-    final lang = Provider.of<LanguageProvider>(context, listen: true).languageCode;
+    final lang = context.read<LanguageProvider>().languageCode;
     final days = plan['duration_days'] ?? 0;
     final visits = plan['visit_limit'] ?? 0;
     final isUnlimited = plan['is_unlimited'] == true;
@@ -182,8 +182,27 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
     }
   }
 
+  bool _isStarterPlan(Map<String, dynamic> plan) {
+    return plan['is_one_time'] == true || plan['visit_limit'] == 1;
+  }
+
+  String _starterLimitLabel(Map<String, dynamic> plan) {
+    final lang = context.read<LanguageProvider>().languageCode;
+    final max = plan['max_users'] ?? 1000;
+    if (lang == 'ru') return 'Только $max пользователей';
+    if (lang == 'en') return '$max users only';
+    return 'Faqat $max foydalanuvchi';
+  }
+
+  String _oneTimeBadgeLabel() {
+    final lang = context.read<LanguageProvider>().languageCode;
+    if (lang == 'ru') return 'Однократно';
+    if (lang == 'en') return 'One-time';
+    return 'Bir martalik';
+  }
+
   String _priceLabel(Map<String, dynamic> plan) {
-    final lang = Provider.of<LanguageProvider>(context, listen: true).languageCode;
+    final lang = context.read<LanguageProvider>().languageCode;
     final price = plan['price'] ?? 0;
     if (lang == 'ru') return '${_fmt(price)} сум';
     if (lang == 'en') return '${_fmt(price)} UZS';
@@ -195,6 +214,9 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
         ? _localizedField(plan, 'name')
         : '${plan['duration_days']} kunlik';
     final durationDays = plan['duration_days'] ?? 0;
+    final isStarter = _isStarterPlan(plan);
+
+    if (isStarter) return _buildStarterPlanCard(plan, name);
 
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/checkout', arguments: plan),
@@ -238,6 +260,120 @@ class _SubscriptionPlansScreenState extends State<SubscriptionPlansScreen> {
             ),
             const Icon(Icons.chevron_right, size: 22, color: Color(0xFF8F96A0)),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStarterPlanCard(Map<String, dynamic> plan, String name) {
+    return GestureDetector(
+      onTap: () => Navigator.pushNamed(context, '/checkout', arguments: plan),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(20),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFD600), Color(0xFFFFA500)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(color: const Color(0xFFFFD600).withOpacity(0.35), blurRadius: 16, offset: const Offset(0, 6)),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top row: badge + limit
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0A0C13),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.bolt, color: Color(0xFFFFD600), size: 14),
+                        const SizedBox(width: 4),
+                        Text(_oneTimeBadgeLabel(), style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                      ],
+                    ),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.people_outline, color: Color(0xFF0A0C13), size: 14),
+                        const SizedBox(width: 4),
+                        Text(_starterLimitLabel(plan), style: const TextStyle(color: Color(0xFF0A0C13), fontSize: 11, fontWeight: FontWeight.w700, fontFamily: 'Mulish')),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Icon + Name
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 52, height: 52,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0A0C13),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.local_car_wash, color: Color(0xFFFFD600), size: 28),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
+                        const SizedBox(height: 2),
+                        Text(_buildSubtitle(plan), style: TextStyle(fontSize: 13, color: const Color(0xFF0A0C13).withOpacity(0.6), fontFamily: 'Mulish')),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              // Divider
+              Container(height: 1, color: const Color(0xFF0A0C13).withOpacity(0.15)),
+              const SizedBox(height: 14),
+              // Price + CTA
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(_priceLabel(plan), style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900, color: Color(0xFF0A0C13), fontFamily: 'Mulish')),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0A0C13),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.arrow_forward, color: Color(0xFFFFD600), size: 18),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

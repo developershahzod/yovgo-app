@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_text_styles.dart';
+import '../../l10n/language_provider.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -39,7 +40,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           icon: const Icon(Icons.arrow_back, color: AppColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Profilni tahrirlash', style: AppTextStyles.appBarTitle),
+        title: Text(context.tr('profile_edit'), style: AppTextStyles.appBarTitle),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
@@ -94,12 +95,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.camera_alt, color: AppColors.primary),
-                title: const Text('Kamera'),
+                title: Text(context.tr('camera')),
                 onTap: () { Navigator.pop(ctx); _pickImage(ImageSource.camera); },
               ),
               ListTile(
                 leading: const Icon(Icons.photo_library, color: AppColors.primary),
-                title: const Text('Galereya'),
+                title: Text(context.tr('gallery')),
                 onTap: () { Navigator.pop(ctx); _pickImage(ImageSource.gallery); },
               ),
             ],
@@ -259,8 +260,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (mounted) {
       setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profil muvaffaqiyatli saqlandi'),
+        SnackBar(
+          content: Text(context.tr('profile_saved')),
           backgroundColor: AppColors.success,
         ),
       );
