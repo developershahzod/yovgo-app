@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../config/app_theme.dart';
 import '../../services/full_api_service.dart';
 import '../../l10n/language_provider.dart';
+import 'token_topup_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({Key? key}) : super(key: key);
@@ -22,6 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int _savedAmount = 0;
   int _vehicleCount = 0;
   int _cardCount = 0;
+  double _tokenBalance = 0;
 
   @override
   void initState() {
@@ -95,6 +97,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
           setState(() => _cardCount = (cards['contracts'] as List?)?.length ?? 0);
         }
       } catch (_) {}
+
+      // Load token balance
+      try {
+        final tokenData = await FullApiService.getTokenBalance();
+        if (mounted) setState(() => _tokenBalance = (tokenData['balance'] as num?)?.toDouble() ?? 0);
+      } catch (_) {}
       if (mounted) setState(() => _isLoading = false);
     } catch (e) {
       if (mounted) {
@@ -137,6 +145,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(height: 24),
               ],
               // Menu section 1 - Account
+              // Token balance card
+              _buildTokenBalanceCard(),
+              const SizedBox(height: 16),
+
               _buildMenuRow(Icons.directions_car_outlined, context.tr('profile_vehicles'),
                   trailing: _vehicleCount > 0 ? '$_vehicleCount ta' : null,
                   onTap: () => Navigator.pushNamed(context, '/cars')),
@@ -371,6 +383,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
               fontFamily: 'Mulish',
               color: AppTheme.textSecondary,
               letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTokenBalanceCard() {
+    if (!_isLoggedIn) return const SizedBox.shrink();
+    final balance = _tokenBalance.toInt();
+    final fmt = _formatNumber(balance);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0A2A3A), Color(0xFF006B8F)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: const Color(0xFF006B8F).withOpacity(0.25), blurRadius: 12, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48, height: 48,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(Icons.toll, color: Colors.white, size: 26),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('YuvGo Tokens', style: TextStyle(fontSize: 12, color: Colors.white70, fontFamily: 'Mulish', fontWeight: FontWeight.w500)),
+                const SizedBox(height: 2),
+                Text(
+                  '$fmt token',
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white, fontFamily: 'Mulish'),
+                ),
+              ],
+            ),
+          ),
+          GestureDetector(
+            onTap: () async {
+              final result = await Navigator.push(context, MaterialPageRoute(builder: (_) => const TokenTopupScreen()));
+              if (result == true && mounted) _loadProfile();
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withOpacity(0.3)),
+              ),
+              child: const Text('Toʻldirish', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white, fontFamily: 'Mulish')),
             ),
           ),
         ],

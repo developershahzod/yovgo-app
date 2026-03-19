@@ -16,11 +16,14 @@ class _TokenTopupScreenState extends State<TokenTopupScreen> {
   int? _selectedIdx;
   bool _loading = true;
   bool _processing = false;
+  final TextEditingController _customAmountCtrl = TextEditingController();
+  bool _useCustomAmount = false;
 
   @override
   void initState() {
     super.initState();
     _loadPackages();
+    _customAmountCtrl.addListener(() => setState(() {}));
   }
 
   Future<void> _loadPackages() async {
@@ -40,11 +43,32 @@ class _TokenTopupScreenState extends State<TokenTopupScreen> {
     return buf.toString().split('').reversed.join();
   }
 
+  @override
+  void dispose() {
+    _customAmountCtrl.dispose();
+    super.dispose();
+  }
+
   Future<void> _processPurchase() async {
-    if (_selectedIdx == null || _processing) return;
-    final pkg = _packages[_selectedIdx!] as Map<String, dynamic>;
-    final tokens = pkg['tokens'] as int;
-    final amountUzs = pkg['price_uzs'] as int;
+    if (_processing) return;
+    int tokens;
+    int amountUzs;
+    if (_useCustomAmount) {
+      final val = int.tryParse(_customAmountCtrl.text.replaceAll(' ', '').trim()) ?? 0;
+      if (val <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Token miqdorini kiriting'), backgroundColor: Colors.red),
+        );
+        return;
+      }
+      tokens = val;
+      amountUzs = val; // 1 token = 1 UZS
+    } else {
+      if (_selectedIdx == null) return;
+      final pkg = _packages[_selectedIdx!] as Map<String, dynamic>;
+      tokens = pkg['tokens'] as int;
+      amountUzs = pkg['price_uzs'] as int;
+    }
 
     setState(() => _processing = true);
     try {
@@ -250,6 +274,78 @@ class _TokenTopupScreenState extends State<TokenTopupScreen> {
                             itemCount: _packages.length,
                             itemBuilder: (ctx, i) => _buildPackageCard(i, _packages[i] as Map<String, dynamic>),
                           ),
+                          const SizedBox(height: 20),
+                          // Custom amount section
+                          GestureDetector(
+                            onTap: () => setState(() {
+                              _useCustomAmount = !_useCustomAmount;
+                              if (_useCustomAmount) _selectedIdx = null;
+                            }),
+                            child: Row(
+                              children: [
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 180),
+                                  width: 20, height: 20,
+                                  decoration: BoxDecoration(
+                                    color: _useCustomAmount ? const Color(0xFF0A0C13) : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(5),
+                                    border: Border.all(
+                                      color: _useCustomAmount ? const Color(0xFFFFD600) : const Color(0xFFCCCCCC),
+                                      width: 2,
+                                    ),
+                                  ),
+                                  child: _useCustomAmount
+                                      ? const Icon(Icons.check, size: 13, color: Color(0xFFFFD600))
+                                      : null,
+                                ),
+                                const SizedBox(width: 10),
+                                const Text(
+                                  'O\'z miqdorimni kiritaman',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_useCustomAmount) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF7F7F7),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: const Color(0xFFE8E8E8)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Padding(
+                                    padding: EdgeInsets.only(left: 14),
+                                    child: Icon(Icons.toll, color: Color(0xFFFFAA00), size: 20),
+                                  ),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _customAmountCtrl,
+                                      keyboardType: TextInputType.number,
+                                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Color(0xFF0A0C13)),
+                                      decoration: const InputDecoration(
+                                        hintText: 'Masalan: 5000',
+                                        hintStyle: TextStyle(color: Color(0xFFAAAAAA), fontFamily: 'Mulish'),
+                                        border: InputBorder.none,
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                                      ),
+                                    ),
+                                  ),
+                                  const Padding(
+                                    padding: EdgeInsets.only(right: 14),
+                                    child: Text('token', style: TextStyle(fontSize: 13, color: Color(0xFF8F96A0), fontFamily: 'Mulish')),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              '1 token = 1 UZS',
+                              style: TextStyle(fontSize: 12, color: Color(0xFF8F96A0), fontFamily: 'Mulish'),
+                            ),
+                          ],
                           const SizedBox(height: 16),
                           Text(
                             context.tr('tokens_topup_desc'),
@@ -358,8 +454,11 @@ class _TokenTopupScreenState extends State<TokenTopupScreen> {
   }
 
   Widget _buildBottomButton() {
-    final canPay = _selectedIdx != null;
-    final pkg = canPay ? _packages[_selectedIdx!] as Map<String, dynamic> : null;
+    final canPay = _useCustomAmount
+        ? (_customAmountCtrl.text.trim().isNotEmpty && (int.tryParse(_customAmountCtrl.text.replaceAll(' ', '').trim()) ?? 0) > 0)
+        : _selectedIdx != null;
+    final pkg = (!_useCustomAmount && _selectedIdx != null) ? _packages[_selectedIdx!] as Map<String, dynamic> : null;
+    final customTokens = _useCustomAmount ? (int.tryParse(_customAmountCtrl.text.replaceAll(' ', '').trim()) ?? 0) : 0;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -377,6 +476,16 @@ class _TokenTopupScreenState extends State<TokenTopupScreen> {
                 children: [
                   Text('${pkg['tokens']} tokens', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                   Text('${_fmt(pkg['price_uzs'])} so\'m', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                ],
+              ),
+              const SizedBox(height: 10),
+            ],
+            if (_useCustomAmount && customTokens > 0) ...[
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('$customTokens tokens', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
+                  Text('${_fmt(customTokens)} so\'m', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900, fontFamily: 'Mulish', color: Color(0xFF0A0C13))),
                 ],
               ),
               const SizedBox(height: 10),

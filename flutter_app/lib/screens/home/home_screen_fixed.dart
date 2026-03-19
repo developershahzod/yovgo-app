@@ -1903,14 +1903,14 @@ extension HomeScreenMethods on _HomeScreenFixedState {
           width: double.infinity,
           decoration: BoxDecoration(
             gradient: const LinearGradient(
-              colors: [Color(0xFFFFD600), Color(0xFFFFAA00)],
+              colors: [Color(0xFF0A2A3A), Color(0xFF006B8F)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFFFFD600).withOpacity(0.35),
+                color: const Color(0xFF006B8F).withOpacity(0.35),
                 blurRadius: 16,
                 offset: const Offset(0, 6),
               ),
@@ -1926,7 +1926,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                     color: const Color(0xFF0A0C13),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: const Icon(Icons.local_car_wash, color: Color(0xFFFFD600), size: 28),
+                  child: const Icon(Icons.local_car_wash, color: Color(0xFF00CFFF), size: 28),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -1936,7 +1936,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                       Text(
                         title,
                         style: const TextStyle(
-                          color: Color(0xFF0A0C13),
+                          color: Colors.white,
                           fontSize: 17,
                           fontWeight: FontWeight.w900,
                           fontFamily: 'Mulish',
@@ -1947,7 +1947,7 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                       Text(
                         subtitle,
                         style: TextStyle(
-                          color: const Color(0xFF0A0C13).withOpacity(0.65),
+                          color: Colors.white.withOpacity(0.70),
                           fontSize: 12,
                           fontFamily: 'Mulish',
                         ),
@@ -1959,13 +1959,14 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0A0C13),
+                    color: Colors.white.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.white.withOpacity(0.3)),
                   ),
                   child: Text(
                     btnLabel,
                     style: const TextStyle(
-                      color: Color(0xFFFFD600),
+                      color: Colors.white,
                       fontSize: 13,
                       fontWeight: FontWeight.w800,
                       fontFamily: 'Mulish',
