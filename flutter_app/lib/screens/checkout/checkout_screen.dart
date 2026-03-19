@@ -429,6 +429,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     hintText: context.tr('promo_enter'),
                     hintStyle: const TextStyle(fontSize: 15, color: Color(0xFFCCCCCC), fontFamily: 'Mulish', fontWeight: FontWeight.w400),
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
                     isDense: true,
                     contentPadding: const EdgeInsets.symmetric(vertical: 10),
                   ),
@@ -481,7 +485,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _buildPaymentInfo() {
     final price = _plan?['price'] ?? 0;
     final priceUzs = double.tryParse(price.toString()) ?? 0.0;
-    final tokensNeeded = (priceUzs / 1000);
+    final tokensNeeded = priceUzs;
     final hasEnoughTokens = _tokenBalance >= tokensNeeded;
 
     return Column(

@@ -2107,13 +2107,13 @@ async def ipakyuli_webhook(
 
 # ═══════════════════════════════════════════════════════════════
 # YUVGO TOKEN SYSTEM
-# 1 YuvGo Token = 1,000 UZS
+# 1 YuvGo Token = 1 UZS
 # ═══════════════════════════════════════════════════════════════
 
-TOKEN_TO_UZS = 1000  # 1 token = 1,000 UZS
+TOKEN_TO_UZS = 1  # 1 token = 1 UZS
 
 class TokenTopupRequest(BaseModel):
-    tokens: int  # number of tokens to buy (e.g. 50 → 50,000 UZS)
+    tokens: int  # number of tokens to buy (e.g. 50 → 50 UZS)
 
 class TokenPaySubscriptionRequest(BaseModel):
     plan_id: str
@@ -2391,12 +2391,12 @@ async def get_token_packages(
 ):
     """Get available token top-up packages"""
     packages = [
-        {"id": "tok_10",   "tokens": 10,   "price_uzs": 10000,   "label": "10 token",  "bonus": 0,  "popular": False},
-        {"id": "tok_50",   "tokens": 50,   "price_uzs": 50000,   "label": "50 token",  "bonus": 0,  "popular": False},
-        {"id": "tok_100",  "tokens": 100,  "price_uzs": 100000,  "label": "100 token", "bonus": 5,  "popular": True},
-        {"id": "tok_300",  "tokens": 300,  "price_uzs": 300000,  "label": "300 token", "bonus": 20, "popular": False},
-        {"id": "tok_500",  "tokens": 500,  "price_uzs": 500000,  "label": "500 token", "bonus": 50, "popular": False},
-        {"id": "tok_1000", "tokens": 1000, "price_uzs": 1000000, "label": "1000 token","bonus": 150,"popular": False},
+        {"id": "tok_10000",  "tokens": 10000,  "price_uzs": 10000,  "label": "10 000 token",  "bonus": 0,   "popular": False},
+        {"id": "tok_50000",  "tokens": 50000,  "price_uzs": 50000,  "label": "50 000 token",  "bonus": 0,   "popular": False},
+        {"id": "tok_100000", "tokens": 100000, "price_uzs": 100000, "label": "100 000 token", "bonus": 5000,  "popular": True},
+        {"id": "tok_300000", "tokens": 300000, "price_uzs": 300000, "label": "300 000 token", "bonus": 20000, "popular": False},
+        {"id": "tok_500000", "tokens": 500000, "price_uzs": 500000, "label": "500 000 token", "bonus": 50000, "popular": False},
+        {"id": "tok_1000000","tokens": 1000000,"price_uzs": 1000000,"label": "1 000 000 token","bonus": 150000,"popular": False},
     ]
     return {"success": True, "packages": packages, "token_to_uzs": TOKEN_TO_UZS}
 

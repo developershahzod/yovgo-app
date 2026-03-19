@@ -327,10 +327,11 @@ class _HomeScreenFixedState extends State<HomeScreenFixed> {
                 if (_hasSubscription) const SizedBox(height: 16),
                 _safeWidget(_buildWeatherWidget, label: 'weather'),
                 const SizedBox(height: 16),
-                if (!_hasSubscription) _safeWidget(_buildSubscriptionBanner, label: 'subBanner'),
+                if (!_hasSubscription) _safeWidget(
+                  () => (_starterPlan != null || _promoPlan != null) ? _buildYellowBanner() : _buildStaticBanner(),
+                  label: 'banner',
+                ),
                 if (!_hasSubscription) const SizedBox(height: 16),
-                if (!_hasSubscription && _starterPlan != null) _safeWidget(_buildStarterPromoBanner, label: 'starterBanner'),
-                if (!_hasSubscription && _starterPlan != null) const SizedBox(height: 16),
                 _safeWidget(_buildCategoriesSection, label: 'categories'),
                 const SizedBox(height: 24),
                 _safeWidget(_buildNearestCarWashesSection, label: 'nearbyWashes'),
@@ -1848,24 +1849,51 @@ extension HomeScreenMethods on _HomeScreenFixedState {
     );
   }
 
-  Widget _buildStarterPromoBanner() {
-    final plan = _starterPlan!;
+  Widget _buildYellowBanner() {
+    final plan = _starterPlan ?? _promoPlan!;
     final price = num.tryParse(plan['price']?.toString() ?? '0') ?? 0;
-    final maxUsers = plan['max_users'] ?? 1000;
     String lang = 'uz';
     try { lang = Provider.of<LanguageProvider>(context, listen: false).languageCode; } catch (_) {}
 
-    final title = lang == 'ru'
-        ? '1 мойка за ${_formatPrice(price)} сум!'
-        : lang == 'en'
-            ? '1 wash for ${_formatPrice(price)} UZS!'
-            : "1 ta moyka — ${_formatPrice(price)} so'm!";
-    final subtitle = lang == 'ru'
-        ? 'Только для новых пользователей · Лимит: $maxUsers'
-        : lang == 'en'
-            ? 'New users only · Limit: $maxUsers'
-            : "Faqat yangi foydalanuvchilar · Limit: $maxUsers ta";
-    final btnLabel = lang == 'ru' ? 'Попробовать' : lang == 'en' ? 'Try now' : 'Sinab ko\'ring';
+    final isStarter = _starterPlan != null;
+    final String title;
+    final String subtitle;
+    final String btnLabel;
+
+    if (isStarter) {
+      title = lang == 'ru'
+          ? '1 мойка за ${_formatPrice(price)} сум!'
+          : lang == 'en'
+              ? '1 wash for ${_formatPrice(price)} UZS!'
+              : "1 ta moyka — ${_formatPrice(price)} so'm!";
+      subtitle = lang == 'ru'
+          ? 'Только для новых пользователей · Попробуйте сейчас'
+          : lang == 'en'
+              ? 'New users only · Try it now'
+              : "Yangi foydalanuvchilar uchun · Hoziroq sinab ko'ring";
+      btnLabel = lang == 'ru' ? 'Попробовать' : lang == 'en' ? 'Try now' : 'Sinab ko\'ring';
+    } else {
+      final days = plan['duration_days'] ?? 90;
+      String name;
+      if (lang == 'ru' && (plan['name_ru'] ?? '').toString().isNotEmpty) {
+        name = plan['name_ru'];
+      } else if (lang == 'en' && (plan['name_en'] ?? '').toString().isNotEmpty) {
+        name = plan['name_en'];
+      } else {
+        name = plan['name'] ?? '';
+      }
+      title = lang == 'ru'
+          ? 'Подпишитесь и экономьте!'
+          : lang == 'en'
+              ? 'Subscribe and save!'
+              : "Obuna bo'ling va tejang!";
+      subtitle = lang == 'ru'
+          ? '$name · ${_formatPrice(price)} сум'
+          : lang == 'en'
+              ? '$name · ${_formatPrice(price)} UZS'
+              : "$name · ${_formatPrice(price)} so'm";
+      btnLabel = lang == 'ru' ? 'Подписаться' : lang == 'en' ? 'Subscribe' : 'Obuna bo\'lish';
+    }
 
     return GestureDetector(
       onTap: () => Navigator.pushNamed(context, '/checkout', arguments: plan),
@@ -1892,7 +1920,6 @@ extension HomeScreenMethods on _HomeScreenFixedState {
             padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
             child: Row(
               children: [
-                // Icon
                 Container(
                   width: 52, height: 52,
                   decoration: BoxDecoration(
@@ -1902,7 +1929,6 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                   child: const Icon(Icons.local_car_wash, color: Color(0xFFFFD600), size: 28),
                 ),
                 const SizedBox(width: 14),
-                // Text
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1930,7 +1956,6 @@ extension HomeScreenMethods on _HomeScreenFixedState {
                   ),
                 ),
                 const SizedBox(width: 8),
-                // Button
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
